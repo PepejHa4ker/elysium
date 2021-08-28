@@ -1,3 +1,5 @@
+#![feature(const_trait_impl)]
+
 use crate::library::{Entry, Library};
 use crate::log::Logger;
 use anyhow::Result;
@@ -7,6 +9,8 @@ use std::ffi::{CString, NulError, OsStr};
 use std::ptr;
 use std::ptr::NonNull;
 
+pub mod command;
+pub mod input;
 pub mod interface;
 pub mod library;
 pub mod log;
