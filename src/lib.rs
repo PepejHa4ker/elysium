@@ -1,5 +1,6 @@
 #![feature(const_trait_impl)]
 
+use crate::console::Console;
 use crate::library::{Entry, Library};
 use crate::log::Logger;
 use anyhow::Result;
@@ -10,13 +11,14 @@ use std::ptr;
 use std::ptr::NonNull;
 
 pub mod command;
+pub mod console;
 pub mod input;
 pub mod interface;
 pub mod library;
 pub mod log;
 pub mod symbol;
 
-fn main() -> Result<()> {
+fn main(logger: Logger) -> Result<()> {
     tracing::info!("Initialising interfaces...");
 
     let client = Library::new(library::CLIENT)?;
@@ -36,46 +38,34 @@ fn main() -> Result<()> {
         .interfaces()
         .ok_or_else(|| anyhow::anyhow!("no interfaces"))?;
 
-    #[derive(Debug)]
-    #[repr(C)]
-    pub struct Console {
-        vtable: *const (),
-    }
-
-    impl Console {
-        pub const fn as_ptr(&self) -> *const () {
-            self as *const Self as _
-        }
-
-        pub const fn vtable(&self) -> *const *const *const () {
-            self.as_ptr() as _
-        }
-
-        pub fn write(&self, text: &str) -> Result<()> {
-            type Write =
-                unsafe extern "C" fn(this: *const (), format: *const i8, text: *const i8) -> bool;
-
-            let write: Write = unsafe { std::mem::transmute(*(*self.vtable()).offset(27)) };
-            let text = CString::new(text).map_err(|_| anyhow::anyhow!("invalid string"))?;
-
-            tracing::debug!("Console write: {:?}", &write);
-
-            unsafe { write(self.as_ptr(), "%s\0".as_ptr().cast(), text.as_ptr()) };
-
-            Ok(())
-        }
-    }
-
     let result: Option<NonNull<Console>> = interfaces.get(interface::VENGINECVAR);
-    let console = unsafe {
+    let console: &Console = unsafe {
         result
             .ok_or_else(|| anyhow::anyhow!("no interface"))?
             .as_ref()
     };
 
+    use std::sync::Arc;
+
+    //let console = Arc::new(console);
+
     tracing::debug!("Console: {:?}", &console);
 
-    console.write("hello world\n");
+    console.write(
+        concat!(
+            env!("CARGO_PKG_NAME"),
+            " v",
+            env!("CARGO_PKG_VERSION"),
+            "\n\n",
+        )
+        .as_bytes(),
+    );
+
+    console.write(b"OMG HACKED!!!\n");
+
+    //logger.set_console(console);
+
+    tracing::debug!("does this work?");
 
     Ok(())
 }
@@ -88,14 +78,14 @@ fn butterscotch_init() {
         .name(env!("CARGO_PKG_NAME").to_string())
         .spawn(move || {
             let logger = Logger::new();
-            let (non_blocking, _guard) = tracing_appender::non_blocking(logger);
+            let (non_blocking, _guard) = tracing_appender::non_blocking(logger.clone());
             let subscriber = tracing_subscriber::fmt()
                 .with_env_filter("trace")
                 .with_writer(non_blocking);
 
             tracing::subscriber::with_default(subscriber.finish(), || {
                 tracing::info!("And... we're in!");
-                tracing::info!("Main returned: {:?}", main());
+                tracing::info!("Main returned: {:?}", main(logger));
             });
         })
         .unwrap();
