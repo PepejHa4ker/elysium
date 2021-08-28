@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+
+set -e
+
+function echo_orange {
+	echo -e "\\e[33m$*\\e[0m"
+}
+
+function echo_red {
+	echo -e "\\e[31m$*\\e[0m"
+}
+
+#./uload
+
+rm -f build_id_hex
+
+# Get a Random name from the build_names file.
+BUILD_ID=$(shuf -n 1 build_names)
+
+# In case this file exists, get another one. ( checked it works )
+while [ -f "/usr/lib/${BUILD_ID}" ] || grep -q ${BUILD_ID} /proc/$(pidof csgo_linux64)/maps; do
+	BUILD_ID=$(shuf -n 1 build_names)
+done
+
+# Hexify it and put it into build_id_hex
+for (( i=0; i<${#BUILD_ID}; i++ )); do
+  printf '0x%x,\n' "'${BUILD_ID:$i:1}" >> build_id_hex
+done
+printf '0x0' >> build_id_hex
+
+cargo build --release
+
+if [ -f build_id ]; then
+    filename=$(cat build_id)
+    rm -f "$filename"
+    if [ -f "/usr/lib/${filename}" ]; then
+    	echo -e "Note: Old file found at /usr/lib/${filename}\n"
+        #doas rm "/usr/lib/${filename}"
+
+    fi
+    chmod 660 build_id
+    mv build_id build_id_old
+fi
+
+echo $BUILD_ID > build_id
+mv target/release/libbutterscotch.so  "$BUILD_ID"
+
+#strip --remove-section=.comment --strip-all "$BUILD_ID"
+patchelf --set-soname "$BUILD_ID" "$BUILD_ID" || echo_orange "Warning: your patchelf version does not support \"--set-soname\"\nConsider building from source: https://github.com/NixOS/patchelf"
+
+chmod 400 build_id # Make the build_id read-only for safety.
+
+echo "Build Completed."

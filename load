@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+
+set -e
+
+function echo_green {
+	echo -e "\\e[32m$*\\e[0m"
+}
+
+function echo_orange {
+	echo -e "\\e[33m$*\\e[0m"
+}
+
+function echo_red {
+	echo -e "\\e[31m$*\\e[0m"
+}
+
+csgo_pid=$(pidof csgo_linux64)
+if [ -z "$csgo_pid" ]; then
+    echo_red "CS:GO needs to be open before you can inject, exiting..."
+    exit 1
+fi
+
+ rm -rf /tmp/dumps
+ mkdir --mode=000 /tmp/dumps
+
+if [ ! -f build_id ]; then
+    echo "Build ID not found. Please rebuild using the './build' script."
+    exit
+fi
+
+filename=$(cat build_id)
+
+if grep -q "$filename" /proc/"$csgo_pid"/maps; then
+    echo_orange "already injected, aborting..."
+    exit
+fi
+
+echo "Injecting Build ID: $filename"
+
+echo "2" | doas tee /proc/sys/kernel/yama/ptrace_scope
+
+doas cp "$filename" "/usr/lib/${filename}"
+doas killall -19 steam
+doas killall -19 steamwebhelper
+
+lib_dir_name="lib"
+if [ $(getconf LONG_BIT) = 64 ]; then
+    lib_dir_name+="64"
+fi
+
+doas chmod 755 /usr/lib/$filename
+doas $HOME/injector/cmd/injector -n csgo_linux64 /usr/lib/$filename
+doas killall -18 steamwebhelper
+doas killall -18 steam
+doas rm -f /usr/lib/filename
