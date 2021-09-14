@@ -1,10 +1,8 @@
 use crate::input::State;
+use vek::vec::repr_c::Vec3;
 
-#[derive(Clone, Copy, Debug)]
-pub struct Angle(pub f32, pub f32, pub f32);
-
-#[derive(Clone, Copy, Debug)]
-pub struct Vector(pub f32, pub f32, pub f32);
+pub type Angle = Vec3<f32>;
+pub type Vector = Vec3<f32>;
 
 #[derive(Debug)]
 #[repr(C)]

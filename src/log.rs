@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 struct LoggerRef {
     file: File,
-    console: Option<Arc<Console>>,
+    console: Option<Console>,
 }
 
 #[derive(Clone)]
@@ -29,7 +29,7 @@ impl Logger {
         })))
     }
 
-    pub fn set_console(&self, console: Arc<Console>) {
+    pub fn set_console(&self, console: Console) {
         self.lock().console = Some(console);
     }
 

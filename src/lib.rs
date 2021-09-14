@@ -3,12 +3,14 @@
 use crate::console::Console;
 use crate::library::{Entry, Library};
 use crate::log::Logger;
-use anyhow::Result;
 use libc::{RTLD_LOCAL, RTLD_NOLOAD, RTLD_NOW};
 use libloading::os::unix;
 use std::ffi::{CString, NulError, OsStr};
 use std::ptr;
 use std::ptr::NonNull;
+
+pub(crate) type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
+pub(crate) type Result<T, E = Error> = std::result::Result<T, E>;
 
 pub mod command;
 pub mod console;
@@ -38,20 +40,22 @@ fn main(logger: Logger) -> Result<()> {
         .interfaces()
         .ok_or_else(|| anyhow::anyhow!("no interfaces"))?;
 
-    let result: Option<NonNull<Console>> = interfaces.get(interface::VENGINECVAR);
-    let console: &Console = unsafe {
-        result
-            .ok_or_else(|| anyhow::anyhow!("no interface"))?
-            .as_ref()
+    let result = interfaces.get::<()>(interface::VENGINECVAR);
+    let console = unsafe {
+        let ptr = *(result
+            .ok_or_else(|| anyhow::anyhow!("no console"))?
+            .as_ptr() as *const Console);
+
+        ptr
     };
 
-    use std::sync::Arc;
+    tracing::debug!("console {:?}", &console);
 
-    //let console = Arc::new(console);
+    console.write("nigger".as_bytes());
 
-    tracing::debug!("Console: {:?}", &console);
+    tracing::debug!("console {:?}", &console);
 
-    console.write(
+    /* console.write(
         concat!(
             env!("CARGO_PKG_NAME"),
             " v",
@@ -59,9 +63,9 @@ fn main(logger: Logger) -> Result<()> {
             "\n\n",
         )
         .as_bytes(),
-    );
+    )?;
 
-    console.write(b"OMG HACKED!!!\n");
+    console.write(b"OMG HACKED!!!\n")?;*/
 
     //logger.set_console(console);
 

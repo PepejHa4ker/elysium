@@ -27,6 +27,10 @@ version = "0.1"
 [dependencies.tracing-subscriber]
 version = "0.2"
 
+[dependencies.vek]
+features = ["repr_simd"]
+version = "0.15"
+
 [lib]
 crate-type = ["cdylib"]
 path = "src/lib.rs"

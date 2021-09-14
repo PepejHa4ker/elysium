@@ -10,6 +10,8 @@ function echo_red {
 	echo -e "\\e[31m$*\\e[0m"
 }
 
+export RUSTFLAGS='-C target-cpu=native'
+
 #./uload
 
 rm -f build_id_hex

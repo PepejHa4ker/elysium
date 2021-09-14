@@ -1,33 +1,54 @@
+use crate::Result;
 use std::ffi::CString;
-use std::mem;
+use std::ptr::NonNull;
+use std::{mem, ptr};
 
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
 pub struct Console {
-    vtable: *const (),
+    pub vtable_ref: *const *const unsafe extern "C" fn(this: *const ()),
+    pub unknown: [u8; 256],
 }
 
 impl Console {
-    pub const fn as_ptr(&self) -> *const () {
-        self as *const Self as _
-    }
+    pub fn write(&self, buf: &[u8]) -> Result<()> {
+        unsafe {
+            type Write =
+                unsafe extern "C" fn(this: *const (), format: *const i8, text: *const i8) -> bool;
 
-    pub const fn vtable(&self) -> *const *const *const () {
-        self.as_ptr() as _
-    }
+            let vtable = if self.vtable_ref.is_null() {
+                tracing::debug!("console vtable null");
 
-    pub fn write(&self, buf: &[u8]) -> anyhow::Result<()> {
-        type Write =
-            unsafe extern "C" fn(this: *const (), format: *const i8, text: *const i8) -> bool;
+                return Err("vtable null".into());
+            } else {
+                *self.vtable_ref
+            };
 
-        let write: Write = unsafe { mem::transmute(*(*self.vtable()).offset(27)) };
-        let text = CString::new(buf).map_err(|_| anyhow::anyhow!("invalid string"))?;
+            tracing::debug!("console vtable at {:?}", vtable);
 
-        tracing::debug!("Console write: {:?}", &write);
+            let method = if vtable.add(27).is_null() {
+                tracing::debug!("console vtable + 27 null");
 
-        unsafe { write(self.as_ptr(), "%s\0".as_ptr().cast(), text.as_ptr()) };
+                return Err("vtable + 27 null".into());
+            } else {
+                *vtable.add(27)
+            };
 
-        Ok(())
+            tracing::debug!("console vtable method at {:?}", method);
+
+            let write: Write = mem::transmute(method);
+            let text = CString::new(buf).map_err(|_| "invalid string")?;
+
+            tracing::debug!("console write {:?} {:?}", &write, &text);
+
+            write(
+                self as *const Self as *const (),
+                "%s\0".as_ptr().cast(),
+                text.as_ptr(),
+            );
+
+            Ok(())
+        }
     }
 }
 
