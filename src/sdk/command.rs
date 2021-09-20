@@ -1,8 +1,5 @@
-use crate::input::State;
-use vek::vec::repr_c::Vec3;
-
-pub type Angle = Vec3<f32>;
-pub type Vector = Vec3<f32>;
+use super::input::State;
+use super::{Angle, Vector};
 
 #[derive(Debug)]
 #[repr(C)]

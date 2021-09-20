@@ -1,12 +1,13 @@
 use crate::symbol;
-use anyhow::Result;
+use crate::Result;
+use daisy_chain::{Chain, ChainIter};
 use libc::{RTLD_LOCAL, RTLD_NOLOAD, RTLD_NOW};
 use libloading::os::unix;
 use std::ffi::{CStr, CString, NulError, OsStr};
 use std::fs::OpenOptions;
 use std::marker::PhantomData;
-use std::ptr;
 use std::ptr::NonNull;
+use std::{fmt, ptr};
 
 pub const CLIENT: &str = "./csgo/bin/linux64/client_client.so\0";
 pub const ENGINE: &str = "./bin/linux64/engine_client.so\0";
@@ -21,79 +22,71 @@ pub const VGUIMATSURFACE: &str = "./bin/linux64/vguimatsurface_client.so\0";
 pub const VGUI2: &str = "./bin/linux64/vgui2_client.so\0";
 pub const VPHYSICS: &str = "./bin/linux64/vphysics_client.so\0";
 
-/// Entry within the linked list of interfaces
-#[derive(Clone, Copy, Debug)]
+/// An interface.
 #[repr(C)]
-pub struct Entry<'a> {
-    borrow: extern "C" fn() -> Option<NonNull<()>>,
-    name: Option<NonNull<libc::c_char>>,
-    next: Option<NonNull<Entry<'a>>>,
+pub struct Interface<'a> {
+    new: unsafe extern "C" fn() -> *mut usize,
+    name: *const libc::c_char,
+    next: *mut Interface<'a>,
     _phantom: PhantomData<&'a ()>,
 }
 
-impl<'a> Entry<'a> {
-    pub fn borrow<T>(&'a self) -> Option<NonNull<T>> {
-        let borrow = self.borrow;
-
-        borrow().map(|ptr| ptr.cast::<T>())
-    }
-
-    pub fn raw_name(&'a self) -> Option<&'a CStr> {
-        self.name
-            .map(|name| unsafe { CStr::from_ptr(name.as_ptr()) })
-    }
-
-    pub fn name(&'a self) -> Option<&'a str> {
-        self.raw_name().and_then(|name| name.to_str().ok())
-    }
-
-    pub fn next(&'a self) -> Option<Entry<'a>> {
-        self.next.map(|entry| unsafe { *entry.as_ptr() })
+impl<'a> fmt::Debug for Interface<'a> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("Interface")
+            .field("new", &self.new)
+            .field("name", unsafe { &CStr::from_ptr(self.name) })
+            .finish()
     }
 }
 
-/// Linked list of interfaces
-#[derive(Clone, Copy, Debug)]
-#[repr(C)]
+type Next<'a> = fn(&Interface<'a>) -> *mut Interface<'a>;
+
+fn next<'a>(interface: &Interface<'a>) -> *mut Interface<'a> {
+    interface.next
+}
+
+/// Linked list of interfaces.
+#[derive(Debug)]
 pub struct Interfaces<'a> {
-    entry: Entry<'a>,
+    inner: Chain<Interface<'a>, Next<'a>>,
 }
 
 impl<'a> Interfaces<'a> {
-    pub fn iter(&self) -> InterfaceIter<'a> {
-        InterfaceIter {
-            entry: Some(self.entry),
-        }
+    pub const unsafe fn from_ptr(head: *mut Interface<'a>) -> Self {
+        let inner = Chain::from_ptr(head, next as Next<'a>);
+
+        Self { inner }
     }
 
-    pub fn get<T>(&self, name: &str) -> Option<NonNull<T>> {
-        for interface in self.iter() {
-            if let Some(interface_name) = interface.name() {
-                tracing::debug!("{} -> {:?}", interface_name, interface);
+    pub const fn iter(&'a self) -> InterfaceIter<'a> {
+        let inner = self.inner.iter();
 
+        InterfaceIter { inner }
+    }
+
+    pub fn get<T>(&'a self, name: &str) -> *const T {
+        for interface in self.iter() {
+            /*if let Some(interface_name) = interface.name() {
                 if interface_name.starts_with(name) {
                     return interface.borrow();
                 }
-            }
+            }*/
         }
 
-        None
+        ptr::null()
     }
 }
 
 pub struct InterfaceIter<'a> {
-    entry: Option<Entry<'a>>,
+    inner: ChainIter<'a, Interface<'a>, Next<'a>>,
 }
 
 impl<'a> Iterator for InterfaceIter<'a> {
-    type Item = Entry<'a>;
+    type Item = &'a Interface<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let entry = self.entry?;
-
-        self.entry = unsafe { std::mem::transmute(entry.next()) };
-
-        Some(unsafe { std::mem::transmute(entry) })
+        self.inner.next()
     }
 }
 
@@ -102,8 +95,6 @@ pub struct Library<'a> {
     library: unix::Library,
     _phantom: PhantomData<&'a ()>,
 }
-
-type Pointer<T> = Option<NonNull<T>>;
 
 impl<'a> Library<'a> {
     /// Open a library by `name`
@@ -130,20 +121,24 @@ impl<'a> Library<'a> {
         })
     }
 
-    fn get<T>(&self, symbol: &str) -> Pointer<T> {
-        let pointer = unsafe { self.library.get::<T>(symbol.as_bytes()).ok()?.into_raw() };
-
-        NonNull::new(pointer.cast::<T>())
+    unsafe fn get<T>(&self, symbol: &str) -> *const T {
+        if let Ok(symbol) = self.library.get::<T>(symbol.as_bytes()) {
+            symbol.into_raw() as *const T
+        } else {
+            ptr::null()
+        }
     }
 
     pub fn interfaces(&'a self) -> Option<Interfaces<'a>> {
-        tracing::debug!("Loading symbol {:?}...", symbol::INTERFACES);
+        let symbol = unsafe { self.get::<*mut Interface<'a>>(symbol::INTERFACES) };
 
-        let symbol = self.get::<Pointer<Interfaces<'a>>>(symbol::INTERFACES)?;
-        let pointer = unsafe { *symbol.as_ptr() };
-        let interfaces = unsafe { *pointer?.as_ptr() };
+        if symbol.is_null() {
+            return None;
+        }
 
-        tracing::debug!("Loaded symbol {:?}: {:?}", symbol::INTERFACES, interfaces);
+        let interfaces = unsafe { Interfaces::from_ptr(*symbol) };
+
+        tracing::debug!("{:?}", &interfaces);
 
         Some(interfaces)
     }

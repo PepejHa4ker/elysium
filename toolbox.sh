@@ -1,55 +1,139 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
-set -e
+gdb="$(dirname "$0")/gdb" # For using a gdb build such as the cathook one (The one included)
+libname="libgamemodeauto.so.0" # Pretend to be gamemode, change this to another lib that may be in /maps (if already using real gamemode, I'd suggest using libMangoHud.so)
+csgo_pid=$(pidof csgo_linux64)
 
-function echo_orange {
-	echo -e "\\e[33m$*\\e[0m"
-}
+# Set to true to compile with clang. (if changing to true, make sure to delete the build directory from gcc)
+export USE_CLANG="false"
 
-function echo_red {
-	echo -e "\\e[31m$*\\e[0m"
-}
-
-export RUSTFLAGS='-C target-cpu=native'
-
-#./uload
-
-rm -f build_id_hex
-
-# Get a Random name from the build_names file.
-BUILD_ID=$(shuf -n 1 build_names)
-
-# In case this file exists, get another one. ( checked it works )
-while [ -f "/usr/lib/${BUILD_ID}" ] || grep -q ${BUILD_ID} /proc/$(pidof csgo_linux64)/maps; do
-	BUILD_ID=$(shuf -n 1 build_names)
-done
-
-# Hexify it and put it into build_id_hex
-for (( i=0; i<${#BUILD_ID}; i++ )); do
-  printf '0x%x,\n' "'${BUILD_ID:$i:1}" >> build_id_hex
-done
-printf '0x0' >> build_id_hex
-
-cargo build --release
-
-if [ -f build_id ]; then
-    filename=$(cat build_id)
-    rm -f "$filename"
-    if [ -f "/usr/lib/${filename}" ]; then
-    	echo -e "Note: Old file found at /usr/lib/${filename}\n"
-        #doas rm "/usr/lib/${filename}"
-
-    fi
-    chmod 660 build_id
-    mv build_id build_id_old
+if [[ $EUID -eq 0 ]]; then
+    echo "You cannot run this as root." 
+    exit 1
 fi
 
-echo $BUILD_ID > build_id
-mv target/release/libbutterscotch.so  "$BUILD_ID"
+rm -rf /tmp/dumps
+mkdir -p --mode=000 /tmp/dumps
 
-#strip --remove-section=.comment --strip-all "$BUILD_ID"
-patchelf --set-soname "$BUILD_ID" "$BUILD_ID" || echo_orange "Warning: your patchelf version does not support \"--set-soname\"\nConsider building from source: https://github.com/NixOS/patchelf"
+function unload {
+    echo "Unloading cheat..."
+    echo 0 | doas tee /proc/sys/kernel/yama/ptrace_scope
+    if grep -q "$libname" "/proc/$csgo_pid/maps"; then
+        $gdb -n -q -batch -ex "attach $csgo_pid" \
+            -ex "set \$dlopen = (void*(*)(char*, int)) dlopen" \
+            -ex "set \$dlclose = (int(*)(void*)) dlclose" \
+            -ex "set \$library = \$dlopen(\"/usr/lib/$libname\", 6)" \
+            -ex "call \$dlclose(\$library)" \
+            -ex "call \$dlclose(\$library)" \
+            -ex "detach" \
+            -ex "quit"
+    fi
+    echo "Unloaded!"
+}
 
-chmod 400 build_id # Make the build_id read-only for safety.
+function load {
+    echo "Loading cheat..."
+    echo 0 | doas tee /proc/sys/kernel/yama/ptrace_scope > /dev/null
+    doas cp target/release/libprovidence.so /usr/lib/$libname
+    gdbOut=$(
+      $gdb -n -q -batch \
+      -ex "set auto-load safe-path /usr/lib/" \
+      -ex "attach $csgo_pid" \
+      -ex "set \$dlopen = (void*(*)(char*, int)) dlopen" \
+      -ex "call \$dlopen(\"/usr/lib/$libname\", 1)" \
+      -ex "detach" \
+      -ex "quit" 2> /dev/null
+    )
+    lastLine="${gdbOut##*$'\n'}"
+    if [[ "$lastLine" != "\$1 = (void *) 0x0" ]]; then
+      echo "Successfully injected!"
+    else
+      echo "Injection failed, make sure you have compiled."
+    fi
+}
 
-echo "Build Completed."
+function load_debug {
+    echo "Loading cheat..."
+    echo 0 | doas tee /proc/sys/kernel/yama/ptrace_scope
+    doas cp target/debug/libprovidence.so /usr/lib/$libname
+    $gdb -n -q -batch \
+        -ex "set auto-load safe-path /usr/lib:/usr/lib/" \
+        -ex "attach $csgo_pid" \
+        -ex "set \$dlopen = (void*(*)(char*, int)) dlopen" \
+        -ex "call \$dlopen(\"/usr/lib/$libname\", 1)" \
+        -ex "detach" \
+        -ex "quit"
+    $gdb -p "$csgo_pid"
+    echo "Successfully loaded!"
+}
+
+function build {
+    echo "Building cheat..."
+    cargo build --release
+}
+
+function build_debug {
+    echo "Building cheat..."
+    cargo build
+}
+
+function pull {
+    git pull
+}
+
+while [[ $# -gt 0 ]]
+do
+keys="$1"
+case $keys in
+    -u|--unload)
+        unload
+        shift
+        ;;
+    -l|--load)
+        load
+        shift
+        ;;
+    -ld|--load_debug)
+        load_debug
+        shift
+        ;;
+    -b|--build)
+        build
+        shift
+        ;;
+    -bd|--build_debug)
+        build_debug
+        shift
+        ;;
+    -p|--pull)
+        pull
+        shift
+        ;;
+    -h|--help)
+        echo "
+ help
+Toolbox script for providence the beste lincuck cheat 2021
+=======================================================================
+| Argument             | Description                                  |
+| -------------------- | -------------------------------------------- |
+| -u (--unload)        | Unload the cheat from CS:GO if loaded.       |
+| -l (--load)          | Load/inject the cheat via gdb.               |
+| -ld (--load_debug)   | Load/inject the cheat and debug via gdb.     |
+| -b (--build)         | Build to the build/ dir.                     |
+| -bd (--build_debug)  | Build to the build/ dir as debug.            |
+| -p (--pull)          | Update the cheat.                            |
+| -h (--help)          | Show help.                                   |
+=======================================================================
+
+All args are executed in the order they are written in, for
+example, \"-p -u -b -l\" would update the cheat, then unload, then build it, and
+then load it back into csgo.
+"
+        exit
+        ;;
+    *)
+        echo "Unknown arg $1, use -h for help"
+        exit
+        ;;
+esac
+done

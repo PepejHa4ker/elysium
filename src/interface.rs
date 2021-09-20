@@ -1,4 +1,4 @@
-pub const VCLIENT: &str = "VCLient";
+pub const VCLIENT: &str = "VClient";
 pub const VENGINECLIENT: &str = "VEngineClient";
 pub const VCLIENTENTITYLIST: &str = "VClientEntityList";
 pub const VGUISURFACE: &str = "VGUI_Surface";

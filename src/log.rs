@@ -7,7 +7,6 @@ use std::sync::Arc;
 
 struct LoggerRef {
     file: File,
-    console: Option<Console>,
 }
 
 #[derive(Clone)]
@@ -23,14 +22,7 @@ impl Logger {
             .open(concat!(env!("CARGO_MANIFEST_DIR"), "/log"))
             .unwrap();
 
-        Self(Arc::new(RwLock::new(LoggerRef {
-            file,
-            console: None,
-        })))
-    }
-
-    pub fn set_console(&self, console: Console) {
-        self.lock().console = Some(console);
+        Self(Arc::new(RwLock::new(LoggerRef { file })))
     }
 
     fn lock(&self) -> RwLockWriteGuard<'_, LoggerRef> {
@@ -40,10 +32,6 @@ impl Logger {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let mut lock = self.lock();
         let written = lock.file.write(buf)?;
-
-        if let Some(console) = lock.console.as_ref() {
-            console.write(buf);
-        }
 
         lock.file.flush()?;
 

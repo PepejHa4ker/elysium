@@ -1,5 +1,3 @@
-use std::ops::BitAnd;
-
 pub const MAX_SPLITSCREEN_CLIENT_BITS: u32 = 2;
 pub const MAX_SPLITSCREEN_CLIENTS: u32 = 4;
 

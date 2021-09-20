@@ -1,9 +1,3 @@
-/build_id
-/build_id_hex
-/build_id_old
 /Cargo.lock
-/gdb.txt
 /log
 /target
-/*.so
-/*.so.tmp*

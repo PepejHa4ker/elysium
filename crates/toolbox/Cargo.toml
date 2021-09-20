@@ -1,0 +1,17 @@
+[package]
+name    = "toolbox"
+version = "0.0.0"
+edition = "2018"
+
+[dependencies.clap]
+version = "3.0.0-beta.4"
+
+[dependencies.libc]
+version = "0.2"
+
+[dependencies.sysinfo]
+version = "0.20"
+
+[dependencies.tokio]
+features = ["rt", "time"]
+version = "1.10"

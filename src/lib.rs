@@ -1,7 +1,15 @@
+#![allow(dead_code)]
+#![allow(non_snake_case)]
+#![allow(unreachable_patterns)]
+#![allow(unused_imports)]
+#![allow(unused_must_use)]
+#![allow(unused_mut)]
+#![allow(unused_variables)]
 #![feature(const_trait_impl)]
+#![feature(const_fn_fn_ptr_basics)]
 
 use crate::console::Console;
-use crate::library::{Entry, Library};
+use crate::library::Library;
 use crate::log::Logger;
 use libc::{RTLD_LOCAL, RTLD_NOLOAD, RTLD_NOW};
 use libloading::os::unix;
@@ -9,15 +17,16 @@ use std::ffi::{CString, NulError, OsStr};
 use std::ptr;
 use std::ptr::NonNull;
 
-pub(crate) type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
-pub(crate) type Result<T, E = Error> = std::result::Result<T, E>;
+pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
+pub type Result<T, E = Error> = std::result::Result<T, E>;
 
-pub mod command;
 pub mod console;
-pub mod input;
+pub mod error;
+pub mod hooks;
 pub mod interface;
 pub mod library;
 pub mod log;
+pub mod sdk;
 pub mod symbol;
 
 fn main(logger: Logger) -> Result<()> {
@@ -38,44 +47,20 @@ fn main(logger: Logger) -> Result<()> {
 
     let interfaces = materialsystem
         .interfaces()
-        .ok_or_else(|| anyhow::anyhow!("no interfaces"))?;
+        .ok_or(String::from("no interfaces"))?;
 
-    let result = interfaces.get::<()>(interface::VENGINECVAR);
-    let console = unsafe {
-        let ptr = *(result
-            .ok_or_else(|| anyhow::anyhow!("no console"))?
-            .as_ptr() as *const Console);
-
-        ptr
-    };
+    let result = interfaces.get::<*const Console>(interface::VENGINECVAR);
+    let console = unsafe { **result };
 
     tracing::debug!("console {:?}", &console);
 
     console.write("nigger".as_bytes());
 
-    tracing::debug!("console {:?}", &console);
-
-    /* console.write(
-        concat!(
-            env!("CARGO_PKG_NAME"),
-            " v",
-            env!("CARGO_PKG_VERSION"),
-            "\n\n",
-        )
-        .as_bytes(),
-    )?;
-
-    console.write(b"OMG HACKED!!!\n")?;*/
-
-    //logger.set_console(console);
-
-    tracing::debug!("does this work?");
-
     Ok(())
 }
 
 #[ctor::ctor]
-fn butterscotch_init() {
+fn providence_init() {
     use std::thread;
 
     thread::Builder::new()

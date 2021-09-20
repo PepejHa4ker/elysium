@@ -1,5 +1,3 @@
-use std::ops::BitAnd;
-
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
 pub struct Mouse(u32);
