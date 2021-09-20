@@ -1,33 +1,34 @@
-use crate::Result;
 use std::ffi::CString;
-use std::ptr::NonNull;
-use std::{mem, ptr};
+use std::mem;
 
-#[derive(Clone, Copy, Debug)]
-#[repr(C)]
+#[derive(Clone)]
 pub struct Console {
     this: *const usize,
 }
 
 impl Console {
-    fn this(&self) -> *const usize {
-        self as *const Self as *const usize
+    pub fn from_ptr(ptr: *const usize) -> Self {
+        Self { this: ptr }
     }
 
-    pub fn write(&self, buf: &[u8]) {
+    /// Returns a pointer to the underlying interface.
+    pub fn as_ptr(&self) -> *const usize {
+        self.this
+    }
+
+    pub fn write(&self, buf: impl Into<Vec<u8>>) {
+        type Write =
+            unsafe extern "C" fn(this: *const usize, format: *const i8, text: *const i8) -> bool;
+
+        let method = unsafe { vmt::get(self.as_ptr(), 27) };
+        let write: Write = unsafe { mem::transmute(method) };
+        let text = CString::new(buf).unwrap();
+
         unsafe {
-            type Write = unsafe extern "C" fn(
-                this: *const usize,
-                format: *const i8,
-                text: *const i8,
-            ) -> bool;
-
-            let method = vmt::get(self.this, 27);
-            tracing::debug!("method {:?}", method);
-            let write: Write = mem::transmute(method);
-            let text = CString::new(buf).unwrap();
-
-            write(self.this(), "%s\0".as_ptr().cast(), text.as_ptr());
+            write(self.as_ptr(), "%s\0".as_ptr().cast(), text.as_ptr());
         }
     }
 }
+
+unsafe impl Send for Console {}
+unsafe impl Sync for Console {}

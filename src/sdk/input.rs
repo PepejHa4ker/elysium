@@ -1,32 +1,33 @@
-mod button;
-mod joystick;
-mod mouse;
-mod state;
+use std::mem;
 
 pub use self::button::Button;
 pub use self::joystick::Joystick;
 pub use self::mouse::Mouse;
 pub use self::state::State;
 
+mod button;
+mod joystick;
+mod mouse;
+mod state;
+
 #[derive(Debug)]
 #[repr(C)]
-pub struct Input(*const ());
+pub struct Input {
+    this: *const usize,
+}
 
 impl Input {
-    pub const fn as_ptr(&self) -> *const () {
-        self as *const Self as _
-    }
-
-    pub const fn vtable(&self) -> *const *const *const () {
-        self.as_ptr() as _
+    fn this(&self) -> *const usize {
+        self as *const Self as *const usize
     }
 
     pub fn is_button_down(&self, button: Button) -> bool {
-        type IsButtonDown = unsafe extern "C" fn(this: *const (), button: Button) -> bool;
+        type IsButtonDown = unsafe extern "C" fn(this: *const usize, button: Button) -> bool;
 
-        let is_button_down: IsButtonDown =
-            unsafe { std::mem::transmute(*(*self.vtable()).offset(15)) };
+        let method = unsafe { vmt::get(self.this(), 15) };
+        tracing::debug!("method {:?}", method);
+        let is_button_down: IsButtonDown = unsafe { mem::transmute(method) };
 
-        unsafe { is_button_down(self.as_ptr(), button) }
+        unsafe { is_button_down(self.this(), button) }
     }
 }

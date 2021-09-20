@@ -14,8 +14,8 @@ use crate::log::Logger;
 use libc::{RTLD_LOCAL, RTLD_NOLOAD, RTLD_NOW};
 use libloading::os::unix;
 use std::ffi::{CString, NulError, OsStr};
-use std::ptr;
 use std::ptr::NonNull;
+use std::{mem, ptr};
 
 pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -47,14 +47,13 @@ fn main(logger: Logger) -> Result<()> {
 
     let interfaces = materialsystem
         .interfaces()
-        .ok_or(String::from("no interfaces"))?;
+        .ok_or_else(|| String::from("no interfaces"))?;
 
-    let result = interfaces.get::<*const Console>(interface::VENGINECVAR);
-    let console = unsafe { **result };
+    let console = Console::from_ptr(interfaces.get::<usize>(interface::VENGINECVAR));
 
-    tracing::debug!("console {:?}", &console);
+    console.write("fuck niggers\n");
 
-    console.write("nigger".as_bytes());
+    logger.set_console(console);
 
     Ok(())
 }
@@ -69,8 +68,11 @@ fn providence_init() {
             let logger = Logger::new();
             let (non_blocking, _guard) = tracing_appender::non_blocking(logger.clone());
             let subscriber = tracing_subscriber::fmt()
-                .with_env_filter("trace")
-                .with_writer(non_blocking);
+                .with_ansi(false)
+                .with_level(false)
+                .with_max_level(tracing::Level::TRACE)
+                .with_writer(non_blocking)
+                .without_time();
 
             tracing::subscriber::with_default(subscriber.finish(), || {
                 tracing::info!("And... we're in!");

@@ -26,16 +26,28 @@ pub const VPHYSICS: &str = "./bin/linux64/vphysics_client.so\0";
 #[repr(C)]
 pub struct Interface<'a> {
     new: unsafe extern "C" fn() -> *mut usize,
-    name: *const libc::c_char,
+    name: Option<&'a spirit::Str>,
     next: *mut Interface<'a>,
     _phantom: PhantomData<&'a ()>,
+}
+
+impl<'a> Interface<'a> {
+    pub fn new<T>(&self) -> *const T {
+        let new = self.new;
+
+        unsafe { new() as *const T }
+    }
+
+    pub fn name(&self) -> Option<&str> {
+        self.name.map(spirit::Str::as_str)
+    }
 }
 
 impl<'a> fmt::Debug for Interface<'a> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("Interface")
             .field("new", &self.new)
-            .field("name", unsafe { &CStr::from_ptr(self.name) })
+            .field("name", &self.name)
             .finish()
     }
 }
@@ -67,11 +79,13 @@ impl<'a> Interfaces<'a> {
 
     pub fn get<T>(&'a self, name: &str) -> *const T {
         for interface in self.iter() {
-            /*if let Some(interface_name) = interface.name() {
+            if let Some(interface_name) = interface.name() {
                 if interface_name.starts_with(name) {
-                    return interface.borrow();
+                    tracing::debug!("{:?} matches {:?}", &interface, &name);
+
+                    return interface.new();
                 }
-            }*/
+            }
         }
 
         ptr::null()

@@ -1,4 +1,4 @@
-pub const SKYBOXE: [&str; 27] = [
+pub const SKYBOXES: [&str; 27] = [
     "None",
     // sky_l4d_rural02_ldr
     "Black",
