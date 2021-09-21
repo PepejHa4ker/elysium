@@ -45,11 +45,68 @@ fn main(logger: Logger) -> Result<()> {
     let fs_stdio = Library::new(library::FS_STDIO)?;
     let matchmaking = Library::new(library::MATCHMAKING)?;
 
-    let interfaces = materialsystem
+    let client_interfaces = client
         .interfaces()
         .ok_or_else(|| String::from("no interfaces"))?;
 
-    let console = Console::from_ptr(interfaces.get::<usize>(interface::VENGINECVAR));
+    let engine_interfaces = engine
+        .interfaces()
+        .ok_or_else(|| String::from("no interfaces"))?;
+
+    let materialsystem_interfaces = materialsystem
+        .interfaces()
+        .ok_or_else(|| String::from("no interfaces"))?;
+
+    let vguimatsurface_interfaces = vguimatsurface
+        .interfaces()
+        .ok_or_else(|| String::from("no interfaces"))?;
+
+    let vgui2_interfaces = vgui2
+        .interfaces()
+        .ok_or_else(|| String::from("no interfaces"))?;
+
+    let inputsystem_interfaces = inputsystem
+        .interfaces()
+        .ok_or_else(|| String::from("no interfaces"))?;
+
+    let vphysics_interfaces = vphysics
+        .interfaces()
+        .ok_or_else(|| String::from("no interfaces"))?;
+
+    let localize_interfaces = localize
+        .interfaces()
+        .ok_or_else(|| String::from("no interfaces"))?;
+
+    let tier0_interfaces = tier0
+        .interfaces()
+        .ok_or_else(|| String::from("no interfaces"))?;
+
+    let panorama_interfaces = panorama
+        .interfaces()
+        .ok_or_else(|| String::from("no interfaces"))?;
+
+    let fs_stdio_interfaces = fs_stdio
+        .interfaces()
+        .ok_or_else(|| String::from("no interfaces"))?;
+
+    let matchmaking_interfaces = vgui2
+        .interfaces()
+        .ok_or_else(|| String::from("no interfaces"))?;
+
+    let console = Console::from_ptr(materialsystem_interfaces.get::<usize>(interface::VENGINECVAR));
+    let client = client_interfaces.get::<usize>(interface::VCLIENT);
+    let engine = engine_interfaces.get::<usize>(interface::VENGINECLIENT);
+    let panel = vgui2_interfaces.get::<usize>(interface::VENGINEVGUI);
+    let entity_list = client_interfaces.get::<usize>(interface::VCLIENTENTITYLIST);
+    let engine_vgui = engine_interfaces.get::<usize>(interface::VENGINEVGUI);
+    let model = engine_interfaces.get::<usize>(interface::VENGINEMODEL);
+    let model_info = engine_interfaces.get::<usize>(interface::VMODELINFOCLIENT);
+    let material_system = materialsystem_interfaces.get::<usize>(interface::VMATERIALSYSTEM);
+    let sound = engine_interfaces.get::<usize>(interface::IENGINESOUNDCLIENT);
+    let trace = engine_interfaces.get::<usize>(interface::ENGINETRACECLIENT);
+    let movement = client_interfaces.get::<usize>(interface::GAMEMOVEMENT);
+    let prediction = client_interfaces.get::<usize>(interface::VCLIENTPREDICTION);
+    let event_manager = client_interfaces.get::<usize>(interface::GAMEVENTSMANAGER);
 
     console.write("fuck niggers\n");
 
