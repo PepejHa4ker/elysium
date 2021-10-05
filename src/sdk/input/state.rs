@@ -1,6 +1,6 @@
 #[derive(Clone, Copy, Debug)]
-#[repr(C)]
-pub struct State(u32);
+#[repr(transparent)]
+pub struct State(pub i32);
 
 impl State {
     pub const ATTACK: Self = Self::new(1 << 0);
@@ -30,7 +30,7 @@ impl State {
     pub const GRENADE2: Self = Self::new(1 << 24);
     pub const ATTACK3: Self = Self::new(1 << 25);
 
-    const fn new(state: u32) -> Self {
+    const fn new(state: i32) -> Self {
         Self(state)
     }
 

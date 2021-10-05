@@ -4,7 +4,7 @@ use super::{Angle, Vector};
 #[derive(Debug)]
 #[repr(C)]
 pub struct Command {
-    vtable: *const (),
+    vtable: *const usize,
     pub command_number: i32,
     pub tick_count: i32,
     pub view_angles: Angle,

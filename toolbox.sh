@@ -4,9 +4,6 @@ gdb="$(dirname "$0")/gdb" # For using a gdb build such as the cathook one (The o
 libname="libgamemodeauto.so.0" # Pretend to be gamemode, change this to another lib that may be in /maps (if already using real gamemode, I'd suggest using libMangoHud.so)
 csgo_pid=$(pidof csgo_linux64)
 
-# Set to true to compile with clang. (if changing to true, make sure to delete the build directory from gcc)
-export USE_CLANG="false"
-
 if [[ $EUID -eq 0 ]]; then
     echo "You cannot run this as root." 
     exit 1
@@ -17,9 +14,9 @@ mkdir -p --mode=000 /tmp/dumps
 
 function unload {
     echo "Unloading cheat..."
-    echo 0 | doas tee /proc/sys/kernel/yama/ptrace_scope
+    echo 2 | doas tee /proc/sys/kernel/yama/ptrace_scope
     if grep -q "$libname" "/proc/$csgo_pid/maps"; then
-        $gdb -n -q -batch -ex "attach $csgo_pid" \
+        doas $gdb -n -q -batch -ex "attach $csgo_pid" \
             -ex "set \$dlopen = (void*(*)(char*, int)) dlopen" \
             -ex "set \$dlclose = (int(*)(void*)) dlclose" \
             -ex "set \$library = \$dlopen(\"/usr/lib/$libname\", 6)" \
@@ -33,10 +30,10 @@ function unload {
 
 function load {
     echo "Loading cheat..."
-    echo 0 | doas tee /proc/sys/kernel/yama/ptrace_scope > /dev/null
-    doas cp target/release/libprovidence.so /usr/lib/$libname
+    echo 2 | doas tee /proc/sys/kernel/yama/ptrace_scope > /dev/null
+    doas inject -n csgo_linux64 target/release/libprovidence.so
     gdbOut=$(
-      $gdb -n -q -batch \
+    doas $gdb -n -q -batch \
       -ex "set auto-load safe-path /usr/lib/" \
       -ex "attach $csgo_pid" \
       -ex "set \$dlopen = (void*(*)(char*, int)) dlopen" \
@@ -54,9 +51,9 @@ function load {
 
 function load_debug {
     echo "Loading cheat..."
-    echo 0 | doas tee /proc/sys/kernel/yama/ptrace_scope
-    doas cp target/debug/libprovidence.so /usr/lib/$libname
-    $gdb -n -q -batch \
+    echo 2 | doas tee /proc/sys/kernel/yama/ptrace_scope
+    doas inject -n csgo_linux64 target/release/libprovidence.so
+    doas $gdb -n -q -batch \
         -ex "set auto-load safe-path /usr/lib:/usr/lib/" \
         -ex "attach $csgo_pid" \
         -ex "set \$dlopen = (void*(*)(char*, int)) dlopen" \

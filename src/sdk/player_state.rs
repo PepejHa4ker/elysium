@@ -1,8 +1,8 @@
 #[derive(Clone, Copy, Debug)]
-#[repr(C)]
-pub struct State(u32);
+#[repr(transparent)]
+pub struct PlayerState(i32);
 
-impl State {
+impl PlayerState {
     /// On the ground.
     pub const ON_GROUND: Self = Self::new(1 << 0);
 
@@ -36,7 +36,7 @@ impl State {
     /// Entity is in water.
     pub const IN_WATER: Self = Self::new(1 << 9);
 
-    const fn new(state: u32) -> Self {
+    const fn new(state: i32) -> Self {
         Self(state)
     }
 

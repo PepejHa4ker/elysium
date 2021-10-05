@@ -1,4 +1,4 @@
-use crate::console::Console;
+use crate::sdk;
 use parking_lot::{RwLock, RwLockWriteGuard};
 use std::fs::{File, OpenOptions};
 use std::io;
@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 struct LoggerRef {
     file: File,
-    console: Option<Console>,
+    console: Option<sdk::Console>,
 }
 
 #[derive(Clone)]
@@ -29,7 +29,7 @@ impl Logger {
         })))
     }
 
-    pub fn set_console(&self, console: Console) {
+    pub fn set_console(&self, console: sdk::Console) {
         self.lock().console = Some(console);
     }
 

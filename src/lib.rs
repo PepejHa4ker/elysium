@@ -7,110 +7,82 @@
 #![allow(unused_variables)]
 #![feature(const_trait_impl)]
 #![feature(const_fn_fn_ptr_basics)]
+#![feature(once_cell)]
+#![feature(option_result_unwrap_unchecked)]
 
-use crate::console::Console;
-use crate::library::Library;
+use crate::consts::offset;
+use crate::interfaces::Interfaces;
+use crate::libraries::Libraries;
 use crate::log::Logger;
 use libc::{RTLD_LOCAL, RTLD_NOLOAD, RTLD_NOW};
 use libloading::os::unix;
+use parking_lot::RwLock;
 use std::ffi::{CString, NulError, OsStr};
+use std::lazy::SyncOnceCell;
 use std::ptr::NonNull;
 use std::{mem, ptr};
 
 pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
-pub mod console;
+pub mod consts;
 pub mod error;
+pub mod globals;
 pub mod hooks;
-pub mod interface;
+pub mod interfaces;
+pub mod libraries;
 pub mod library;
 pub mod log;
 pub mod sdk;
-pub mod symbol;
+
+pub unsafe fn change_ref<'a, 'b, T>(a: &'a T) -> &'b T {
+    mem::transmute(a)
+}
 
 fn main(logger: Logger) -> Result<()> {
     tracing::info!("Initialising interfaces...");
 
-    let client = Library::new(library::CLIENT)?;
-    let engine = Library::new(library::ENGINE)?;
-    let materialsystem = Library::new(library::MATERIALSYSTEM)?;
-    let vguimatsurface = Library::new(library::VGUIMATSURFACE)?;
-    let vgui2 = Library::new(library::VGUI2)?;
-    let inputsystem = Library::new(library::INPUTSYSTEM)?;
-    let vphysics = Library::new(library::VPHYSICS)?;
-    let localize = Library::new(library::LOCALIZE)?;
-    let tier0 = Library::new(library::TIER0)?;
-    let panorama = Library::new(library::PANORAMA)?;
-    let fs_stdio = Library::new(library::FS_STDIO)?;
-    let matchmaking = Library::new(library::MATCHMAKING)?;
+    let libraries = Libraries::new()?;
+    let interfaces = Interfaces::new(&libraries);
 
-    let client_interfaces = client
-        .interfaces()
-        .ok_or_else(|| String::from("no interfaces"))?;
+    tracing::info!("{:?}", &interfaces);
 
-    let engine_interfaces = engine
-        .interfaces()
-        .ok_or_else(|| String::from("no interfaces"))?;
+    globals::set_console(interfaces.console as *const usize);
 
-    let materialsystem_interfaces = materialsystem
-        .interfaces()
-        .ok_or_else(|| String::from("no interfaces"))?;
+    unsafe { globals::console() }.write("console\n");
 
-    let vguimatsurface_interfaces = vguimatsurface
-        .interfaces()
-        .ok_or_else(|| String::from("no interfaces"))?;
+    globals::set_engine(interfaces.engine);
+    globals::set_entities(interfaces.entities);
 
-    let vgui2_interfaces = vgui2
-        .interfaces()
-        .ok_or_else(|| String::from("no interfaces"))?;
+    hooks::create_move::set_original(unsafe {
+        vmt::hook(
+            interfaces.client_mode,
+            hooks::create_move::hook as *const usize,
+            offset::CREATE_MOVE,
+        )
+    });
 
-    let inputsystem_interfaces = inputsystem
-        .interfaces()
-        .ok_or_else(|| String::from("no interfaces"))?;
+    hooks::frame_stage_notify::set_original(unsafe {
+        vmt::hook(
+            interfaces.client,
+            hooks::frame_stage_notify::hook as *const usize,
+            offset::FRAME_STAGE_NOTIFY,
+        )
+    });
 
-    let vphysics_interfaces = vphysics
-        .interfaces()
-        .ok_or_else(|| String::from("no interfaces"))?;
+    let client = unsafe { sdk::Client::from_raw(interfaces.client) };
 
-    let localize_interfaces = localize
-        .interfaces()
-        .ok_or_else(|| String::from("no interfaces"))?;
+    sdk::netvars::set(&client);
 
-    let tier0_interfaces = tier0
-        .interfaces()
-        .ok_or_else(|| String::from("no interfaces"))?;
+    let props = sdk::netvars::get_props("DT_BasePlayer");
 
-    let panorama_interfaces = panorama
-        .interfaces()
-        .ok_or_else(|| String::from("no interfaces"))?;
+    for (name, prop) in props.iter().flat_map(|map| map.iter()) {
+        tracing::info!("{} -> {:0x?}", name, prop.offset);
+    }
 
-    let fs_stdio_interfaces = fs_stdio
-        .interfaces()
-        .ok_or_else(|| String::from("no interfaces"))?;
+    //let offset = sdk::netvars::offset_of("DT_CSPlayer", "m_fFlags");
 
-    let matchmaking_interfaces = vgui2
-        .interfaces()
-        .ok_or_else(|| String::from("no interfaces"))?;
-
-    let console = Console::from_ptr(materialsystem_interfaces.get::<usize>(interface::VENGINECVAR));
-    let client = client_interfaces.get::<usize>(interface::VCLIENT);
-    let engine = engine_interfaces.get::<usize>(interface::VENGINECLIENT);
-    let panel = vgui2_interfaces.get::<usize>(interface::VENGINEVGUI);
-    let entity_list = client_interfaces.get::<usize>(interface::VCLIENTENTITYLIST);
-    let engine_vgui = engine_interfaces.get::<usize>(interface::VENGINEVGUI);
-    let model = engine_interfaces.get::<usize>(interface::VENGINEMODEL);
-    let model_info = engine_interfaces.get::<usize>(interface::VMODELINFOCLIENT);
-    let material_system = materialsystem_interfaces.get::<usize>(interface::VMATERIALSYSTEM);
-    let sound = engine_interfaces.get::<usize>(interface::IENGINESOUNDCLIENT);
-    let trace = engine_interfaces.get::<usize>(interface::ENGINETRACECLIENT);
-    let movement = client_interfaces.get::<usize>(interface::GAMEMOVEMENT);
-    let prediction = client_interfaces.get::<usize>(interface::VCLIENTPREDICTION);
-    let event_manager = client_interfaces.get::<usize>(interface::GAMEVENTSMANAGER);
-
-    console.write("fuck niggers\n");
-
-    logger.set_console(console);
+    //tracing::info!("{}.{} = {:?}", "DT_CSPlayer", "m_fFlags", &offset);
 
     Ok(())
 }
