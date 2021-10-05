@@ -1,67 +1,145 @@
-use super::{Client, RecvProp};
+use super::{Client, RecvProp, RecvTable};
 use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
-use std::collections::HashMap;
+use std::collections::hash_map::{Entry, HashMap};
 use std::lazy::SyncLazy;
-use std::mem;
 use std::ops::Deref;
+use std::{fmt, mem, ptr};
 use vmt::PointerExt;
 
-pub type PropMap = HashMap<&'static str, RecvProp>;
-pub type ClassMap = HashMap<&'static str, PropMap>;
-
-pub static NETVARS: SyncLazy<RwLock<ClassMap>> = SyncLazy::new(|| RwLock::new(HashMap::new()));
-
-pub fn read<'a>() -> RwLockReadGuard<'a, ClassMap> {
-    NETVARS.read()
+pub struct Offsets {
+    map: HashMap<String, isize>,
 }
 
-pub fn write<'a>() -> RwLockWriteGuard<'a, ClassMap> {
-    NETVARS.write()
+impl Offsets {
+    pub fn new() -> Self {
+        let map = HashMap::new();
+
+        Self { map }
+    }
+
+    pub fn insert(&mut self, prop: impl Into<String>, offset: isize) {
+        self.map.insert(prop.into(), offset);
+    }
+
+    pub fn get(&self, prop: &str) -> Option<isize> {
+        let offset = *self.map.get(prop)?;
+
+        Some(offset)
+    }
 }
 
-pub fn get_props(class: &str) -> Option<&'static PropMap> {
-    unsafe { Some(crate::change_ref(read().get(class)?)) }
+pub struct Tables {
+    map: HashMap<String, Offsets>,
 }
 
-pub fn get(class: &str, prop: &str) -> Option<&'static RecvProp> {
-    get_props(class)?.get(prop)
-}
+impl Tables {
+    pub fn new() -> Self {
+        let map = HashMap::new();
 
-pub fn offset_of<'a>(class: &'a str, prop: &'a str) -> Option<isize> {
-    get(class, prop).map(|prop| prop.offset as isize)
-}
+        Self { map }
+    }
 
-pub unsafe fn offset_unchecked<'a, T>(
-    this: *const usize,
-    class: &'a str,
-    prop: &'a str,
-) -> *const T {
-    let offset = offset_of(class, prop).unwrap_unchecked();
+    pub fn insert(&mut self, table: impl Into<String>, prop: impl Into<String>, offset: isize) {
+        match self.map.entry(table.into()) {
+            Entry::Occupied(mut offsets) => offsets.get_mut().insert(prop, offset),
+            Entry::Vacant(map) => {
+                let mut offsets = Offsets::new();
 
-    this.offset_bytes(offset) as *const T
-}
-
-pub unsafe fn offset<'a, T>(this: *const usize, class: &'a str, prop: &'a str) -> Option<*const T> {
-    offset_of(class, prop).map(|offset| unsafe { this.offset_bytes(offset) as *const T })
-}
-
-pub fn set(client: &Client) {
-    let mut classes = write();
-    let client_classes = client.get_all_classes();
-
-    for client_class in client_classes.iter() {
-        let mut class = classes.entry(client_class.table_name()).or_default();
-
-        for prop in client_class.props() {
-            let name = prop.name();
-
-            if name == "m_fFlags" {
-                tracing::info!("found!!! {} -> {:?}", client_class.table_name(), prop);
+                offsets.insert(prop, offset);
+                map.insert(offsets);
             }
-
-            class.insert(prop.name(), *prop);
         }
     }
 
-    //tracing::info!("{:#?}", classes);
+    pub fn get(&self, table: &str, prop: &str) -> Option<isize> {
+        self.map.get(table)?.get(prop)
+    }
+}
+
+pub struct Netvars {
+    tables: SyncLazy<RwLock<Tables>, fn() -> RwLock<Tables>>,
+}
+
+impl Netvars {
+    fn init() -> RwLock<Tables> {
+        RwLock::new(Tables::new())
+    }
+
+    pub const fn new() -> Self {
+        let tables = SyncLazy::new(Self::init as fn() -> RwLock<Tables>);
+
+        Self { tables }
+    }
+
+    fn read<'a>(&'a self) -> RwLockReadGuard<'a, Tables> {
+        self.tables.read()
+    }
+
+    fn write<'a>(&'a self) -> RwLockWriteGuard<'a, Tables> {
+        self.tables.write()
+    }
+
+    pub fn insert(&self, table: impl Into<String>, prop: impl Into<String>, offset: isize) {
+        self.write().insert(table, prop, offset);
+    }
+
+    pub fn get(&self, table: &str, prop: &str) -> Option<isize> {
+        self.read().get(table, prop)
+    }
+
+    pub unsafe fn offset<T>(&self, ptr: *const usize, table: &str, prop: &str) -> *const T {
+        if let Some(offset) = self.get(table, prop) {
+            ptr.offset_bytes(offset) as *const T
+        } else {
+            ptr::null()
+        }
+    }
+}
+
+impl fmt::Debug for Netvars {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let mut set = fmt.debug_set();
+
+        for (table, props) in self.read().map.iter() {
+            for (prop, offset) in props.map.iter() {
+                // TODO: make this less ugly.
+                set.entry(&(
+                    format!("{}.{}", table.as_str(), prop.as_str()),
+                    format!("{:0x?}", offset),
+                ));
+            }
+        }
+
+        set.finish()
+    }
+}
+
+pub static NETVARS: Netvars = Netvars::new();
+
+pub fn iterate_table(props: &'static RecvTable, table: &'static str, offset: isize) {
+    for prop in props.props() {
+        if let Some(props) = prop.data_table() {
+            iterate_table(props, table, offset + prop.offset as isize);
+        }
+
+        NETVARS.insert(table, prop.name(), offset + prop.offset as isize);
+    }
+}
+
+pub fn set(client: &Client) {
+    tracing::info!("Intialising netvars...");
+
+    let all = client.get_all_classes();
+
+    for class in all.iter() {
+        if let Some(table) = class.recv_table {
+            iterate_table(table, table.name(), 0);
+        }
+    }
+
+    tracing::info!("{:#?}", NETVARS);
+}
+
+pub unsafe fn offset<T>(ptr: *const usize, table: &str, prop: &str) -> *const T {
+    NETVARS.offset(ptr, table, prop)
 }

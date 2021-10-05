@@ -9,7 +9,7 @@ pub struct Command {
     pub tick_count: i32,
     pub view_angles: Angle,
     pub aim_direction: Angle,
-    pub foward_move: f32,
+    pub forward_move: f32,
     pub side_move: f32,
     pub up_move: f32,
     pub state: State,
@@ -26,15 +26,31 @@ pub struct Command {
 
 impl Command {
     pub const fn in_attack(&self) -> bool {
-        self.state.is_attack()
+        self.state.in_attack()
     }
 
     pub const fn in_attack2(&self) -> bool {
-        self.state.is_attack2()
+        self.state.in_attack2()
     }
 
     pub const fn in_attack3(&self) -> bool {
-        self.state.is_attack3()
+        self.state.in_attack3()
+    }
+
+    pub const fn in_forward(&self) -> bool {
+        self.state.in_forward()
+    }
+
+    pub const fn in_backward(&self) -> bool {
+        self.state.in_backward()
+    }
+
+    pub const fn in_left(&self) -> bool {
+        self.state.in_left()
+    }
+
+    pub const fn in_right(&self) -> bool {
+        self.state.in_right()
     }
 
     pub fn set_tick_count(&mut self, value: i32) {

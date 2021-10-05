@@ -45,7 +45,7 @@ pub struct RecvProxyData {
     pub object_id: i32,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(i32)]
 pub enum RecvPropKind {
     Int = 0,
@@ -70,7 +70,7 @@ pub struct RecvProp {
     pub array_len_proxy: Option<NonNull<usize>>,
     pub proxy: Option<RecvVarProxy>,
     pub data_table_proxy: Option<NonNull<usize>>,
-    pub data_table: Option<NonNull<usize>>,
+    pub data_table: Option<&'static RecvTable>,
     pub offset: i32,
     pub element_stride: i32,
     pub elements: i32,
@@ -80,6 +80,14 @@ pub struct RecvProp {
 impl RecvProp {
     pub fn name(&self) -> &'static str {
         self.name.map(|name| name.as_str()).unwrap_or("")
+    }
+
+    pub fn data_table(&self) -> Option<&'static RecvTable> {
+        if self.kind == RecvPropKind::DataTable {
+            self.data_table
+        } else {
+            None
+        }
     }
 }
 
@@ -119,14 +127,14 @@ pub struct RecvTable {
 }
 
 impl RecvTable {
+    pub fn name(&self) -> &'static str {
+        self.name.map(|name| name.as_str()).unwrap_or("")
+    }
+
     pub fn props(&self) -> &'static [RecvProp] {
         unsafe {
             std::slice::from_raw_parts(self.props as *const RecvProp, self.props_len as usize)
         }
-    }
-
-    pub fn name(&self) -> &'static str {
-        self.name.map(|name| name.as_str()).unwrap_or("")
     }
 }
 
@@ -158,18 +166,6 @@ pub struct ClientClass {
 impl ClientClass {
     pub fn name(&self) -> &'static str {
         self.name.map(|name| name.as_str()).unwrap_or("")
-    }
-
-    pub fn table_name(&self) -> &'static str {
-        self.recv_table.map(|table| table.name()).unwrap_or("")
-    }
-
-    pub fn props(&self) -> &'static [RecvProp] {
-        if let Some(table) = self.recv_table {
-            table.props()
-        } else {
-            &[]
-        }
     }
 }
 

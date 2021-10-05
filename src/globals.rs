@@ -1,12 +1,13 @@
 use crate::sdk;
-use parking_lot::{RwLock, RwLockReadGuard};
-use std::lazy::SyncOnceCell;
-use std::mem;
+use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::lazy::{SyncLazy, SyncOnceCell};
+use std::ptr;
 
 pub static CONSOLE: SyncOnceCell<sdk::Console> = SyncOnceCell::new();
 pub static ENGINE: SyncOnceCell<sdk::Engine> = SyncOnceCell::new();
 pub static ENTITIES: SyncOnceCell<sdk::Entities> = SyncOnceCell::new();
-pub static LOCAL_PLAYER: SyncOnceCell<RwLock<sdk::Entity>> = SyncOnceCell::new();
+pub static LOCAL_PLAYER: SyncLazy<sdk::Entity> =
+    SyncLazy::new(|| unsafe { sdk::Entity::from_raw(ptr::null()) });
 
 pub unsafe fn console() -> &'static sdk::Console {
     CONSOLE.get().unwrap_unchecked()
@@ -32,14 +33,28 @@ pub fn set_entities(entities: *const usize) {
     let _ = unsafe { ENTITIES.set(sdk::Entities::from_raw(entities)) };
 }
 
-pub unsafe fn local_player_unchecked<'a>() -> RwLockReadGuard<'a, sdk::Entity> {
-    LOCAL_PLAYER.get().unwrap_unchecked().read()
-}
-
-pub fn local_player<'a>() -> Option<RwLockReadGuard<'a, sdk::Entity>> {
-    LOCAL_PLAYER.get().map(|local_player| local_player.read())
+pub fn local_player() -> Option<&'static sdk::Entity> {
+    if LOCAL_PLAYER.as_ptr().is_null() {
+        None
+    } else {
+        Some(&LOCAL_PLAYER)
+    }
 }
 
 pub fn set_local_player(entity: sdk::Entity) {
-    let _ = LOCAL_PLAYER.set(RwLock::new(entity));
+    unsafe {
+        ptr::replace::<*const usize>(
+            &LOCAL_PLAYER.this as *const *const usize as *mut *const usize,
+            entity.this,
+        );
+    }
+}
+
+pub fn reset_local_player() {
+    unsafe {
+        ptr::replace::<*const usize>(
+            &LOCAL_PLAYER.this as *const *const usize as *mut *const usize,
+            ptr::null(),
+        );
+    }
 }

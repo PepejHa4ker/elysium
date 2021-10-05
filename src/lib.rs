@@ -74,16 +74,6 @@ fn main(logger: Logger) -> Result<()> {
 
     sdk::netvars::set(&client);
 
-    let props = sdk::netvars::get_props("DT_BasePlayer");
-
-    for (name, prop) in props.iter().flat_map(|map| map.iter()) {
-        tracing::info!("{} -> {:0x?}", name, prop.offset);
-    }
-
-    //let offset = sdk::netvars::offset_of("DT_CSPlayer", "m_fFlags");
-
-    //tracing::info!("{}.{} = {:?}", "DT_CSPlayer", "m_fFlags", &offset);
-
     Ok(())
 }
 

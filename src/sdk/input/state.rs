@@ -34,111 +34,111 @@ impl State {
         Self(state)
     }
 
-    pub const fn is_attack(&self) -> bool {
+    pub const fn in_attack(&self) -> bool {
         self.0 & Self::ATTACK.0 != 0
     }
 
-    pub const fn is_attack2(&self) -> bool {
+    pub const fn in_attack2(&self) -> bool {
         self.0 & Self::ATTACK2.0 != 0
     }
 
-    pub const fn is_attack3(&self) -> bool {
+    pub const fn in_attack3(&self) -> bool {
         self.0 & Self::ATTACK3.0 != 0
     }
 
-    pub const fn is_any_attack(&self) -> bool {
+    pub const fn in_any_attack(&self) -> bool {
         self.0 & (Self::ATTACK.0 | Self::ATTACK2.0 | Self::ATTACK3.0) != 0
     }
 
-    pub const fn is_jump(&self) -> bool {
+    pub const fn in_jump(&self) -> bool {
         self.0 & Self::JUMP.0 != 0
     }
 
-    pub const fn is_crouch(&self) -> bool {
+    pub const fn in_crouch(&self) -> bool {
         self.0 & Self::CROUCH.0 != 0
     }
 
-    pub const fn is_forward(&self) -> bool {
+    pub const fn in_forward(&self) -> bool {
         self.0 & Self::FORWARD.0 != 0
     }
 
-    pub const fn is_backward(&self) -> bool {
+    pub const fn in_backward(&self) -> bool {
         self.0 & Self::BACKWARD.0 != 0
     }
 
-    pub const fn is_use(&self) -> bool {
+    pub const fn in_use(&self) -> bool {
         self.0 & Self::USE.0 != 0
     }
 
-    pub const fn is_cancel(&self) -> bool {
+    pub const fn in_cancel(&self) -> bool {
         self.0 & Self::CANCEL.0 != 0
     }
 
-    pub const fn is_left(&self) -> bool {
+    pub const fn in_left(&self) -> bool {
         self.0 & Self::LEFT.0 != 0
     }
 
-    pub const fn is_right(&self) -> bool {
+    pub const fn in_right(&self) -> bool {
         self.0 & Self::RIGHT.0 != 0
     }
 
-    pub const fn is_move_right(&self) -> bool {
+    pub const fn in_move_right(&self) -> bool {
         self.0 & Self::MOVE_RIGHT.0 != 0
     }
 
-    pub const fn is_move_left(&self) -> bool {
+    pub const fn in_move_left(&self) -> bool {
         self.0 & Self::MOVE_LEFT.0 != 0
     }
 
-    pub const fn is_run(&self) -> bool {
+    pub const fn in_run(&self) -> bool {
         self.0 & Self::RUN.0 != 0
     }
 
-    pub const fn is_reload(&self) -> bool {
+    pub const fn in_reload(&self) -> bool {
         self.0 & Self::RELOAD.0 != 0
     }
 
-    pub const fn is_alt1(&self) -> bool {
+    pub const fn in_alt1(&self) -> bool {
         self.0 & Self::ALT1.0 != 0
     }
 
-    pub const fn is_alt2(&self) -> bool {
+    pub const fn in_alt2(&self) -> bool {
         self.0 & Self::ALT2.0 != 0
     }
 
-    pub const fn is_score(&self) -> bool {
+    pub const fn in_score(&self) -> bool {
         self.0 & Self::SCORE.0 != 0
     }
 
-    pub const fn is_speed(&self) -> bool {
+    pub const fn in_speed(&self) -> bool {
         self.0 & Self::SPEED.0 != 0
     }
 
-    pub const fn is_walk(&self) -> bool {
+    pub const fn in_walk(&self) -> bool {
         self.0 & Self::WALK.0 != 0
     }
 
-    pub const fn is_zoom(&self) -> bool {
+    pub const fn in_zoom(&self) -> bool {
         self.0 & Self::ZOOM.0 != 0
     }
 
-    pub const fn is_weapon1(&self) -> bool {
+    pub const fn in_weapon1(&self) -> bool {
         self.0 & Self::WEAPON1.0 != 0
     }
 
-    pub const fn is_weapon2(&self) -> bool {
+    pub const fn in_weapon2(&self) -> bool {
         self.0 & Self::WEAPON2.0 != 0
     }
 
-    pub const fn is_bullrush(&self) -> bool {
+    pub const fn in_bullrush(&self) -> bool {
         self.0 & Self::BULLRUSH.0 != 0
     }
 
-    pub const fn is_grenade1(&self) -> bool {
+    pub const fn in_grenade1(&self) -> bool {
         self.0 & Self::GRENADE1.0 != 0
     }
 
-    pub const fn is_grenade2(&self) -> bool {
+    pub const fn in_grenade2(&self) -> bool {
         self.0 & Self::GRENADE2.0 != 0
     }
 }
