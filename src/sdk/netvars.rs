@@ -4,7 +4,7 @@ use std::collections::hash_map::{Entry, HashMap};
 use std::lazy::SyncLazy;
 use std::ops::Deref;
 use std::{fmt, mem, ptr};
-use vmt::PointerExt;
+use vptr::Pointer;
 
 pub struct Offsets {
     map: HashMap<String, isize>,
@@ -87,12 +87,24 @@ impl Netvars {
         self.read().get(table, prop)
     }
 
-    pub unsafe fn offset<T>(&self, ptr: *const usize, table: &str, prop: &str) -> *const T {
+    pub unsafe fn offset<T>(&self, ptr: *const (), table: &str, prop: &str) -> *const T {
         if let Some(offset) = self.get(table, prop) {
             ptr.offset_bytes(offset) as *const T
         } else {
             ptr::null()
         }
+    }
+}
+
+struct DebugEntry<'a> {
+    table: &'a str,
+    prop: &'a str,
+    offset: isize,
+}
+
+impl<'a> fmt::Debug for DebugEntry<'a> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "{}.{} -> {}", self.table, self.prop, self.offset)
     }
 }
 
@@ -103,10 +115,11 @@ impl fmt::Debug for Netvars {
         for (table, props) in self.read().map.iter() {
             for (prop, offset) in props.map.iter() {
                 // TODO: make this less ugly.
-                set.entry(&(
-                    format!("{}.{}", table.as_str(), prop.as_str()),
-                    format!("{:0x?}", offset),
-                ));
+                set.entry(&DebugEntry {
+                    table: table.as_str(),
+                    prop: prop.as_str(),
+                    offset: *offset,
+                });
             }
         }
 
@@ -140,6 +153,22 @@ pub fn set(client: &Client) {
     tracing::info!("{:#?}", NETVARS);
 }
 
-pub unsafe fn offset<T>(ptr: *const usize, table: &str, prop: &str) -> *const T {
+pub unsafe fn offset<T>(ptr: *const (), table: &str, prop: &str) -> *const T {
     NETVARS.offset(ptr, table, prop)
+}
+
+pub trait Netvar {
+    fn as_ptr(&self) -> *const ();
+
+    unsafe fn netvar_raw<T>(&self, table: &str, prop: &str) -> *const T {
+        offset(self.as_ptr(), table, prop)
+    }
+
+    fn netvar<T>(&self, table: &str, prop: &str) -> &T {
+        unsafe { &*self.netvar_raw(table, prop) }
+    }
+
+    fn netvar_mut<T>(&mut self, table: &str, prop: &str) -> &mut T {
+        unsafe { &mut *(self.netvar_raw::<T>(table, prop) as *mut T) }
+    }
 }

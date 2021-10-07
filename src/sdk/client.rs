@@ -1,7 +1,8 @@
 use super::EntityId;
+use core::ptr::NonNull;
+use core::{fmt, mem};
 use daisy_chain::Chain;
-use std::ptr::NonNull;
-use std::{fmt, mem};
+use vptr::Virtual;
 
 #[repr(C)]
 pub struct ClientNetworkable;
@@ -192,22 +193,22 @@ fn next(class: &ClientClass) -> *mut ClientClass {
 
 #[derive(Debug)]
 pub struct Client {
-    this: *const usize,
+    this: *const (),
 }
 
 impl Client {
-    pub unsafe fn from_raw(ptr: *const usize) -> Self {
+    pub unsafe fn from_raw(ptr: *const ()) -> Self {
         Self { this: ptr }
     }
 
-    pub fn as_ptr(&self) -> *const usize {
+    pub fn as_ptr(&self) -> *const () {
         self.this
     }
 
     pub fn get_all_classes(&self) -> Chain<ClientClass, Next> {
-        type Signature = unsafe extern "C" fn(this: *const usize) -> *mut ClientClass;
+        type Signature = unsafe extern "C" fn(this: *const ()) -> *mut ClientClass;
 
-        let method: Signature = unsafe { mem::transmute(vmt::get(self.as_ptr(), 8)) };
+        let method: Signature = unsafe { self.as_ptr().vget(8 * 8) };
 
         unsafe { Chain::from_ptr(method(self.as_ptr()), next as Next) }
     }

@@ -34,8 +34,40 @@ version = "0.2"
 features = ["repr_simd"]
 version = "0.15"
 
-[dependencies.vmt]
-git = "https://gitdab.com/undefined/vmt"
+[dependencies.vptr]
+features = ["libc"]
+git = "https://gitdab.com/undefined/vptr.git"
+
+# testing
+
+[dependencies.glow]
+version = "0.6"
+
+[dependencies.glutin]
+path = "../glutin/glutin"
+
+[dependencies.iced_glow]
+path = "../iced/glow"
+
+[dependencies.iced_glutin]
+path = "../iced/glutin"
+
+[dependencies.iced_winit]
+path = "../iced/winit"
+
+[dependencies.raw-window-handle]
+version = "0.3"
+
+[dependencies.sdl2]
+version = "0.34"
+
+[dependencies.sdl2-sys]
+version = "0.34"
+
+[dependencies.winit]
+path = "../winit"
+
+# testing
 
 [lib]
 crate-type = ["cdylib"]

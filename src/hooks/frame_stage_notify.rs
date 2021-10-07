@@ -2,19 +2,21 @@ use crate::{globals, sdk};
 use std::lazy::SyncOnceCell;
 use std::mem;
 
-pub type Signature = unsafe extern "C" fn(this: *const usize, stage: i32);
+pub type Signature = unsafe extern "C" fn(this: *const (), stage: i32);
 
 pub static ORIGINAL: SyncOnceCell<Signature> = SyncOnceCell::new();
 
-pub unsafe fn original() -> Signature {
-    *ORIGINAL.get().unwrap_unchecked()
+pub unsafe fn original(this: *const (), raw_stage: i32) {
+    let original = *ORIGINAL.get().unwrap_unchecked();
+
+    original(this, raw_stage);
 }
 
-pub fn set_original(original: *const usize) {
+pub fn set_original(original: *const ()) {
     let _ = unsafe { ORIGINAL.set(mem::transmute::<_, Signature>(original)) };
 }
 
-pub unsafe extern "C" fn hook(this: *const usize, raw_stage: i32) {
+pub unsafe extern "C" fn hook(this: *const (), raw_stage: i32) {
     let stage = sdk::FrameStage::new(raw_stage);
 
     //globals::console().write(format!("stage = {:?}\n", &stage));
@@ -34,8 +36,6 @@ pub unsafe extern "C" fn hook(this: *const usize, raw_stage: i32) {
     if let Some(local_player) = local_player {
         globals::set_local_player(local_player);
     }
-
-    let original = original();
 
     original(this, raw_stage);
 }

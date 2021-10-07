@@ -12,14 +12,14 @@ use std::{fmt, ptr};
 /// An interface.
 #[repr(C)]
 pub struct Interface<'a> {
-    new: unsafe extern "C" fn() -> *mut usize,
+    new: unsafe extern "C" fn() -> *mut (),
     name: Option<&'a spirit::Str>,
     next: *mut Interface<'a>,
     _phantom: PhantomData<&'a ()>,
 }
 
 impl<'a> Interface<'a> {
-    pub fn new(&self) -> *mut usize {
+    pub fn new(&self) -> *mut () {
         let new = self.new;
 
         unsafe { new() }
@@ -63,7 +63,7 @@ impl<'a> Interfaces<'a> {
         InterfaceIter { inner }
     }
 
-    pub fn get(&'a self, name: &str) -> *mut usize {
+    pub fn get(&'a self, name: &str) -> *mut () {
         for interface in self.iter() {
             let interface_name = interface.name();
 
@@ -82,7 +82,7 @@ impl<'a> Interfaces<'a> {
         ptr::null_mut()
     }
 
-    pub fn get_exact(&'a self, name: &str) -> *mut usize {
+    pub fn get_exact(&'a self, name: &str) -> *mut () {
         for interface in self.iter() {
             let interface_name = interface.name();
 
@@ -170,6 +170,10 @@ impl Library {
         Self::new(library::PANORAMA)
     }
 
+    pub fn sdl() -> Result<Self, libloading::Error> {
+        Self::new(library::SDL)
+    }
+
     pub fn serverbrowser() -> Result<Self, libloading::Error> {
         Self::new(library::SERVERBROWSER)
     }
@@ -186,7 +190,7 @@ impl Library {
         Self::new(library::VPHYSICS)
     }
 
-    unsafe fn get<T>(&self, symbol: &[u8]) -> *const T {
+    pub unsafe fn get<T>(&self, symbol: &[u8]) -> *const T {
         if let Ok(symbol) = self.lib.get::<T>(symbol) {
             symbol.into_raw() as *const T
         } else {
@@ -206,7 +210,7 @@ impl Library {
         Some(interfaces)
     }
 
-    pub fn get_interface(&self, interface: &str) -> *mut usize {
+    pub fn get_interface(&self, interface: &str) -> *mut () {
         if let Some(interfaces) = self.interfaces() {
             interfaces.get(interface)
         } else {
@@ -214,7 +218,7 @@ impl Library {
         }
     }
 
-    pub fn get_exact_interface(&self, interface: &str) -> *mut usize {
+    pub fn get_exact_interface(&self, interface: &str) -> *mut () {
         if let Some(interfaces) = self.interfaces() {
             interfaces.get_exact(interface)
         } else {

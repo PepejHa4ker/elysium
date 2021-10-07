@@ -20,7 +20,9 @@ use parking_lot::RwLock;
 use std::ffi::{CString, NulError, OsStr};
 use std::lazy::SyncOnceCell;
 use std::ptr::NonNull;
-use std::{mem, ptr};
+use std::time::Duration;
+use std::{mem, ptr, thread};
+use vptr::{Pointer, Virtual, VirtualMut};
 
 pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -40,6 +42,14 @@ pub unsafe fn change_ref<'a, 'b, T>(a: &'a T) -> &'b T {
 }
 
 fn main(logger: Logger) -> Result<()> {
+    if library::Library::serverbrowser().is_err() {
+        tracing::info!("Waiting for CS:GO to load...");
+
+        while library::Library::serverbrowser().is_err() {
+            thread::sleep(Duration::from_millis(500));
+        }
+    }
+
     tracing::info!("Initialising interfaces...");
 
     let libraries = Libraries::new()?;
@@ -47,7 +57,7 @@ fn main(logger: Logger) -> Result<()> {
 
     tracing::info!("{:?}", &interfaces);
 
-    globals::set_console(interfaces.console as *const usize);
+    globals::set_console(interfaces.console);
 
     unsafe { globals::console() }.write("console\n");
 
@@ -55,18 +65,15 @@ fn main(logger: Logger) -> Result<()> {
     globals::set_entities(interfaces.entities);
 
     hooks::create_move::set_original(unsafe {
-        vmt::hook(
-            interfaces.client_mode,
-            hooks::create_move::hook as *const usize,
-            offset::CREATE_MOVE,
-        )
+        interfaces
+            .client_mode
+            .vreplace_protected(hooks::create_move::hook as *mut (), offset::CREATE_MOVE * 8)
     });
 
     hooks::frame_stage_notify::set_original(unsafe {
-        vmt::hook(
-            interfaces.client,
-            hooks::frame_stage_notify::hook as *const usize,
-            offset::FRAME_STAGE_NOTIFY,
+        interfaces.client.vreplace_protected(
+            hooks::frame_stage_notify::hook as *mut (),
+            offset::FRAME_STAGE_NOTIFY * 8,
         )
     });
 
@@ -74,13 +81,39 @@ fn main(logger: Logger) -> Result<()> {
 
     sdk::netvars::set(&client);
 
+    unsafe {
+        return Ok(());
+
+        use crate::consts::library::sdl;
+        use vptr::{Pointer, Virtual, VirtualMut};
+
+        let sdl = library::Library::sdl()?;
+
+        let swap_window_symbol = sdl.get::<()>(sdl::SWAPWINDOW) as *mut *const ();
+        let swap_window_address = swap_window_symbol.add_bytes(2).to_absolute();
+        let swap_window = *swap_window_address;
+
+        let poll_event_symbol = sdl.get::<()>(sdl::POLLEVENT) as *mut *const ();
+        let poll_event_address = poll_event_symbol.add_bytes(2).to_absolute();
+        let poll_event = *poll_event_address;
+
+        tracing::info!("swap_window = {:0x?}", swap_window);
+        tracing::info!("swap_window_address = {:0x?}", swap_window_address);
+        tracing::info!("poll_event = {:0x?}", poll_event);
+        tracing::info!("poll_event_address = {:0x?}", poll_event_address);
+
+        hooks::sdl::swap_window::set_original(swap_window);
+        hooks::sdl::poll_event::set_original(poll_event);
+
+        swap_window_address.replace(hooks::sdl::swap_window::hook as *const ());
+        poll_event_address.replace(hooks::sdl::poll_event::hook as *const ());
+    }
+
     Ok(())
 }
 
 #[ctor::ctor]
 fn providence_init() {
-    use std::thread;
-
     thread::Builder::new()
         .name(env!("CARGO_PKG_NAME").to_string())
         .spawn(move || {

@@ -1,4 +1,5 @@
-use std::mem;
+use core::mem;
+use vptr::Virtual;
 
 pub use self::button::Button;
 pub use self::joystick::Joystick;
@@ -11,23 +12,20 @@ mod mouse;
 mod state;
 
 #[derive(Debug)]
-#[repr(C)]
 pub struct Input {
-    this: *const usize,
+    this: *const (),
 }
 
 impl Input {
-    fn this(&self) -> *const usize {
-        self as *const Self as *const usize
+    pub fn as_ptr(&self) -> *const () {
+        self as *const Self as *const ()
     }
 
     pub fn is_button_down(&self, button: Button) -> bool {
-        type IsButtonDown = unsafe extern "C" fn(this: *const usize, button: Button) -> bool;
+        type Signature = unsafe extern "C" fn(this: *const (), button: Button) -> bool;
 
-        let method = unsafe { vmt::get(self.this(), 15) };
-        tracing::debug!("method {:?}", method);
-        let is_button_down: IsButtonDown = unsafe { mem::transmute(method) };
+        let method: Signature = unsafe { self.as_ptr().vget(15 * 8) };
 
-        unsafe { is_button_down(self.this(), button) }
+        unsafe { method(self.as_ptr(), button) }
     }
 }

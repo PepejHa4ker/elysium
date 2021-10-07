@@ -1,24 +1,25 @@
 use super::Entity;
-use std::mem;
+use core::mem;
+use vptr::Virtual;
 
 #[derive(Debug)]
 pub struct Entities {
-    this: *const usize,
+    this: *const (),
 }
 
 impl Entities {
-    pub unsafe fn from_raw(ptr: *const usize) -> Self {
+    pub unsafe fn from_raw(ptr: *const ()) -> Self {
         Self { this: ptr }
     }
 
-    pub fn as_ptr(&self) -> *const usize {
+    pub fn as_ptr(&self) -> *const () {
         self.this
     }
 
     pub fn get(&self, index: i32) -> Option<Entity> {
-        type Signature = unsafe extern "C" fn(this: *const usize, index: i32) -> *const usize;
+        type Signature = unsafe extern "C" fn(this: *const (), index: i32) -> *const ();
 
-        let method: Signature = unsafe { mem::transmute(vmt::get(self.as_ptr(), 3)) };
+        let method: Signature = unsafe { self.as_ptr().vget(3 * 8) };
         let entity = unsafe { method(self.as_ptr(), index) };
 
         if entity.is_null() {

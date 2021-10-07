@@ -5,15 +5,21 @@ use std::mem;
 use vek::Vec2;
 
 pub type Signature =
-    extern "C" fn(this: *const usize, input_sample_time: f32, command: &mut sdk::Command) -> bool;
+    extern "C" fn(this: *const (), input_sample_time: f32, command: &mut sdk::Command) -> bool;
 
 pub static ORIGINAL: SyncOnceCell<Signature> = SyncOnceCell::new();
 
-pub unsafe fn original() -> Signature {
-    *ORIGINAL.get().unwrap_unchecked()
+pub unsafe fn original(
+    this: *const (),
+    input_sample_time: f32,
+    command: &mut sdk::Command,
+) -> bool {
+    let original = *ORIGINAL.get().unwrap_unchecked();
+
+    original(this, input_sample_time, command)
 }
 
-pub fn set_original(original: *const usize) {
+pub fn set_original(original: *const ()) {
     let _ = unsafe { ORIGINAL.set(mem::transmute::<_, Signature>(original)) };
 }
 
@@ -78,6 +84,8 @@ pub unsafe fn rage_strafe(command: &mut sdk::Command) {
     let speed = Vec2::new(velocity.x, velocity.y).magnitude();
 
     if speed < 1.0 {
+        command.state.0 = command.state.0 | sdk::input::State::FORWARD.0;
+
         return;
     }
 
@@ -151,18 +159,16 @@ pub unsafe fn directional_strafe(command: &mut sdk::Command) {
 }
 
 pub unsafe extern "C" fn hook(
-    this: *const usize,
+    this: *const (),
     input_sample_time: f32,
     command: &mut sdk::Command,
 ) -> bool {
-    let original = original();
-
-    original(this, input_sample_time, command);
+    let result = original(this, input_sample_time, command);
 
     if command.tick_count != 0 {
         bunny_hop(command);
         rage_strafe(command);
     }
 
-    return true;
+    return result;
 }

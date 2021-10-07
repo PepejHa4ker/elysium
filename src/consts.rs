@@ -11,6 +11,12 @@ pub mod library {
     pub const VGUIMATSURFACE: &str = "./bin/linux64/vguimatsurface_client.so\0";
     pub const VGUI2: &str = "./bin/linux64/vgui2_client.so\0";
     pub const VPHYSICS: &str = "./bin/linux64/vphysics_client.so\0";
+    pub const SDL: &str = "libSDL2-2.0.so.0\0";
+
+    pub mod sdl {
+        pub const SWAPWINDOW: &[u8] = b"SDL_GL_SwapWindow\0";
+        pub const POLLEVENT: &[u8] = b"SDL_PollEvent\0";
+    }
 
     pub const INTERFACES: &str = "s_pInterfaceRegs\0";
 }
@@ -35,6 +41,6 @@ pub mod interface {
 }
 
 pub mod offset {
-    pub const CREATE_MOVE: usize = 25;
-    pub const FRAME_STAGE_NOTIFY: usize = 37;
+    pub const CREATE_MOVE: isize = 25;
+    pub const FRAME_STAGE_NOTIFY: isize = 37;
 }

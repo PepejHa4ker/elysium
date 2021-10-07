@@ -1,25 +1,25 @@
 use crate::consts::interface;
 use crate::libraries::Libraries;
 use core::mem;
-use vmt::PointerExt;
+use vptr::{Pointer, Virtual, VirtualMut};
 
 #[derive(Debug)]
 pub struct Interfaces {
-    pub console: *mut usize,
-    pub client: *mut usize,
-    pub client_mode: *mut usize,
-    pub engine: *mut usize,
-    pub panel: *mut usize,
-    pub entities: *mut usize,
-    pub engine_vgui: *mut usize,
-    pub model: *mut usize,
-    pub model_info: *mut usize,
-    pub materialsystem: *mut usize,
-    pub sound: *mut usize,
-    pub trace: *mut usize,
-    pub movement: *mut usize,
-    pub prediction: *mut usize,
-    pub events: *mut usize,
+    pub console: *mut (),
+    pub client: *mut (),
+    pub client_mode: *mut (),
+    pub engine: *mut (),
+    pub panel: *mut (),
+    pub entities: *mut (),
+    pub engine_vgui: *mut (),
+    pub model: *mut (),
+    pub model_info: *mut (),
+    pub materialsystem: *mut (),
+    pub sound: *mut (),
+    pub trace: *mut (),
+    pub movement: *mut (),
+    pub prediction: *mut (),
+    pub events: *mut (),
 }
 
 impl Interfaces {
@@ -55,9 +55,11 @@ impl Interfaces {
             .get_exact_interface(interface::GAMEVENTSMANAGER);
 
         let client_mode = unsafe {
-            let hud_process_input = vmt::get(client, 10);
-            let get_client_mode = vmt::get_absolute_address(hud_process_input.add_bytes(11), 1, 5);
-            let get_client_mode: unsafe extern "C" fn() -> *mut usize =
+            use vptr::{Pointer, Virtual, VirtualMut};
+
+            let hud_process_input: *const () = client.vget(10 * 8);
+            let get_client_mode = hud_process_input.add_bytes(11).to_offset_absolute(1, 5);
+            let get_client_mode: unsafe extern "C" fn() -> *mut () =
                 mem::transmute(get_client_mode);
             let client_mode = get_client_mode();
 

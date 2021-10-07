@@ -1,43 +1,32 @@
-use super::{netvars, Vector};
-use std::{mem, ptr};
-use vmt::PointerExt;
+use super::netvars::Netvar;
+use super::Vector;
 
 #[derive(Debug)]
 pub struct Entity {
-    pub this: *const usize,
+    pub this: *const (),
 }
 
 impl Entity {
-    pub const unsafe fn from_raw(ptr: *const usize) -> Self {
+    pub const unsafe fn from_raw(ptr: *const ()) -> Self {
         Self { this: ptr }
     }
 
-    pub fn as_ptr(&self) -> *const usize {
+    pub fn as_ptr(&self) -> *const () {
         self.this
     }
 
-    pub unsafe fn flags_raw(&self) -> *const i32 {
-        netvars::offset::<i32>(self.as_ptr(), "DT_BasePlayer", "m_fFlags")
-    }
-
     pub fn flags(&self) -> &i32 {
-        unsafe { mem::transmute(self.flags_raw()) }
-    }
-
-    pub fn flags_mut(&mut self) -> &mut i32 {
-        unsafe { mem::transmute(self.flags_raw()) }
-    }
-
-    pub unsafe fn velocity_raw(&self) -> *const Vector {
-        netvars::offset::<Vector>(self.as_ptr(), "DT_BasePlayer", "m_vecVelocity[0]")
+        self.netvar::<i32>("DT_BasePlayer", "m_fFlags")
     }
 
     pub fn velocity(&self) -> &Vector {
-        unsafe { mem::transmute(self.velocity_raw()) }
+        self.netvar::<Vector>("DT_BasePlayer", "m_vecVelocity[0]")
     }
+}
 
-    pub fn velocity_mut(&mut self) -> &mut Vector {
-        unsafe { mem::transmute(self.velocity_raw()) }
+impl Netvar for Entity {
+    fn as_ptr(&self) -> *const () {
+        self.this
     }
 }
 

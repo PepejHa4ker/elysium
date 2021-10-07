@@ -21,15 +21,15 @@ pub unsafe fn entities() -> &'static sdk::Entities {
     ENTITIES.get().unwrap_unchecked()
 }
 
-pub fn set_console(console: *const usize) {
+pub fn set_console(console: *const ()) {
     let _ = unsafe { CONSOLE.set(sdk::Console::from_raw(console)) };
 }
 
-pub fn set_engine(engine: *const usize) {
+pub fn set_engine(engine: *const ()) {
     let _ = unsafe { ENGINE.set(sdk::Engine::from_raw(engine)) };
 }
 
-pub fn set_entities(entities: *const usize) {
+pub fn set_entities(entities: *const ()) {
     let _ = unsafe { ENTITIES.set(sdk::Entities::from_raw(entities)) };
 }
 
@@ -43,8 +43,8 @@ pub fn local_player() -> Option<&'static sdk::Entity> {
 
 pub fn set_local_player(entity: sdk::Entity) {
     unsafe {
-        ptr::replace::<*const usize>(
-            &LOCAL_PLAYER.this as *const *const usize as *mut *const usize,
+        ptr::replace::<*const ()>(
+            &LOCAL_PLAYER.this as *const *const () as *mut *const (),
             entity.this,
         );
     }
@@ -52,8 +52,8 @@ pub fn set_local_player(entity: sdk::Entity) {
 
 pub fn reset_local_player() {
     unsafe {
-        ptr::replace::<*const usize>(
-            &LOCAL_PLAYER.this as *const *const usize as *mut *const usize,
+        ptr::replace::<*const ()>(
+            &LOCAL_PLAYER.this as *const *const () as *mut *const (),
             ptr::null(),
         );
     }
