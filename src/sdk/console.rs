@@ -1,4 +1,3 @@
-use core::mem;
 use std::ffi::CString;
 use vptr::Virtual;
 

@@ -1,6 +1,6 @@
 use super::EntityId;
+use core::fmt;
 use core::ptr::NonNull;
-use core::{fmt, mem};
 use daisy_chain::Chain;
 use vptr::Virtual;
 

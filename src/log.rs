@@ -2,7 +2,7 @@ use crate::sdk;
 use parking_lot::{RwLock, RwLockWriteGuard};
 use std::fs::{File, OpenOptions};
 use std::io;
-use std::io::{Error, Write};
+use std::io::Write;
 use std::sync::Arc;
 
 struct LoggerRef {

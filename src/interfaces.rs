@@ -1,7 +1,7 @@
 use crate::consts::interface;
 use crate::libraries::Libraries;
 use core::mem;
-use vptr::{Pointer, Virtual, VirtualMut};
+use vptr::{Pointer, VirtualMut};
 
 #[derive(Debug)]
 pub struct Interfaces {

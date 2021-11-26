@@ -3,10 +3,7 @@ use crate::Result;
 use daisy_chain::{Chain, ChainIter};
 use libc::{RTLD_LOCAL, RTLD_NOLOAD, RTLD_NOW};
 use libloading::os::unix;
-use std::ffi::{CStr, CString, NulError, OsStr};
-use std::fs::OpenOptions;
 use std::marker::PhantomData;
-use std::ptr::NonNull;
 use std::{fmt, ptr};
 
 /// An interface.

@@ -1,5 +1,6 @@
 use super::netvars::Netvar;
-use super::Vector;
+use crate::angle::Angle;
+use crate::vector::Vector;
 
 #[derive(Debug)]
 pub struct Entity {
@@ -21,6 +22,16 @@ impl Entity {
 
     pub fn velocity(&self) -> &Vector {
         self.netvar::<Vector>("DT_BasePlayer", "m_vecVelocity[0]")
+    }
+
+    pub fn dead_flag(&self) -> &bool {
+        self.netvar::<bool>("DT_BasePlayer", "deadflag")
+    }
+
+    pub fn view_angle(&self) -> Angle {
+        unsafe {
+            *((self.netvar_raw("DT_BasePlayer", "deadflag") as *const u8).add(4) as *const Angle)
+        }
     }
 }
 

@@ -1,9 +1,8 @@
-use super::{Client, RecvProp, RecvTable};
+use super::{Client, RecvTable};
 use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::collections::hash_map::{Entry, HashMap};
 use std::lazy::SyncLazy;
-use std::ops::Deref;
-use std::{fmt, mem, ptr};
+use std::{fmt, ptr};
 use vptr::Pointer;
 
 pub struct Offsets {

@@ -2,20 +2,15 @@
 #![feature(const_fn_fn_ptr_basics)]
 #![feature(once_cell)]
 #![feature(const_fn_floating_point_arithmetic)]
+#![feature(link_llvm_intrinsics)]
 
 use crate::consts::offset;
 use crate::interfaces::Interfaces;
 use crate::libraries::Libraries;
 use crate::log::Logger;
-use libc::{RTLD_LOCAL, RTLD_NOLOAD, RTLD_NOW};
-use libloading::os::unix;
-use parking_lot::RwLock;
-use std::ffi::{CString, NulError, OsStr};
-use std::lazy::SyncOnceCell;
-use std::ptr::NonNull;
 use std::time::Duration;
-use std::{mem, ptr, thread};
-use vptr::{Pointer, Virtual, VirtualMut};
+use std::{mem, thread};
+use vptr::VirtualMut;
 
 pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -29,7 +24,10 @@ pub mod interfaces;
 pub mod libraries;
 pub mod library;
 pub mod log;
+pub mod matrix3x4;
 pub mod sdk;
+pub mod util;
+pub mod vector;
 
 pub unsafe fn change_ref<'a, 'b, T>(a: &'a T) -> &'b T {
     mem::transmute(a)

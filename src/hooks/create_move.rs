@@ -1,4 +1,5 @@
-use crate::sdk::Angle;
+//use crate::angle::Angle;
+use crate::util::FloatExt;
 use crate::{globals, sdk};
 use std::lazy::SyncOnceCell;
 use std::mem;
@@ -23,38 +24,6 @@ pub fn set_original(original: *const ()) {
     let _ = unsafe { ORIGINAL.set(mem::transmute::<_, Signature>(original)) };
 }
 
-pub fn normalize_pitch(pitch: f32) -> f32 {
-    let mut pitch = pitch;
-
-    while pitch > 89.0 {
-        pitch -= 180.0;
-    }
-
-    while pitch < -89.0 {
-        pitch += 180.0;
-    }
-
-    pitch
-}
-
-pub fn normalize_yaw(yaw: f32) -> f32 {
-    let mut yaw = yaw;
-
-    while yaw > 180.0 {
-        yaw -= 360.0;
-    }
-
-    while yaw < -180.0 {
-        yaw += 360.0;
-    }
-
-    yaw
-}
-
-pub fn normalize_angles(angle: Angle) -> Angle {
-    Angle::new(normalize_pitch(angle.x), normalize_yaw(angle.y), 0.0)
-}
-
 pub unsafe fn bunny_hop(command: &mut sdk::Command) {
     let local_player = match globals::local_player() {
         Some(local_player) => local_player,
@@ -64,7 +33,7 @@ pub unsafe fn bunny_hop(command: &mut sdk::Command) {
     let flags: sdk::PlayerState = mem::transmute(*local_player.flags());
 
     if !flags.on_ground() {
-        command.state.0 = command.state.0 & !sdk::input::State::JUMP.0;
+        command.state.0 &= !sdk::input::State::JUMP.0;
     }
 }
 
@@ -93,6 +62,53 @@ pub unsafe fn rage_strafe(command: &mut sdk::Command) {
         command.side_move = if command.mouse_dx < 0 { -450.0 } else { 450.0 };
     } else {
         command.forward_move = 10000.0 / speed;
+        command.forward_move = if command.command_number % 2 == 0 {
+            -450.0
+        } else {
+            450.0
+        };
+        command.side_move = if command.command_number % 2 == 0 {
+            -450.0
+        } else {
+            450.0
+        };
+    }
+}
+
+pub unsafe fn rage_strafe2(command: &mut sdk::Command) {
+    let local_player = match globals::local_player() {
+        Some(local_player) => local_player,
+        None => return,
+    };
+
+    let flags: sdk::PlayerState = mem::transmute(*local_player.flags());
+
+    if flags.on_ground() {
+        return;
+    }
+
+    let speed = local_player.velocity().magnitude();
+    let rotation = ((30.0 / speed).sin().to_degrees() * 0.5).min(45.0);
+
+    println!("speed = {:?}", speed);
+    println!("rotation = {:?}", rotation);
+
+    if speed < 1.0 {
+        command.forward_move = 450.0;
+        //command.state.0 = command.state.0 | sdk::input::State::FORWARD.0;
+
+        return;
+    }
+
+    if command.mouse_dx > 1 || command.mouse_dx < -1 {
+        command.forward_move = if command.mouse_dx < 0 { -450.0 } else { 450.0 };
+    } else {
+        command.forward_move = 10000.0 / speed;
+        command.forward_move = if command.command_number % 2 == 0 {
+            -450.0
+        } else {
+            450.0
+        };
         command.side_move = if command.command_number % 2 == 0 {
             -450.0
         } else {
@@ -116,7 +132,7 @@ pub unsafe fn directional_strafe(command: &mut sdk::Command) {
     let velocity = local_player.velocity();
     let speed = Vec2::new(velocity.x, velocity.y).magnitude();
     let yaw_velocity = velocity.x.atan2(velocity.y).to_degrees();
-    let velocity_delta = normalize_yaw(command.view_angles.y - yaw_velocity);
+    let velocity_delta = (command.view_angles.yaw - yaw_velocity).normalize_yaw();
 
     globals::console().write(format!("velocity = {:?}\n", &velocity));
     globals::console().write(format!("speed = {:?}\n", &speed));
@@ -130,25 +146,17 @@ pub unsafe fn directional_strafe(command: &mut sdk::Command) {
     }
 
     if command.in_backward() {
-        globals::console().write("backward\n");
-
-        command.view_angles.y += -180.0;
+        command.view_angles.yaw += f32::backward();
     } else if command.in_left() {
-        globals::console().write("left\n");
-
-        command.view_angles.y += 90.0;
+        command.view_angles.yaw += f32::left();
     } else if command.in_right() {
-        globals::console().write("right\n");
-
-        command.view_angles.y += -90.0;
+        command.view_angles.yaw += f32::right();
     } else {
-        globals::console().write("forward\n");
-
-        command.state.0 = command.state.0 | sdk::input::State::FORWARD.0;
+        //command.state.0 |= sdk::input::State::FORWARD.0;
     }
 
     if speed == 0.0 || speed.is_nan() || speed.is_infinite() {
-        command.state.0 = command.state.0 | sdk::input::State::FORWARD.0;
+        //command.state.0 |= sdk::input::State::FORWARD.0;
 
         return;
     }
@@ -156,8 +164,13 @@ pub unsafe fn directional_strafe(command: &mut sdk::Command) {
     command.state.0 = 0;
     command.forward_move = (5850.0 / speed).clamp(-450.0, 450.0);
     command.side_move = if velocity_delta > 0.0 { -450.0 } else { 450.0 };
-    command.view_angles.y = normalize_yaw(command.view_angles.y - velocity_delta);
+    command.view_angles.yaw = (command.view_angles.yaw - velocity_delta).normalize_yaw();
     command.tick_count = 0;
+}
+
+extern "C" {
+    #[link_name = "llvm.frameaddress"]
+    fn frame_address(depth: i32) -> *const i8;
 }
 
 pub unsafe extern "C" fn hook(
@@ -167,10 +180,61 @@ pub unsafe extern "C" fn hook(
 ) -> bool {
     let result = original(this, input_sample_time, command);
 
-    if command.tick_count != 0 {
-        bunny_hop(command);
-        rage_strafe(command);
+    if command.tick_count == 0 {
+        return true;
     }
 
-    return result;
+    let send_packet = (*(frame_address(0) as *mut *mut bool)).sub(0x18);
+    let original_angle = command.view_angles;
+    let original_forward = command.forward_move;
+    let original_side = command.side_move;
+
+    command.view_angles.pitch = f32::down();
+
+    bunny_hop(command);
+    //rage_strafe(command);
+    directional_strafe(command);
+    //rage_strafe2(command);
+
+    *send_packet = command.tick_count % 14 == 0;
+
+    if *send_packet {
+        command.view_angles.yaw += 180.0;
+    } else {
+        command.view_angles.yaw += 180.0 + 120.0;
+    }
+
+    command.view_angles = command.view_angles.normalize();
+    //command.view_angles = globals::engine().view_angle();
+
+    let f1 = if original_angle.yaw < 0.0 {
+        360.0 + original_angle.yaw
+    } else {
+        original_angle.yaw
+    };
+
+    let f2 = if command.view_angles.yaw < 0.0 {
+        360.0 + command.view_angles.yaw
+    } else {
+        command.view_angles.yaw
+    };
+
+    let mut delta_view_angles = if f2 < f1 {
+        (f2 - f1).abs()
+    } else {
+        360.0 - (f2 - f1).abs()
+    };
+
+    delta_view_angles = 360.0 - delta_view_angles;
+
+    let delta_radian = delta_view_angles.to_radians();
+    let delta_radian_90 = (delta_view_angles + 90.0).to_radians();
+
+    command.forward_move =
+        delta_radian.cos() * original_forward + delta_radian_90.cos() * original_side;
+
+    command.side_move =
+        delta_radian.sin() * original_forward + delta_radian_90.sin() * original_side;
+
+    return false;
 }

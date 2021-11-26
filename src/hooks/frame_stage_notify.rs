@@ -1,3 +1,4 @@
+use crate::util::FloatExt;
 use crate::{globals, sdk};
 use std::lazy::SyncOnceCell;
 use std::mem;
@@ -35,6 +36,10 @@ pub unsafe extern "C" fn hook(this: *const (), raw_stage: i32) {
 
     if let Some(local_player) = local_player {
         globals::set_local_player(local_player);
+    }
+
+    if let Some(local_player) = globals::local_player() {
+        local_player.view_angle().pitch = f32::down();
     }
 
     original(this, raw_stage);

@@ -1,5 +1,4 @@
 use super::Entity;
-use core::mem;
 use vptr::Virtual;
 
 #[derive(Debug)]

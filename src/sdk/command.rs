@@ -1,5 +1,5 @@
 use super::input::State;
-use super::{Angle, Vector};
+use crate::angle::Angle;
 
 #[derive(Debug)]
 #[repr(C)]
@@ -8,7 +8,7 @@ pub struct Command {
     pub command_number: i32,
     pub tick_count: i32,
     pub view_angles: Angle,
-    pub aim_direction: Angle,
+    pub aim_direction: (f32, f32, f32),
     pub forward_move: f32,
     pub side_move: f32,
     pub up_move: f32,
@@ -21,7 +21,7 @@ pub struct Command {
     pub mouse_dy: i16,
     pub has_been_predicted: bool,
     pub head_angles: Angle,
-    pub head_offset: Vector,
+    pub head_offset: (f32, f32, f32),
 }
 
 impl Command {

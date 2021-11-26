@@ -1,4 +1,3 @@
-use core::mem;
 use vptr::Virtual;
 
 pub use self::button::Button;
