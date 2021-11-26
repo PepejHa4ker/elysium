@@ -55,8 +55,6 @@ impl Interfaces {
             .get_exact_interface(interface::GAMEVENTSMANAGER);
 
         let client_mode = unsafe {
-            use vptr::{Pointer, Virtual, VirtualMut};
-
             let hud_process_input: *const () = client.vget(10 * 8);
             let get_client_mode = hud_process_input.add_bytes(11).to_offset_absolute(1, 5);
             let get_client_mode: unsafe extern "C" fn() -> *mut () =

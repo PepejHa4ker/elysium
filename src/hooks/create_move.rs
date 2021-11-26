@@ -153,9 +153,11 @@ pub unsafe fn directional_strafe(command: &mut sdk::Command) {
         return;
     }
 
+    command.state.0 = 0;
     command.forward_move = (5850.0 / speed).clamp(-450.0, 450.0);
     command.side_move = if velocity_delta > 0.0 { -450.0 } else { 450.0 };
     command.view_angles.y = normalize_yaw(command.view_angles.y - velocity_delta);
+    command.tick_count = 0;
 }
 
 pub unsafe extern "C" fn hook(

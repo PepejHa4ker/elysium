@@ -1,14 +1,7 @@
-#![allow(dead_code)]
-#![allow(non_snake_case)]
-#![allow(unreachable_patterns)]
-#![allow(unused_imports)]
-#![allow(unused_must_use)]
-#![allow(unused_mut)]
-#![allow(unused_variables)]
 #![feature(const_trait_impl)]
 #![feature(const_fn_fn_ptr_basics)]
 #![feature(once_cell)]
-#![feature(option_result_unwrap_unchecked)]
+#![feature(const_fn_floating_point_arithmetic)]
 
 use crate::consts::offset;
 use crate::interfaces::Interfaces;
@@ -27,6 +20,7 @@ use vptr::{Pointer, Virtual, VirtualMut};
 pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
+pub mod angle;
 pub mod consts;
 pub mod error;
 pub mod globals;
@@ -81,7 +75,7 @@ fn main(logger: Logger) -> Result<()> {
 
     sdk::netvars::set(&client);
 
-    unsafe {
+    /*unsafe {
         return Ok(());
 
         use crate::consts::library::sdl;
@@ -107,7 +101,7 @@ fn main(logger: Logger) -> Result<()> {
 
         swap_window_address.replace(hooks::sdl::swap_window::hook as *const ());
         poll_event_address.replace(hooks::sdl::poll_event::hook as *const ());
-    }
+    }*/
 
     Ok(())
 }
