@@ -30,9 +30,7 @@ impl Entity {
 
     pub fn view_angle(&self) -> &mut Angle {
         unsafe {
-            core::mem::transmute(
-                (self.netvar_raw("DT_BasePlayer", "deadflag") as *const u8).add(4) as *mut Angle,
-            )
+            &mut *((self.netvar_raw("DT_BasePlayer", "deadflag") as *const u8).add(4) as *mut Angle)
         }
     }
 }

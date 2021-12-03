@@ -1,13 +1,14 @@
 use crate::command::Command;
 use crate::entity::Entity;
-use crate::{globals, intrinsics};
+use crate::global::Global;
+use crate::intrinsics;
+use crate::movement::Movement;
 use sdk::F32Ext;
-use vek::Vec2;
 
 pub type Signature =
     unsafe extern "C" fn(this: *const (), input_sample_time: f32, command: &mut Command) -> bool;
 
-pub fn bunny_hop(command: &mut Command, send_packet: &mut bool, local_player: &Entity) {
+/*pub fn bunny_hop(command: &mut Command, send_packet: &mut bool, local_player: &Entity) {
     let flags = local_player.flags();
 
     if !flags.on_ground() {
@@ -61,16 +62,18 @@ pub fn do_move(command: &mut Command, send_packet: &mut bool, local_player: &Ent
     }
 
     bunny_hop(command, send_packet, local_player);
-}
+}*/
+
+pub const IN_JUMP: i32 = 1 << 1;
 
 pub unsafe extern "C" fn hook(
     this: *const (),
     input_sample_time: f32,
     command: &mut Command,
 ) -> bool {
-    tracing::info!("create_move hook");
+    println!("create_move hook");
 
-    let global = crate::GLOBAL.get().unwrap_unchecked();
+    let global = Global::handle();
     let result = global.create_move_original(this, input_sample_time, command);
 
     if command.tick_count == 0 {
@@ -83,18 +86,21 @@ pub unsafe extern "C" fn hook(
     let original_forward = command.forward_move;
     let original_side = command.side_move;
 
-    if let Some(local_player) = globals::local_player() {
+    if let Some(local_player) = global.local_player() {
         let on_move = &*global.on_move_ptr();
-        let movement = on_move(crate::Movement {
+        let movement = on_move(Movement {
             forward_move: command.forward_move,
             side_move: command.side_move,
             up_move: command.up_move,
             view_angle: command.view_angle,
             send_packet: *send_packet,
             tick_count: command.tick_count,
+            in_jump: command.state & IN_JUMP != 0,
             local_player: (local_player as *const Entity).read(),
         });
 
+        command.state &= !IN_JUMP;
+        command.state |= ((movement.in_jump as u32) << 1) as i32;
         command.forward_move = movement.forward_move;
         command.side_move = movement.side_move;
         command.up_move = movement.up_move;
@@ -102,8 +108,6 @@ pub unsafe extern "C" fn hook(
         command.tick_count = movement.tick_count;
         *send_packet = movement.send_packet;
     }
-
-    //command.view_angle = command.view_angle.normalize();
 
     let f1 = if original_angle.yaw < 0.0 {
         360.0 + original_angle.yaw

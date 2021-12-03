@@ -1,4 +1,4 @@
-use super::Entity;
+use crate::entity::Entity;
 use vptr::Virtual;
 
 #[derive(Debug)]
