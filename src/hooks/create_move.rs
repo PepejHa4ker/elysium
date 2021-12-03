@@ -45,6 +45,8 @@ pub unsafe extern "C" fn hook(
             in_duck: command.state & IN_DUCK != 0,
             in_fast_duck: command.state & (IN_DUCK | IN_BULLRUSH) != 0,
             local_player: (local_player as *const Entity).read(),
+            current_time: *local_player.tick_base() as f32
+                * global.globals().interval_per_tick as f32,
         });
 
         command.state &= !(IN_ATTACK | IN_JUMP | IN_DUCK | IN_BULLRUSH);

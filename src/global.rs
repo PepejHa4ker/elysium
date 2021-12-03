@@ -4,6 +4,7 @@ use crate::engine::Engine;
 use crate::entities::Entities;
 use crate::entity::Entity;
 use crate::frame::Frame;
+use crate::globals::Globals;
 use crate::hooks;
 use crate::hooks::frame_stage_notify::RawFrame;
 use crate::interfaces::Interfaces;
@@ -114,6 +115,10 @@ impl Global {
 
     pub fn interfaces(&self) -> &Interfaces {
         &self.0.interfaces
+    }
+
+    pub fn globals(&self) -> &Globals {
+        self.0.interfaces.globals
     }
 
     pub fn engine(&self) -> &Engine {

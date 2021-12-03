@@ -3,6 +3,7 @@ use crate::console::Console;
 use crate::consts::interface;
 use crate::engine::Engine;
 use crate::entities::Entities;
+use crate::globals::Globals;
 use crate::libraries::Libraries;
 use crate::trace::EngineTrace;
 use core::mem;
@@ -14,6 +15,7 @@ pub struct Interfaces {
     pub client: Client,
     pub client_mode: *mut (),
     pub engine: Engine,
+    pub globals: &'static Globals,
     pub panel: *mut (),
     pub entities: Entities,
     pub engine_vgui: *mut (),
@@ -87,11 +89,20 @@ impl Interfaces {
             client_mode
         };
 
+        let globals = unsafe {
+            let hud_update: *const () = client.as_mut_ptr().vget(11 * 8);
+            let globals =
+                *(hud_update.add_bytes(13).to_offset_absolute(3, 7) as *const *const Globals);
+
+            &*globals
+        };
+
         Self {
             console,
             client,
             client_mode,
             engine,
+            globals,
             panel,
             entities,
             engine_vgui,

@@ -20,12 +20,16 @@ impl Entity {
         self.netvar::<PlayerState>("DT_BasePlayer", "m_fFlags")
     }
 
-    pub fn velocity(&self) -> &Vector {
-        self.netvar::<Vector>("DT_BasePlayer", "m_vecVelocity[0]")
-    }
-
     pub fn dead_flag(&self) -> &bool {
         self.netvar::<bool>("DT_BasePlayer", "deadflag")
+    }
+
+    pub fn tick_base(&self) -> &u32 {
+        self.netvar::<u32>("DT_BasePlayer", "m_nTickBase")
+    }
+
+    pub fn velocity(&self) -> &Vector {
+        self.netvar::<Vector>("DT_BasePlayer", "m_vecVelocity[0]")
     }
 
     pub fn view_angle(&self) -> &mut Angle {

@@ -28,6 +28,7 @@ pub mod entity_id;
 pub mod error;
 pub mod frame;
 pub mod global;
+pub mod globals;
 pub mod hit_group;
 pub mod hooks;
 pub mod input;

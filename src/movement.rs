@@ -15,4 +15,6 @@ pub struct Movement {
     /// you may be vac banned using this
     pub in_fast_duck: bool,
     pub local_player: Entity,
+    /// `local_player->tick_base * interfaces->globals->interval_per_tick`
+    pub current_time: f32,
 }
