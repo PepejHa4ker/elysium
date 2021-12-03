@@ -60,11 +60,12 @@ fn main(logger: Logger) -> Result<()> {
     global.on_frame(move |frame| {
         if let Some(local_player) = global2.local_player() {
             local_player.view_angle().pitch = 89.0;
-            local_player.view_angle().yaw = -270.0;
         }
     });
 
     global.on_move(move |mut movement| {
+        movement.send_packet = movement.tick_count % 14 == 0;
+
         if !movement.local_player.flags().on_ground() {
             movement.in_jump = false;
         }
@@ -73,9 +74,10 @@ fn main(logger: Logger) -> Result<()> {
             movement.in_fast_duck = true;
         }
 
-        movement.send_packet = movement.tick_count % 14 == 0;
-        movement.view_angle.yaw = -270.0;
-        movement.view_angle.pitch = 89.0;
+        if !movement.in_attack {
+            movement.view_angle.yaw = -270.0;
+            movement.view_angle.pitch = 89.0;
+        }
 
         println!("{:?}", &movement);
 

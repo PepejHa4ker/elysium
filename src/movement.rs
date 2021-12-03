@@ -9,6 +9,7 @@ pub struct Movement {
     pub view_angle: Angle,
     pub tick_count: i32,
     pub send_packet: bool,
+    pub in_attack: bool,
     pub in_jump: bool,
     pub in_duck: bool,
     /// you may be vac banned using this

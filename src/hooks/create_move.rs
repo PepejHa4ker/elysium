@@ -8,6 +8,7 @@ use sdk::F32Ext;
 pub type Signature =
     unsafe extern "C" fn(this: *const (), input_sample_time: f32, command: &mut Command) -> bool;
 
+pub const IN_ATTACK: i32 = 1 << 0;
 pub const IN_JUMP: i32 = 1 << 1;
 pub const IN_DUCK: i32 = 1 << 2;
 pub const IN_BULLRUSH: i32 = 1 << 22;
@@ -39,13 +40,15 @@ pub unsafe extern "C" fn hook(
             view_angle: command.view_angle,
             send_packet: *send_packet,
             tick_count: command.tick_count,
+            in_attack: command.state & IN_ATTACK != 0,
             in_jump: command.state & IN_JUMP != 0,
             in_duck: command.state & IN_DUCK != 0,
             in_fast_duck: command.state & (IN_DUCK | IN_BULLRUSH) != 0,
             local_player: (local_player as *const Entity).read(),
         });
 
-        command.state &= !(IN_JUMP | IN_DUCK | IN_BULLRUSH);
+        command.state &= !(IN_ATTACK | IN_JUMP | IN_DUCK | IN_BULLRUSH);
+        command.state |= movement.in_attack as i32;
         command.state |= ((movement.in_jump as u32) << 1) as i32;
         command.state |= (((movement.in_duck | movement.in_fast_duck) as u32) << 2) as i32;
         command.state |= ((movement.in_fast_duck as u32) << 21) as i32;
