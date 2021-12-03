@@ -17,8 +17,6 @@ pub enum RawFrame {
 }
 
 pub unsafe extern "C" fn hook(this: *const (), frame: RawFrame) {
-    println!("frame_stage_notify hook");
-
     let global = Global::handle();
     let local_player_index = global.engine().local_player_index();
     let local_player = global.entities().get(local_player_index);

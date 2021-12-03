@@ -77,6 +77,8 @@ fn main(logger: Logger) -> Result<()> {
         movement.view_angle.yaw = -270.0;
         movement.view_angle.pitch = 89.0;
 
+        println!("{:?}", &movement);
+
         movement
     });
 
