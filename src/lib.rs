@@ -69,6 +69,10 @@ fn main(logger: Logger) -> Result<()> {
             movement.in_jump = false;
         }
 
+        if movement.in_duck {
+            movement.in_fast_duck = true;
+        }
+
         movement.send_packet = movement.tick_count % 14 == 0;
         movement.view_angle.yaw = -270.0;
         movement.view_angle.pitch = 89.0;

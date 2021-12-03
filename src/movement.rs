@@ -10,5 +10,8 @@ pub struct Movement {
     pub tick_count: i32,
     pub send_packet: bool,
     pub in_jump: bool,
+    pub in_duck: bool,
+    /// you may be vac banned using this
+    pub in_fast_duck: bool,
     pub local_player: Entity,
 }

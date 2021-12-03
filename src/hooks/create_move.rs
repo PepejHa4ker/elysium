@@ -65,6 +65,8 @@ pub fn do_move(command: &mut Command, send_packet: &mut bool, local_player: &Ent
 }*/
 
 pub const IN_JUMP: i32 = 1 << 1;
+pub const IN_DUCK: i32 = 1 << 2;
+pub const IN_BULLRUSH: i32 = 1 << 22;
 
 pub unsafe extern "C" fn hook(
     this: *const (),
@@ -96,16 +98,24 @@ pub unsafe extern "C" fn hook(
             send_packet: *send_packet,
             tick_count: command.tick_count,
             in_jump: command.state & IN_JUMP != 0,
+            in_duck: command.state & IN_DUCK != 0,
+            in_fast_duck: command.state & (IN_DUCK | IN_BULLRUSH) != 0,
             local_player: (local_player as *const Entity).read(),
         });
 
-        command.state &= !IN_JUMP;
+        command.state &= !(IN_JUMP | IN_DUCK | IN_BULLRUSH);
         command.state |= ((movement.in_jump as u32) << 1) as i32;
+        command.state |= (((movement.in_duck | movement.in_fast_duck) as u32) << 2) as i32;
+        command.state |= ((movement.in_fast_duck as u32) << 21) as i32;
+
         command.forward_move = movement.forward_move;
         command.side_move = movement.side_move;
         command.up_move = movement.up_move;
+
         command.view_angle = movement.view_angle;
+
         command.tick_count = movement.tick_count;
+
         *send_packet = movement.send_packet;
     }
 
