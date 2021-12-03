@@ -36,7 +36,7 @@ impl PlayerState {
     /// Entity is in water.
     pub const IN_WATER: Self = Self::new(1 << 9);
 
-    const fn new(state: i32) -> Self {
+    pub const fn new(state: i32) -> Self {
         Self(state)
     }
 

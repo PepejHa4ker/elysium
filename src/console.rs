@@ -1,7 +1,7 @@
 use std::ffi::CString;
 use vptr::Virtual;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Console {
     this: *const (),
 }
@@ -13,6 +13,10 @@ impl Console {
 
     pub fn as_ptr(&self) -> *const () {
         self.this
+    }
+
+    pub fn as_mut_ptr(&self) -> *mut () {
+        self.this as *mut ()
     }
 
     pub fn write(&self, buf: impl Into<Vec<u8>>) {

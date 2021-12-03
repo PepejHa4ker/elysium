@@ -1,8 +1,6 @@
 use super::entity::Entity;
 use super::hit_group::HitGroup;
-//use crate::angle::Angle;
-use crate::matrix3x4::Matrix3x4;
-use crate::vector::Vector;
+use sdk::{Matrix3x4, Vector};
 use vptr::Virtual;
 
 #[derive(Debug)]
@@ -56,6 +54,10 @@ impl EngineTrace {
 
     pub fn as_ptr(&self) -> *const () {
         self.this
+    }
+
+    pub fn as_mut_ptr(&self) -> *mut () {
+        self.this as *mut ()
     }
 
     pub fn get_point_contents(

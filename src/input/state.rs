@@ -1,9 +1,15 @@
-#[derive(Clone, Copy, Debug)]
+use core::ops;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(transparent)]
 pub struct State(pub i32);
 
 impl State {
     pub const ATTACK: Self = Self::new(1 << 0);
+    pub const ATTACK2: Self = Self::new(1 << 11);
+    pub const ATTACK3: Self = Self::new(1 << 25);
+    pub const ANY_ATTACK: Self = Self::ATTACK | Self::ATTACK2 | Self::ATTACK3;
+
     pub const JUMP: Self = Self::new(1 << 1);
     pub const CROUCH: Self = Self::new(1 << 2);
     pub const FORWARD: Self = Self::new(1 << 3);
@@ -14,7 +20,6 @@ impl State {
     pub const RIGHT: Self = Self::new(1 << 8);
     pub const MOVE_LEFT: Self = Self::new(1 << 9);
     pub const MOVE_RIGHT: Self = Self::new(1 << 10);
-    pub const ATTACK2: Self = Self::new(1 << 11);
     pub const RUN: Self = Self::new(1 << 12);
     pub const RELOAD: Self = Self::new(1 << 13);
     pub const ALT1: Self = Self::new(1 << 14);
@@ -28,26 +33,29 @@ impl State {
     pub const BULLRUSH: Self = Self::new(1 << 22);
     pub const GRENADE1: Self = Self::new(1 << 23);
     pub const GRENADE2: Self = Self::new(1 << 24);
-    pub const ATTACK3: Self = Self::new(1 << 25);
 
     const fn new(state: i32) -> Self {
         Self(state)
     }
 
+    pub const fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+
     pub const fn in_attack(&self) -> bool {
-        self.0 & Self::ATTACK.0 != 0
+        !(*self & Self::ATTACK).is_empty()
     }
 
     pub const fn in_attack2(&self) -> bool {
-        self.0 & Self::ATTACK2.0 != 0
+        !(*self & Self::ATTACK2).is_empty()
     }
 
     pub const fn in_attack3(&self) -> bool {
-        self.0 & Self::ATTACK3.0 != 0
+        !(*self & Self::ATTACK2).is_empty()
     }
 
     pub const fn in_any_attack(&self) -> bool {
-        self.0 & (Self::ATTACK.0 | Self::ATTACK2.0 | Self::ATTACK3.0) != 0
+        !(*self & Self::ANY_ATTACK).is_empty()
     }
 
     pub const fn in_jump(&self) -> bool {
@@ -135,10 +143,60 @@ impl State {
     }
 
     pub const fn in_grenade1(&self) -> bool {
-        self.0 & Self::GRENADE1.0 != 0
+        (*self & Self::GRENADE1).0 != 0
     }
 
     pub const fn in_grenade2(&self) -> bool {
-        self.0 & Self::GRENADE2.0 != 0
+        (*self & Self::GRENADE2).0 != 0
+    }
+}
+
+impl const ops::BitAnd for State {
+    type Output = State;
+
+    fn bitand(self, rhs: State) -> State {
+        State(self.0 & rhs.0)
+    }
+}
+
+impl const ops::BitAndAssign for State {
+    fn bitand_assign(&mut self, rhs: State) {
+        self.0 &= rhs.0;
+    }
+}
+
+impl const ops::BitOr for State {
+    type Output = State;
+
+    fn bitor(self, rhs: State) -> State {
+        State(self.0 | rhs.0)
+    }
+}
+
+impl const ops::BitOrAssign for State {
+    fn bitor_assign(&mut self, rhs: State) {
+        self.0 |= rhs.0;
+    }
+}
+
+impl const ops::BitXor for State {
+    type Output = State;
+
+    fn bitxor(self, rhs: State) -> State {
+        State(self.0 ^ rhs.0)
+    }
+}
+
+impl const ops::BitXorAssign for State {
+    fn bitxor_assign(&mut self, rhs: State) {
+        self.0 ^= rhs.0;
+    }
+}
+
+impl const ops::Not for State {
+    type Output = State;
+
+    fn not(self) -> State {
+        Self(!self.0)
     }
 }

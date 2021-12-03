@@ -1,22 +1,27 @@
+use crate::client::Client;
+use crate::console::Console;
 use crate::consts::interface;
+use crate::engine::Engine;
+use crate::entities::Entities;
 use crate::libraries::Libraries;
+use crate::trace::EngineTrace;
 use core::mem;
 use vptr::{Pointer, VirtualMut};
 
 #[derive(Debug)]
 pub struct Interfaces {
-    pub console: *mut (),
-    pub client: *mut (),
+    pub console: Console,
+    pub client: Client,
     pub client_mode: *mut (),
-    pub engine: *mut (),
+    pub engine: Engine,
     pub panel: *mut (),
-    pub entities: *mut (),
+    pub entities: Entities,
     pub engine_vgui: *mut (),
     pub model: *mut (),
     pub model_info: *mut (),
     pub materialsystem: *mut (),
     pub sound: *mut (),
-    pub trace: *mut (),
+    pub trace: EngineTrace,
     pub movement: *mut (),
     pub prediction: *mut (),
     pub events: *mut (),
@@ -24,18 +29,36 @@ pub struct Interfaces {
 
 impl Interfaces {
     pub fn new(libraries: &Libraries) -> Self {
-        let console = libraries
-            .materialsystem
-            .get_interface(interface::VENGINECVAR);
+        let console = unsafe {
+            Console::from_raw(
+                libraries
+                    .materialsystem
+                    .get_interface(interface::VENGINECVAR),
+            )
+        };
 
-        let client = libraries.client.get_interface(interface::VCLIENT);
-        let engine = libraries.engine.get_interface(interface::VENGINECLIENT);
+        let client =
+            unsafe { Client::from_raw(libraries.client.get_interface(interface::VCLIENT)) };
+
+        let engine =
+            unsafe { Engine::from_raw(libraries.engine.get_interface(interface::VENGINECLIENT)) };
+
         let panel = libraries.vgui2.get_interface(interface::VENGINEVGUI);
-        let entities = libraries.client.get_interface(interface::VCLIENTENTITYLIST);
+
+        let entities = unsafe {
+            Entities::from_raw(libraries.client.get_interface(interface::VCLIENTENTITYLIST))
+        };
+
         let engine_vgui = libraries.engine.get_interface(interface::VENGINEVGUI);
+
         let model = libraries.engine.get_interface(interface::VENGINEMODEL);
+
         let model_info = libraries.engine.get_interface(interface::VMODELINFOCLIENT);
-        let trace = libraries.engine.get_interface(interface::ENGINETRACECLIENT);
+
+        let trace = unsafe {
+            EngineTrace::from_raw(libraries.engine.get_interface(interface::ENGINETRACECLIENT))
+        };
+
         let movement = libraries.engine.get_interface(interface::GAMEMOVEMENT);
 
         let materialsystem = libraries
@@ -55,7 +78,7 @@ impl Interfaces {
             .get_exact_interface(interface::GAMEVENTSMANAGER);
 
         let client_mode = unsafe {
-            let hud_process_input: *const () = client.vget(10 * 8);
+            let hud_process_input: *const () = client.as_mut_ptr().vget(10 * 8);
             let get_client_mode = hud_process_input.add_bytes(11).to_offset_absolute(1, 5);
             let get_client_mode: unsafe extern "C" fn() -> *mut () =
                 mem::transmute(get_client_mode);

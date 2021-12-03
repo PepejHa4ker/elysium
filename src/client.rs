@@ -1,4 +1,4 @@
-use super::EntityId;
+use crate::entity_id::EntityId;
 use core::fmt;
 use core::ptr::NonNull;
 use daisy_chain::Chain;
@@ -203,6 +203,10 @@ impl Client {
 
     pub fn as_ptr(&self) -> *const () {
         self.this
+    }
+
+    pub fn as_mut_ptr(&self) -> *mut () {
+        self.this as *mut ()
     }
 
     pub fn get_all_classes(&self) -> Chain<ClientClass, Next> {

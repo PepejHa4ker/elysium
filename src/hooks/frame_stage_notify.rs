@@ -1,46 +1,23 @@
-use crate::util::FloatExt;
-use crate::{globals, sdk};
-use std::lazy::SyncOnceCell;
-use std::mem;
+use crate::frame::Frame;
+use crate::globals;
 
-pub type Signature = unsafe extern "C" fn(this: *const (), stage: i32);
+pub type Signature = unsafe extern "C" fn(this: *const (), frame: Frame);
 
-pub static ORIGINAL: SyncOnceCell<Signature> = SyncOnceCell::new();
+pub unsafe extern "C" fn hook(this: *const (), frame: Frame) {
+    tracing::info!("frame_stage_notify hook");
 
-pub unsafe fn original(this: *const (), raw_stage: i32) {
-    let original = *ORIGINAL.get().unwrap_unchecked();
-
-    original(this, raw_stage);
-}
-
-pub fn set_original(original: *const ()) {
-    let _ = unsafe { ORIGINAL.set(mem::transmute::<_, Signature>(original)) };
-}
-
-pub unsafe extern "C" fn hook(this: *const (), raw_stage: i32) {
-    let stage = sdk::FrameStage::new(raw_stage);
-
-    //globals::console().write(format!("stage = {:?}\n", &stage));
-
-    if stage.is_none() {
-        tracing::trace!("unknown FrameStage code: {}", raw_stage);
-    }
-
+    let global = crate::GLOBAL.get().unwrap_unchecked();
     let local_player_index = globals::engine().local_player_index();
-
-    //globals::console().write(format!("local_player_index = {:?}\n", &local_player_index));
-
     let local_player = globals::entities().get(local_player_index);
 
-    //globals::console().write(format!("local_player = {:?}\n", &local_player));
-
     if let Some(local_player) = local_player {
+        if frame == Frame::RenderStart {
+            local_player.view_angle().pitch = 89.0;
+            local_player.view_angle().yaw = -270.0;
+        }
+
         globals::set_local_player(local_player);
     }
 
-    if let Some(local_player) = globals::local_player() {
-        local_player.view_angle().pitch = f32::down();
-    }
-
-    original(this, raw_stage);
+    global.frame_stage_notify_original(this, frame);
 }

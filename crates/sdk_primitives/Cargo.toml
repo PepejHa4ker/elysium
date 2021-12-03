@@ -1,0 +1,9 @@
+[package]
+name    = "sdk_primitives"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies.vek]
+default-features = false
+features = ["repr_simd"]
+version  = "0.15"

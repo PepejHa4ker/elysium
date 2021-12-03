@@ -1,4 +1,4 @@
-use super::{Angle, Vec2f32};
+use sdk::{Angle, Vector2D};
 
 #[derive(Debug)]
 #[repr(C)]
@@ -47,22 +47,22 @@ pub struct AnimationState {
     pub origin: Angle,
     pub last_origin: Angle,
     /// Velocity on each axis.
-    pub axis_velocity: Vec2f32,
+    pub axis_velocity: Vector2D,
     _pad_00E4: [u8; 4],
     /// Both axis are `-1.0` to `1.0`.
     ///
     /// For `x`, west is `1.0`, east is `-1.0`.
     /// For `y`, north is `-1.0`, south is `1.0`.
-    pub current_direction: Vec2f32,
+    pub current_direction: Vector2D,
     _pad_00F0: [u8; 4],
     /// Same as `current_direction`. Saved until the next update,
-    pub last_known_direction: Vec2f32,
+    pub last_known_direction: Vector2D,
     _pad_00FC: [u8; 4],
     /// Velocity on each plane.
     ///
     /// `x` is affected by slopes. (e.g. 240 with a knife on a hill).
     /// `y` positive when moving up (e.g. jumping), negative when moving down (e.g. falling).
-    pub plane_velocity: Vec2f32,
+    pub plane_velocity: Vector2D,
     /// Speed normalized in terms of `0.0 to `1.0`.
     ///
     /// Full speed: `1.0`.

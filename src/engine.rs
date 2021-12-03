@@ -1,4 +1,4 @@
-use crate::angle::Angle;
+use sdk::Angle;
 use vptr::Virtual;
 
 #[derive(Debug)]
@@ -13,6 +13,10 @@ impl Engine {
 
     pub fn as_ptr(&self) -> *const () {
         self.this
+    }
+
+    pub fn as_mut_ptr(&self) -> *mut () {
+        self.this as *mut ()
     }
 
     pub fn local_player_index(&self) -> i32 {

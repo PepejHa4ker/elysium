@@ -1,4 +1,4 @@
-use super::{Client, RecvTable};
+use crate::client::{Client, RecvTable};
 use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::collections::hash_map::{Entry, HashMap};
 use std::lazy::SyncLazy;

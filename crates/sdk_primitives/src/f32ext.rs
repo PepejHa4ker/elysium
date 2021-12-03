@@ -1,4 +1,4 @@
-pub trait FloatExt {
+pub trait F32Ext {
     fn normalize_pitch(self) -> Self;
     fn normalize_yaw(self) -> Self;
 
@@ -11,7 +11,7 @@ pub trait FloatExt {
     fn down() -> Self;
 }
 
-impl const FloatExt for f32 {
+impl const F32Ext for f32 {
     /// clamp pitch between -89.0 and 89.0
     fn normalize_pitch(self) -> Self {
         self % 89.0

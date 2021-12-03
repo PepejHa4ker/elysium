@@ -15,6 +15,10 @@ impl Entities {
         self.this
     }
 
+    pub fn as_mut_ptr(&self) -> *mut () {
+        self.this as *mut ()
+    }
+
     pub fn get(&self, index: i32) -> Option<Entity> {
         type Signature = unsafe extern "C" fn(this: *const (), index: i32) -> *const ();
 
