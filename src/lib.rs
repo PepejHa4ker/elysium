@@ -10,6 +10,7 @@ use crate::consts::offset;
 use crate::frame::Frame;
 use crate::global::Global;
 use crate::log::Logger;
+use rand::{thread_rng, Rng};
 use std::time::Duration;
 use std::{mem, thread};
 
@@ -55,18 +56,28 @@ fn main(logger: Logger) -> Result<()> {
         }
     }
 
+    use std::sync::atomic::{AtomicI32, Ordering};
+    use std::sync::Arc;
+
     let global = Global::init()?;
     let global2 = global.clone();
+    let global3 = global.clone();
+    let yaw = Arc::new(AtomicI32::new(0));
+    let yaw2 = yaw.clone();
 
     global.on_frame(move |frame| {
-        if let Some(local_player) = global2.local_player() {
-            local_player.view_angle().pitch = 89.0;
+        // thirdperson fix
+        if global2.input().thirdperson {
+            if let Some(local_player) = global2.local_player() {
+                local_player.view_angle().pitch = 89.0;
+                local_player.view_angle().yaw = yaw.load(Ordering::SeqCst) as f32;
+            }
         }
 
-        global2.cheats().set(1);
+        //global2.cheats().set(0);
         global2.lost_focus_sleep().set(1);
         global2.panorama_blur().set(1);
-        global2.physics_timescale().set(0.1);
+        global2.physics_timescale().set(0.5);
         global2.ragdoll_gravity().set(-800.0);
         global2.show_impacts().set(2);
     });
@@ -76,11 +87,6 @@ fn main(logger: Logger) -> Result<()> {
 
         if !movement.local_player.flags().on_ground() {
             movement.in_jump = false;
-            movement.side_move = if movement.tick_count % 2 == 0 {
-                -450.0
-            } else {
-                450.0
-            };
         }
 
         if movement.in_duck {
@@ -88,18 +94,19 @@ fn main(logger: Logger) -> Result<()> {
         }
 
         if !movement.in_attack {
-            let real = if movement.tick_count % 2 == 0 {
-                -42.0
-            } else {
-                42.0
-            };
+            let mut rng = thread_rng();
+            let real: i32 =
+                if movement.tick_count % 2 == 0 { -1 } else { 1 } * rng.gen_range(32..=58);
+            let fake: i32 = 58;
 
-            let fake = 58.0;
+            movement.view_angle = global3.engine().view_angle();
+            movement.view_angle.yaw += 180.0;
 
             if movement.send_packet {
-                movement.view_angle.yaw = real;
+                movement.view_angle.yaw = real as f32;
             } else {
-                movement.view_angle.yaw = real + (fake * 2.0);
+                movement.view_angle.yaw = (real + (fake * 2)) as f32;
+                yaw2.store(movement.view_angle.yaw as i32, Ordering::SeqCst);
             }
 
             movement.view_angle.pitch = 89.0;

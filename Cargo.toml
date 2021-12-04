@@ -6,6 +6,9 @@ edition = "2021"
 [workspace]
 members = ["crates/*"]
 
+[dependencies.rand]
+version = "0.8"
+
 [dependencies.ctor]
 version = "0.1"
 

@@ -4,6 +4,7 @@ use crate::consts::interface;
 use crate::engine::Engine;
 use crate::entities::Entities;
 use crate::globals::Globals;
+use crate::input::Input;
 use crate::libraries::Libraries;
 use crate::trace::EngineTrace;
 use core::mem;
@@ -16,6 +17,7 @@ pub struct Interfaces {
     pub client_mode: *mut (),
     pub engine: Engine,
     pub globals: &'static Globals,
+    pub input: &'static Input,
     pub panel: *mut (),
     pub entities: Entities,
     pub engine_vgui: *mut (),
@@ -130,6 +132,13 @@ impl Interfaces {
             &*globals
         };
 
+        let input = unsafe {
+            let activate_mouse: *const () = client.as_mut_ptr().vget(16 * 8);
+            let input = **(activate_mouse.to_offset_absolute(3, 7) as *const *const *const Input);
+
+            &*input
+        };
+
         let cheats = console.var("sv_cheats").unwrap();
         let ffa = console.var("mp_teammates_are_enemies").unwrap();
         let gravity = console.var("sv_gravity").unwrap();
@@ -148,6 +157,7 @@ impl Interfaces {
             client_mode,
             engine,
             globals,
+            input,
             panel,
             entities,
             engine_vgui,

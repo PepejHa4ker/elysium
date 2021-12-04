@@ -7,6 +7,7 @@ use crate::entity::Entity;
 use crate::frame::Frame;
 use crate::globals::Globals;
 use crate::hooks;
+use crate::input::Input;
 use crate::interfaces::Interfaces;
 use crate::libraries::Libraries;
 use crate::movement::Movement;
@@ -119,6 +120,10 @@ impl Global {
 
     pub fn globals(&self) -> &Globals {
         self.0.interfaces.globals
+    }
+
+    pub fn input(&self) -> &Input {
+        self.0.interfaces.input
     }
 
     pub fn engine(&self) -> &Engine {
