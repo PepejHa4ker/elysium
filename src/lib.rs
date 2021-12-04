@@ -62,6 +62,13 @@ fn main(logger: Logger) -> Result<()> {
         if let Some(local_player) = global2.local_player() {
             local_player.view_angle().pitch = 89.0;
         }
+
+        global2.cheats().set(1);
+        global2.lost_focus_sleep().set(1);
+        global2.panorama_blur().set(1);
+        global2.physics_timescale().set(0.1);
+        global2.ragdoll_gravity().set(-800.0);
+        global2.show_impacts().set(2);
     });
 
     global.on_move(move |mut movement| {
@@ -69,6 +76,11 @@ fn main(logger: Logger) -> Result<()> {
 
         if !movement.local_player.flags().on_ground() {
             movement.in_jump = false;
+            movement.side_move = if movement.tick_count % 2 == 0 {
+                -450.0
+            } else {
+                450.0
+            };
         }
 
         if movement.in_duck {
@@ -76,7 +88,20 @@ fn main(logger: Logger) -> Result<()> {
         }
 
         if !movement.in_attack {
-            movement.view_angle.yaw = -270.0;
+            let real = if movement.tick_count % 2 == 0 {
+                -42.0
+            } else {
+                42.0
+            };
+
+            let fake = 58.0;
+
+            if movement.send_packet {
+                movement.view_angle.yaw = real;
+            } else {
+                movement.view_angle.yaw = real + (fake * 2.0);
+            }
+
             movement.view_angle.pitch = 89.0;
         }
 

@@ -1,5 +1,5 @@
 use crate::client::Client;
-use crate::console::Console;
+use crate::console::{Console, Var};
 use crate::consts::interface;
 use crate::engine::Engine;
 use crate::entities::Entities;
@@ -27,6 +27,39 @@ pub struct Interfaces {
     pub movement: *mut (),
     pub prediction: *mut (),
     pub events: *mut (),
+
+    /// enable variables locked behing cheats (`sv_cheats`)
+    pub cheats: Var<i32>,
+
+    /// are teammates enenmies?
+    pub ffa: Var<i32>,
+
+    /// server gravity
+    pub gravity: Var<f32>,
+
+    /// server ammo
+    pub infinite_ammo: Var<i32>,
+
+    /// sleep when the game loses focus
+    pub lost_focus_sleep: Var<i32>,
+
+    /// used for chaming ragdolls and other world props/entities
+    pub model_stats_overlay: Var<i32>,
+
+    /// panorama ui's blur
+    pub panorama_blur: Var<i32>,
+
+    /// speed of physics entities
+    pub physics_timescale: Var<f32>,
+
+    /// control whether to appply post processing effects
+    pub post_processing: Var<i32>,
+
+    /// gravity applied to ragdolls
+    pub ragdoll_gravity: Var<f32>,
+
+    /// show bullet impacts
+    pub show_impacts: Var<i32>,
 }
 
 impl Interfaces {
@@ -97,6 +130,18 @@ impl Interfaces {
             &*globals
         };
 
+        let cheats = console.var("sv_cheats").unwrap();
+        let ffa = console.var("mp_teammates_are_enemies").unwrap();
+        let gravity = console.var("sv_gravity").unwrap();
+        let infinite_ammo = console.var("sv_infinite_ammo").unwrap();
+        let lost_focus_sleep = console.var("engine_no_focus_sleep").unwrap();
+        let model_stats_overlay = console.var("r_drawmodelstatsoverlay").unwrap();
+        let panorama_blur = console.var("@panorama_disable_blur").unwrap();
+        let physics_timescale = console.var("cl_phys_timescale").unwrap();
+        let post_processing = console.var("mat_postprocess_enable").unwrap();
+        let ragdoll_gravity = console.var("cl_ragdoll_gravity").unwrap();
+        let show_impacts = console.var("sv_showimpacts").unwrap();
+
         Self {
             console,
             client,
@@ -114,6 +159,18 @@ impl Interfaces {
             movement,
             prediction,
             events,
+
+            cheats,
+            ffa,
+            gravity,
+            infinite_ammo,
+            lost_focus_sleep,
+            model_stats_overlay,
+            panorama_blur,
+            physics_timescale,
+            post_processing,
+            ragdoll_gravity,
+            show_impacts,
         }
     }
 }

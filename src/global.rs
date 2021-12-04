@@ -1,4 +1,5 @@
 use crate::command::Command;
+use crate::console::{Console, Var};
 use crate::consts::offset;
 use crate::engine::Engine;
 use crate::entities::Entities;
@@ -6,7 +7,6 @@ use crate::entity::Entity;
 use crate::frame::Frame;
 use crate::globals::Globals;
 use crate::hooks;
-use crate::hooks::frame_stage_notify::RawFrame;
 use crate::interfaces::Interfaces;
 use crate::libraries::Libraries;
 use crate::movement::Movement;
@@ -129,6 +129,54 @@ impl Global {
         &self.0.interfaces.entities
     }
 
+    pub fn console(&self) -> &Console {
+        &self.0.interfaces.console
+    }
+
+    pub fn cheats(&self) -> &Var<i32> {
+        &self.0.interfaces.cheats
+    }
+
+    pub fn ffa(&self) -> &Var<i32> {
+        &self.0.interfaces.ffa
+    }
+
+    pub fn gravity(&self) -> &Var<f32> {
+        &self.0.interfaces.gravity
+    }
+
+    pub fn infinite_ammo(&self) -> &Var<i32> {
+        &self.0.interfaces.infinite_ammo
+    }
+
+    pub fn lost_focus_sleep(&self) -> &Var<i32> {
+        &self.0.interfaces.lost_focus_sleep
+    }
+
+    pub fn model_stats_overlay(&self) -> &Var<i32> {
+        &self.0.interfaces.model_stats_overlay
+    }
+
+    pub fn panorama_blur(&self) -> &Var<i32> {
+        &self.0.interfaces.panorama_blur
+    }
+
+    pub fn physics_timescale(&self) -> &Var<f32> {
+        &self.0.interfaces.physics_timescale
+    }
+
+    pub fn post_processing(&self) -> &Var<i32> {
+        &self.0.interfaces.post_processing
+    }
+
+    pub fn ragdoll_gravity(&self) -> &Var<f32> {
+        &self.0.interfaces.ragdoll_gravity
+    }
+
+    pub fn show_impacts(&self) -> &Var<i32> {
+        &self.0.interfaces.show_impacts
+    }
+
     pub(crate) fn on_frame_ptr(&self) -> *mut OnFrame {
         &self.0.on_frame as *const OnFrame as *mut OnFrame
     }
@@ -160,7 +208,7 @@ impl Global {
             as *mut hooks::frame_stage_notify::Signature
     }
 
-    pub(crate) fn frame_stage_notify_original(&self, this: *const (), frame: RawFrame) {
+    pub(crate) fn frame_stage_notify_original(&self, this: *const (), frame: Frame) {
         let original = unsafe { *self.frame_stage_notify_original_ptr() };
 
         unsafe { original(this, frame) }
