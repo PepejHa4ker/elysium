@@ -56,25 +56,30 @@ fn main(logger: Logger) -> Result<()> {
         }
     }
 
-    use std::sync::atomic::{AtomicI32, Ordering};
+    use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
     use std::sync::Arc;
 
     let global = Global::init()?;
     let global2 = global.clone();
     let global3 = global.clone();
-    let yaw = Arc::new(AtomicI32::new(0));
+    let yaw = Arc::new(AtomicU32::new(0));
     let yaw2 = yaw.clone();
+    let next_lby_update = Arc::new(AtomicU32::new(0));
+    let next_lby_update2 = next_lby_update.clone();
+    let lby_updated = Arc::new(AtomicBool::new(false));
+    let lby_updated2 = lby_updated.clone();
 
     global.on_frame(move |frame| {
         // thirdperson fix
         if global2.input().thirdperson {
             if let Some(local_player) = global2.local_player() {
                 local_player.view_angle().pitch = 89.0;
-                local_player.view_angle().yaw = yaw.load(Ordering::SeqCst) as f32;
+                local_player.view_angle().yaw =
+                    unsafe { mem::transmute::<u32, f32>(yaw.load(Ordering::SeqCst)) };
             }
         }
 
-        //global2.cheats().set(0);
+        global2.cheats().set(1);
         global2.lost_focus_sleep().set(1);
         global2.panorama_blur().set(1);
         global2.physics_timescale().set(0.5);
@@ -93,26 +98,56 @@ fn main(logger: Logger) -> Result<()> {
             movement.in_fast_duck = true;
         }
 
-        if !movement.in_attack {
-            let mut rng = thread_rng();
-            let real: i32 =
-                if movement.tick_count % 2 == 0 { -1 } else { 1 } * rng.gen_range(32..=58);
-            let fake: i32 = 58;
+        if movement.in_attack {
+            yaw2.store(
+                unsafe { mem::transmute::<f32, u32>(movement.view_angle.yaw) },
+                Ordering::SeqCst,
+            );
+        } else {
+            if movement.local_player.velocity().magnitude() > 0.1 {
+                next_lby_update2.store(
+                    unsafe { mem::transmute::<f32, u32>(movement.current_time + 0.22) },
+                    Ordering::SeqCst,
+                );
+
+                lby_updated.store(false, Ordering::SeqCst);
+            }
+
+            if movement.current_time
+                >= unsafe { mem::transmute::<u32, f32>(next_lby_update2.load(Ordering::SeqCst)) }
+            {
+                next_lby_update2.store(
+                    unsafe { mem::transmute::<f32, u32>(movement.current_time + 1.1) },
+                    Ordering::SeqCst,
+                );
+
+                lby_updated.store(!lby_updated.load(Ordering::SeqCst), Ordering::SeqCst);
+            }
 
             movement.view_angle = global3.engine().view_angle();
-            movement.view_angle.yaw += 180.0;
 
-            if movement.send_packet {
-                movement.view_angle.yaw = real as f32;
+            let client_yaw = movement.view_angle.yaw + 180.0;
+
+            if lby_updated.load(Ordering::SeqCst) {
+                movement.view_angle.yaw = client_yaw - 58.0;
+                movement.send_packet = false;
+                yaw2.store(
+                    unsafe { mem::transmute::<f32, u32>(movement.view_angle.yaw) },
+                    Ordering::SeqCst,
+                );
+            } else if movement.send_packet {
+                movement.view_angle.yaw = client_yaw;
+                yaw2.store(
+                    unsafe { mem::transmute::<f32, u32>(movement.view_angle.yaw) },
+                    Ordering::SeqCst,
+                );
             } else {
-                movement.view_angle.yaw = (real + (fake * 2)) as f32;
-                yaw2.store(movement.view_angle.yaw as i32, Ordering::SeqCst);
+                movement.view_angle.yaw = client_yaw + 120.0;
             }
 
             movement.view_angle.pitch = 89.0;
+            movement.view_angle = movement.view_angle.normalize();
         }
-
-        println!("{:?}", &movement);
 
         movement
     });
