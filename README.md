@@ -2,6 +2,8 @@
 
 experimental csgo cheat
 
+only supports linux currently, as that's all i use. ill leave other os support to anyone willing to create a pr
+
 ```rust
 let global = Global::init()?;
 let global2 = global.clone();
