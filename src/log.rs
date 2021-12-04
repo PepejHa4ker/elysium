@@ -15,7 +15,7 @@ pub struct Logger(Arc<RwLock<LoggerRef>>);
 
 impl Logger {
     pub fn new() -> Self {
-        let mut file = OpenOptions::new()
+        let file = OpenOptions::new()
             .append(true)
             .create(true)
             .read(true)

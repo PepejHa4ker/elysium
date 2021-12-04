@@ -1,6 +1,5 @@
 use sdk::{Vector, Vector2D};
 use std::fmt;
-use vptr::Virtual;
 
 pub use self::button::Button;
 pub use self::joystick::Joystick;

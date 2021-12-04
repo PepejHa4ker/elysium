@@ -3,227 +3,203 @@
 #[repr(i32)]
 pub enum ItemKind {
     Invalid = -1,
-    WeaponNone = 0,
-    WeaponDeagle,
-    WeaponDualBerettas,
-    WeaponFiveSeven,
-    WeaponGlock,
-    WeaponAK47 = 7,
-    WeaponAUG,
-    WeaponAwp,
-    WeaponFamas,
-    WeaponG3SG1,
-    WeaponGalilar = 13,
-    WeaponM249,
-    WeaponM4A4 = 16,
-    WeaponMAC10,
-    WeaponP90 = 19,
-    WeaponMP5 = 23,
-    WeaponUMP45,
-    WeaponXM1014,
-    WeaponPPBizon,
-    WeaponMag7,
-    WeaponNegev,
-    WeaponSawedOff,
-    WeaponTec9,
-    WeaponZeusX27,
-    WeaponP2000,
-    WeaponMP7,
-    WeaponMP9,
-    WeaponNova,
-    WeaponP250,
-    WeaponShield,
-    WeaponSCAR20,
-    WeaponSG556,
-    WeaponSSG08,
-    WeaponKnifeGG,
-    WeaponKnife,
-    WeaponFlashbang,
-    WeaponGrenade,
-    WeaponSmoke,
-    WeaponMolotov,
-    WeaponDecoy,
-    WeaponIncendiary,
-    WeaponC4,
-    WeaponHealthshoot = 57,
-    WeaponKnifeT = 59,
-    WeaponM4A1S,
-    WeaponUSP,
-    WeaponCZ75Auto = 63,
-    WeaponR8Revolver,
-    WeaponTaGrenade = 68,
-    WeaponFists,
-    WeaponBreachCharge,
-    WeaponTablet = 72,
-    WeaponMelee = 74,
-    WeaponAxe,
-    WeaponHammer,
-    WeaponSpanner = 78,
-    WeaponKnifeGhost = 80,
-    WeaponFireBomb,
-    WeaponDiversion,
-    WeaponFragGrenade,
-    WeaponSnowball,
-    WeaponBumpMine,
-    WeaponBayonet = 500,
-    WeaponClassicKnife = 503,
-    WeaponFlipKnife = 505,
-    WeaponGutKnife,
-    WeaponKarambit,
-    WeaponM9Bayonet,
-    WeaponTacticalKnife,
-    WeaponFalchionKnife = 512,
-    WeaponBowieKnife = 514,
-    WeaponButterflyKnife,
-    WeaponShadowDaggers,
-    WeaponCordKnife = 517,
-    WeaponCanisKnife = 518,
-    WeaponUrsusKnife = 519,
-    WeaponNavjaKnife,
-    WeaponKnifeOutdoor = 521,
-    WeaponStilettoKnife = 522,
-    WeaponTalonKnife,
-    WeaponSkeletonKnife = 525,
-    WeaponStuddedBloodhound = 5027,
-    WeaponTSide = 5028,
-    WeaponCTSide = 5029,
-    WeaponSporty = 5030,
-    WeaponSlick = 5031,
-    WeaponLeatherWrap = 5032,
-    WeaponMotocycle = 5033,
-    WeaponSpecialist = 5034,
-    WeaponHydra = 5035,
+    None = 0,
+    Deagle,
+    DualBerettas,
+    FiveSeven,
+    Glock,
+    AK47 = 7,
+    AUG,
+    Awp,
+    Famas,
+    G3SG1,
+    GalilAr = 13,
+    M249,
+    M4A4 = 16,
+    MAC10,
+    P90 = 19,
+    MP5 = 23,
+    UMP45,
+    XM1014,
+    PPBizon,
+    MAG7,
+    Negev,
+    SawedOff,
+    Tec9,
+    ZeusX27,
+    P2000,
+    MP7,
+    MP9,
+    Nova,
+    P250,
+    Shield,
+    SCAR20,
+    SG556,
+    SSG08,
+    KnifeGG,
+    Knife,
+    Flashbang,
+    Grenade,
+    Smoke,
+    Molotov,
+    Decoy,
+    Incendiary,
+    C4,
+    Healthshoot = 57,
+    KnifeT = 59,
+    M4A1S,
+    USP,
+    CZ75Auto = 63,
+    R8Revolver,
+    TaGrenade = 68,
+    Fists,
+    BreachCharge,
+    Tablet = 72,
+    Melee = 74,
+    Axe,
+    Hammer,
+    Spanner = 78,
+    KnifeGhost = 80,
+    FireBomb,
+    Diversion,
+    FragGrenade,
+    Snowball,
+    BumpMine,
+    Bayonet = 500,
+    ClassicKnife = 503,
+    FlipKnife = 505,
+    GutKnife,
+    Karambit,
+    M9Bayonet,
+    TacticalKnife,
+    FalchionKnife = 512,
+    BowieKnife = 514,
+    ButterflyKnife,
+    ShadowDaggers,
+    CordKnife = 517,
+    CanisKnife = 518,
+    UrsusKnife = 519,
+    NavjaKnife,
+    KnifeOutdoor = 521,
+    StilettoKnife = 522,
+    TalonKnife,
+    SkeletonKnife = 525,
+    StuddedBloodhound = 5027,
+    TSide = 5028,
+    CTSide = 5029,
+    Sporty = 5030,
+    Slick = 5031,
+    LeatherWrap = 5032,
+    Motocycle = 5033,
+    Specialist = 5034,
+    Hydra = 5035,
 }
 
 impl ItemKind {
     pub const fn is_pistol(&self) -> bool {
-        use ItemKind::*;
-
         matches!(
             self,
-            WeaponDualBerettas
-                | WeaponFiveSeven
-                | WeaponGlock
-                | WeaponTec9
-                | WeaponP2000
-                | WeaponP250
-                | WeaponUSP
-                | WeaponCZ75Auto,
+            ItemKind::DualBerettas
+                | ItemKind::FiveSeven
+                | ItemKind::Glock
+                | ItemKind::Tec9
+                | ItemKind::P2000
+                | ItemKind::P250
+                | ItemKind::USP
+                | ItemKind::CZ75Auto,
         )
     }
 
     pub const fn is_heavy_pistol(&self) -> bool {
-        use ItemKind::*;
-
-        matches!(self, WeaponDeagle | WeaponR8Revolver)
+        matches!(self, ItemKind::Deagle | ItemKind::R8Revolver)
     }
 
     pub const fn is_rifle(&self) -> bool {
-        use ItemKind::*;
-
         matches!(
             self,
-            WeaponAK47
-                | WeaponAUG
-                | WeaponFamas
-                | WeaponG3SG1
-                | WeaponGalilar
-                | WeaponM4A4
-                | WeaponSCAR20
-                | WeaponSG556
-                | WeaponM4A1S,
+            ItemKind::AK47
+                | ItemKind::AUG
+                | ItemKind::Famas
+                | ItemKind::G3SG1
+                | ItemKind::GalilAr
+                | ItemKind::M4A4
+                | ItemKind::SCAR20
+                | ItemKind::SG556
+                | ItemKind::M4A1S,
         )
     }
 
     pub const fn is_heavy(&self) -> bool {
-        use ItemKind::*;
-
         matches!(
             self,
-            WeaponM249 | WeaponXM1014 | WeaponMag7 | WeaponNegev | WeaponSawedOff | WeaponNova,
+            ItemKind::M249
+                | ItemKind::XM1014
+                | ItemKind::MAG7
+                | ItemKind::Negev
+                | ItemKind::SawedOff
+                | ItemKind::Nova,
         )
     }
 
     pub const fn is_sub_machine_gun(&self) -> bool {
-        use ItemKind::*;
-
         matches!(
             self,
-            WeaponMAC10
-                | WeaponP90
-                | WeaponUMP45
-                | WeaponMP5
-                | WeaponPPBizon
-                | WeaponMP7
-                | WeaponMP9,
+            ItemKind::MAC10
+                | ItemKind::P90
+                | ItemKind::UMP45
+                | ItemKind::MP5
+                | ItemKind::PPBizon
+                | ItemKind::MP7
+                | ItemKind::MP9,
         )
     }
 
     pub const fn label(&self) -> Option<&'static str> {
-        use ItemKind::*;
-
         let label = match *self {
-            WeaponDeagle => "Deagle",
-            WeaponDualBerettas => "Dual Berettas",
-            WeaponFiveSeven => "Five Seven",
-            WeaponGlock => "Glock",
-            WeaponAK47 => "AK47",
-            WeaponAUG => "AUG",
-            WeaponAWP => "AWP",
-            WeaponFamas => "Famas",
-            WeaponG3SG1 => "G3SG1",
-            WeaponGalilAR => "Galil AR",
-            WeaponM249 => "M249",
-            WeaponM4A4 => "M4A4",
-            WeaponMAC10 => "MAC-10",
-            WeaponP90 => "P90",
-            WeaponUMP45 => "UMP-45",
-            WeaponMP5 => "MP5",
-            WeaponXM1014 => "XM1014",
-            WeaponPPBizon => "PP-Bizon",
-            WeaponMAG7 => "MAG-7",
-            WeaponNegev => "Negev",
-            WeaponSawedOff => "SawedOff",
-            WeaponTec9 => "Tec-9",
-            WeaponZeusX27 => "Zeus x27",
-            WeaponP2000 => "P2000",
-            WeaponMP4 => "MP7",
-            WeaponMP9 => "MP9",
-            WeaponNova => "Nova",
-            WeaponP250 => "P250",
-            WeaponSCAR20 => "SCAR-20",
-            WeaponSG556 => "SG 556",
-            WeaponSSG08 => "SSG 08",
-            WeaponKnife => "Knife",
-            WeaponFlashhbang => "Flashbang",
-            WeaponGrenade => "Grenade",
-            WeaponSmoke => "Smoke",
-            WeaponMolotov => "Molotov",
-            WeaponDecoy => "Decoy",
-            WeaponIncendiary => "Incendiary",
-            WeaponC4 => "C4",
-            WeaponKnifeT => "Knife",
-            WeaponM4A1S => "M4A1-S",
-            WeaponUSP => "USP",
-            WeaponCZ75Auto => "CZ75-Auto",
-            WeaponR8Revoler => "R8 Revolver",
-            WeaponBayonet => "Bayonet",
-            WeaponFlipKnife => "Flip Knife",
-            WeaponGutKnife => "Gut Knife",
-            WeaponKarambit => "Karambit",
-            WeaponM9Bayonet => "M9 Bayonet",
-            WeaponTacticalKnife => "Tactical Knife",
-            WeaponFalchionKnife => "Falchion Knife",
-            WeaponBowie => "Bowie Knife",
-            WeaponButterflyKnife => "Butterfly Knife",
-            WeaponShadowDaggers => "Shadow Daggers",
-            WeaponUrsusKnife => "Ursus Knife",
-            WeaponNavajaKnife => "NavajaKnife",
-            WeaponStilettoKnife => "Stiletto Knife",
-            WeaponTalonKnife => "Talon Knife",
-            WeaponClassicKnife => "Classic Knife",
-            WeaponGhostKnife => "Ghost Knife",
-            BloodhoundGloves => "BloodhoundGloves",
+            ItemKind::Deagle => "Deagle",
+            ItemKind::DualBerettas => "Dual Berettas",
+            ItemKind::FiveSeven => "Five Seven",
+            ItemKind::Glock => "Glock",
+            ItemKind::AK47 => "AK47",
+            ItemKind::AUG => "AUG",
+            ItemKind::Awp => "AWP",
+            ItemKind::Famas => "Famas",
+            ItemKind::G3SG1 => "G3SG1",
+            ItemKind::GalilAr => "Galil AR",
+            ItemKind::M249 => "M249",
+            ItemKind::M4A4 => "M4A4",
+            ItemKind::MAC10 => "MAC-10",
+            ItemKind::P90 => "P90",
+            ItemKind::UMP45 => "UMP-45",
+            ItemKind::MP5 => "MP5",
+            ItemKind::XM1014 => "XM1014",
+            ItemKind::PPBizon => "PP-Bizon",
+            ItemKind::MAG7 => "MAG-7",
+            ItemKind::Negev => "Negev",
+            ItemKind::SawedOff => "SawedOff",
+            ItemKind::Tec9 => "Tec-9",
+            ItemKind::ZeusX27 => "Zeus x27",
+            ItemKind::P2000 => "P2000",
+            ItemKind::MP7 => "MP7",
+            ItemKind::MP9 => "MP9",
+            ItemKind::Nova => "Nova",
+            ItemKind::P250 => "P250",
+            ItemKind::SCAR20 => "SCAR-20",
+            ItemKind::SG556 => "SG 556",
+            ItemKind::SSG08 => "SSG 08",
+            ItemKind::Knife => "Knife",
+            ItemKind::Flashbang => "Flashbang",
+            ItemKind::Grenade => "Grenade",
+            ItemKind::Smoke => "Smoke",
+            ItemKind::Molotov => "Molotov",
+            ItemKind::Decoy => "Decoy",
+            ItemKind::Incendiary => "Incendiary",
+            ItemKind::C4 => "C4",
+            ItemKind::KnifeT => "Knife",
+            ItemKind::M4A1S => "M4A1-S",
+            ItemKind::USP => "USP",
+            ItemKind::CZ75Auto => "CZ75-Auto",
+            ItemKind::R8Revolver => "R8 Revolver",
             _ => return None,
         };
 

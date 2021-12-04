@@ -3,7 +3,6 @@ use crate::entity::Entity;
 use crate::global::Global;
 use crate::intrinsics;
 use crate::movement::Movement;
-use sdk::F32Ext;
 
 pub type Signature =
     unsafe extern "C" fn(this: *const (), input_sample_time: f32, command: &mut Command) -> bool;
@@ -19,14 +18,13 @@ pub unsafe extern "C" fn hook(
     command: &mut Command,
 ) -> bool {
     let global = Global::handle();
-    let result = global.create_move_original(this, input_sample_time, command);
+    let _result = global.create_move_original(this, input_sample_time, command);
 
     if command.tick_count == 0 {
         return true;
     }
 
-    let send_packet =
-        unsafe { &mut *(*(intrinsics::frame_address(0) as *mut *mut bool)).sub(0x18) };
+    let send_packet = &mut *(*(intrinsics::frame_address(0) as *mut *mut bool)).sub(0x18);
     let original_angle = command.view_angle;
     let original_forward = command.forward_move;
     let original_side = command.side_move;

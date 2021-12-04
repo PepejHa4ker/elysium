@@ -6,6 +6,9 @@ edition = "2021"
 [workspace]
 members = ["crates/*"]
 
+[dependencies.atomic_float]
+path = "crates/atomic_float"
+
 [dependencies.rand]
 version = "0.8"
 

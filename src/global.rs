@@ -39,14 +39,6 @@ pub struct Global(pub(crate) Arc<GlobalRef>);
 unsafe impl Send for GlobalRef {}
 unsafe impl Sync for GlobalRef {}
 
-fn default_on_frame(frame: Frame) -> Frame {
-    frame
-}
-
-fn default_on_move(movement: Movement) -> Movement {
-    movement
-}
-
 impl Global {
     pub fn init() -> Result<Self> {
         println!("init libs");
@@ -62,8 +54,9 @@ impl Global {
         let this = Self(Arc::new(GlobalRef {
             libraries,
             interfaces,
-            on_frame: Box::new(move |frame| {}),
+            on_frame: Box::new(move |_frame| {}),
             on_move: Box::new(move |movement| movement),
+            // TODO: replace these with dummies
             create_move_original: Box::new(hooks::create_move::hook),
             frame_stage_notify_original: Box::new(hooks::frame_stage_notify::hook),
             local_player: Box::new(None),
@@ -71,7 +64,7 @@ impl Global {
 
         println!("created global");
 
-        GLOBAL.set(this.clone());
+        let _ = GLOBAL.set(this.clone());
 
         println!("set global");
 

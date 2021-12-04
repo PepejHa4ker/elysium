@@ -6,13 +6,14 @@
 #![feature(const_mut_refs)]
 #![feature(trait_alias)]
 
-use crate::consts::offset;
-use crate::frame::Frame;
 use crate::global::Global;
 use crate::log::Logger;
+use atomic_float::AtomicF32;
 use rand::{thread_rng, Rng};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::thread;
 use std::time::Duration;
-use std::{mem, thread};
 
 pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -47,7 +48,7 @@ pub mod skybox;
 pub mod trace;
 pub mod util;
 
-fn main(logger: Logger) -> Result<()> {
+fn main(_logger: Logger) -> Result<()> {
     if library::Library::serverbrowser().is_err() {
         println!("waiting for csgo to load");
 
@@ -56,26 +57,21 @@ fn main(logger: Logger) -> Result<()> {
         }
     }
 
-    use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
-    use std::sync::Arc;
-
     let global = Global::init()?;
     let global2 = global.clone();
     let global3 = global.clone();
-    let yaw = Arc::new(AtomicU32::new(0));
+    let yaw = Arc::new(AtomicF32::new(0.0));
     let yaw2 = yaw.clone();
-    let next_lby_update = Arc::new(AtomicU32::new(0));
+    let next_lby_update = Arc::new(AtomicF32::new(0.0));
     let next_lby_update2 = next_lby_update.clone();
     let lby_updated = Arc::new(AtomicBool::new(false));
-    let lby_updated2 = lby_updated.clone();
 
-    global.on_frame(move |frame| {
+    global.on_frame(move |_frame| {
         // thirdperson fix
         if global2.input().thirdperson {
             if let Some(local_player) = global2.local_player() {
                 local_player.view_angle().pitch = 89.0;
-                local_player.view_angle().yaw =
-                    unsafe { mem::transmute::<u32, f32>(yaw.load(Ordering::SeqCst)) };
+                local_player.view_angle().yaw = yaw.load(Ordering::SeqCst);
             }
         }
 
@@ -99,28 +95,15 @@ fn main(logger: Logger) -> Result<()> {
         }
 
         if movement.in_attack {
-            yaw2.store(
-                unsafe { mem::transmute::<f32, u32>(movement.view_angle.yaw) },
-                Ordering::SeqCst,
-            );
+            yaw2.store(movement.view_angle.yaw, Ordering::SeqCst);
+            lby_updated.store(false, Ordering::SeqCst);
         } else {
             if movement.local_player.velocity().magnitude() > 0.1 {
-                next_lby_update2.store(
-                    unsafe { mem::transmute::<f32, u32>(movement.current_time + 0.22) },
-                    Ordering::SeqCst,
-                );
-
-                lby_updated.store(false, Ordering::SeqCst);
+                next_lby_update2.store(movement.current_time + 0.22, Ordering::SeqCst);
             }
 
-            if movement.current_time
-                >= unsafe { mem::transmute::<u32, f32>(next_lby_update2.load(Ordering::SeqCst)) }
-            {
-                next_lby_update2.store(
-                    unsafe { mem::transmute::<f32, u32>(movement.current_time + 1.1) },
-                    Ordering::SeqCst,
-                );
-
+            if movement.current_time >= next_lby_update2.load(Ordering::SeqCst) {
+                next_lby_update2.store(movement.current_time + 1.1, Ordering::SeqCst);
                 lby_updated.store(!lby_updated.load(Ordering::SeqCst), Ordering::SeqCst);
             }
 
@@ -131,16 +114,12 @@ fn main(logger: Logger) -> Result<()> {
             if lby_updated.load(Ordering::SeqCst) {
                 movement.view_angle.yaw = client_yaw - 58.0;
                 movement.send_packet = false;
-                yaw2.store(
-                    unsafe { mem::transmute::<f32, u32>(movement.view_angle.yaw) },
-                    Ordering::SeqCst,
-                );
+
+                yaw2.store(movement.view_angle.yaw, Ordering::SeqCst);
             } else if movement.send_packet {
                 movement.view_angle.yaw = client_yaw;
-                yaw2.store(
-                    unsafe { mem::transmute::<f32, u32>(movement.view_angle.yaw) },
-                    Ordering::SeqCst,
-                );
+
+                yaw2.store(movement.view_angle.yaw, Ordering::SeqCst);
             } else {
                 movement.view_angle.yaw = client_yaw + 120.0;
             }
