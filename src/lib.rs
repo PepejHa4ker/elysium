@@ -84,7 +84,7 @@ fn main(_logger: Logger) -> Result<()> {
     });
 
     global.on_move(move |mut movement| {
-        movement.send_packet = movement.tick_count % 14 == 0;
+        //movement.send_packet = movement.tick_count % 14 == 0;
 
         if !movement.local_player.flags().on_ground() {
             movement.in_jump = false;
@@ -115,17 +115,22 @@ fn main(_logger: Logger) -> Result<()> {
                 movement.view_angle.yaw = client_yaw - 58.0;
                 movement.send_packet = false;
 
-                yaw2.store(movement.view_angle.yaw, Ordering::SeqCst);
+                println!("lby  yaw = {:?}", movement.view_angle.yaw);
             } else if movement.send_packet {
                 movement.view_angle.yaw = client_yaw;
 
-                yaw2.store(movement.view_angle.yaw, Ordering::SeqCst);
+                println!("real yaw = {:?}", movement.view_angle.yaw);
             } else {
                 movement.view_angle.yaw = client_yaw + 120.0;
+
+                println!("fake yaw = {:?}", movement.view_angle.yaw);
             }
 
             movement.view_angle.pitch = 89.0;
-            movement.view_angle = movement.view_angle.normalize();
+        }
+
+        if movement.send_packet {
+            yaw2.store(movement.view_angle.yaw, Ordering::SeqCst);
         }
 
         movement
