@@ -1,4 +1,6 @@
 use super::netvars::Netvar;
+use crate::animation_layer::AnimationLayer;
+use crate::global::Global;
 use crate::player_state::PlayerState;
 use sdk::{Angle, Vector};
 
@@ -35,6 +37,13 @@ impl Entity {
     pub fn view_angle(&self) -> &mut Angle {
         unsafe {
             &mut *((self.netvar_raw("DT_BasePlayer", "deadflag") as *const u8).add(4) as *mut Angle)
+        }
+    }
+
+    pub fn animation_layers(&self) -> &mut [AnimationLayer; 13] {
+        unsafe {
+            &mut *((self.as_ptr() as *const u8).add(Global::handle().animation_layers() as usize)
+                as *mut [AnimationLayer; 13])
         }
     }
 }

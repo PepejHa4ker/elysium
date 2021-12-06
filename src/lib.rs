@@ -18,6 +18,7 @@ use std::time::Duration;
 pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
+pub mod animation_layer;
 pub mod animation_state;
 pub mod client;
 pub mod command;
@@ -43,10 +44,10 @@ pub mod log;
 pub mod move_kind;
 pub mod movement;
 pub mod netvars;
+pub mod pattern;
 pub mod player_state;
 pub mod skybox;
 pub mod trace;
-pub mod util;
 
 fn main(_logger: Logger) -> Result<()> {
     if library::Library::serverbrowser().is_err() {
@@ -67,11 +68,17 @@ fn main(_logger: Logger) -> Result<()> {
     let lby_updated = Arc::new(AtomicBool::new(false));
 
     global.on_frame(move |_frame| {
-        // thirdperson fix
-        if global2.input().thirdperson {
-            if let Some(local_player) = global2.local_player() {
+        if let Some(local_player) = global2.local_player() {
+            // thirdperson fix
+            if global2.input().thirdperson {
                 local_player.view_angle().pitch = 89.0;
                 local_player.view_angle().yaw = yaw.load(Ordering::SeqCst);
+            }
+
+            for player in global2.entities().iter() {
+                let mut animation_layers = player.animation_layers();
+
+                animation_layers[12].weight = 0.0;
             }
         }
 

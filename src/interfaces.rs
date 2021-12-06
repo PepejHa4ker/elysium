@@ -30,6 +30,9 @@ pub struct Interfaces {
     pub prediction: *mut (),
     pub events: *mut (),
 
+    /// offset for animation layers
+    pub animation_layers: u32,
+
     /// enable variables locked behing cheats (`sv_cheats`)
     pub cheats: Var<i32>,
 
@@ -139,6 +142,18 @@ impl Interfaces {
             &*input
         };
 
+        let patterns = crate::pattern::Libraries::new();
+        let patterns = patterns.0.read();
+        let (base, client_client) = patterns.get("client_client.so").unwrap();
+        let client_client: &[u8] = &**client_client;
+        let animation_layers = crate::pattern::ANIMATION_LAYERS
+            .find(client_client)
+            .unwrap();
+        let animation_layers = unsafe {
+            *(((base + animation_layers.start()) as *const usize as *const u8).add(35)
+                as *const u32)
+        };
+
         let cheats = console.var("sv_cheats").unwrap();
         let ffa = console.var("mp_teammates_are_enemies").unwrap();
         let gravity = console.var("sv_gravity").unwrap();
@@ -169,6 +184,8 @@ impl Interfaces {
             movement,
             prediction,
             events,
+
+            animation_layers,
 
             cheats,
             ffa,

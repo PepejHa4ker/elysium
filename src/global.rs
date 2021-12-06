@@ -131,6 +131,10 @@ impl Global {
         &self.0.interfaces.console
     }
 
+    pub fn animation_layers(&self) -> u32 {
+        self.0.interfaces.animation_layers
+    }
+
     pub fn cheats(&self) -> &Var<i32> {
         &self.0.interfaces.cheats
     }
