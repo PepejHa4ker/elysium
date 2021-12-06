@@ -14,6 +14,9 @@ macro_rules! pattern {
     };
 }
 
+// tbh forgot x86s encoding is variable in len so the disasm is likely wrong in places
+// esp after the ??'s
+
 // 55        push rbp
 // 48 89 e5  mov  rbp, rsp
 // 41 55     push r13
