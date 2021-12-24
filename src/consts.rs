@@ -44,3 +44,30 @@ pub mod offset {
     pub const CREATE_MOVE: isize = 25;
     pub const FRAME_STAGE_NOTIFY: isize = 37;
 }
+
+pub mod var {
+    use std::ffi::CStr;
+
+    macro_rules! var {
+        ($var:expr) => {
+            unsafe {
+                ::std::ffi::CStr::from_bytes_with_nul_unchecked(concat!($var, "\0").as_bytes())
+            }
+        };
+    }
+
+    pub type Var = &'static CStr;
+
+    pub const CHEATS: Var = var!("sv_cheats");
+    pub const FFA: Var = var!("mp_teammates_are_enemies");
+    pub const GRAVITY: Var = var!("sv_gravity");
+    pub const INFINITE_AMMO: Var = var!("sv_infinite_ammo");
+    pub const LOST_FOCUS_SLEEP: Var = var!("engine_no_focus_sleep");
+    pub const MODEL_STATS_OVERLAY: Var = var!("r_drawmodelstatsoverlay");
+    pub const PANORAMA_BLUR: Var = var!("@panorama_disable_blur");
+    pub const PHYSICS_TIMESCALE: Var = var!("cl_phys_timescale");
+    // TODO: Don't touch the variable.
+    pub const POST_PROCESS: Var = var!("mat_postprocess_enable");
+    pub const RAGDOLL_GRAVITY: Var = var!("cl_ragdoll_gravity");
+    pub const SHOW_IMPACTS: Var = var!("sv_showimpacts");
+}

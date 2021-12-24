@@ -1,137 +1,74 @@
-use std::ffi::CString;
-use std::marker::PhantomData;
-use vptr::Virtual;
+use core::ptr::NonNull;
+use std::borrow::Cow;
+use std::ffi::CStr;
 
-#[derive(Clone, Debug)]
-pub struct Var<T>
-where
-    T: Kind,
-{
-    this: *const (),
-    _boo: PhantomData<T>,
+pub use self::var::{Kind, RawVar, Var};
+
+mod var;
+
+extern "C" {
+    /// Raw handle to the console.
+    pub type RawConsole;
 }
 
-impl<T> Var<T>
-where
-    T: Kind,
-{
-    pub unsafe fn from_raw(ptr: *const ()) -> Self {
-        Self {
-            this: ptr,
-            _boo: PhantomData,
-        }
-    }
+unsafe impl Send for RawConsole {}
+unsafe impl Sync for RawConsole {}
 
-    pub fn as_ptr(&self) -> *const () {
-        self.this
-    }
-
-    pub fn as_mut_ptr(&self) -> *mut () {
-        self.this as *mut ()
-    }
-
-    pub fn get(&self) -> T {
-        Kind::get(self)
-    }
-
-    pub fn set(&self, value: T) {
-        Kind::set(value, self)
-    }
-}
-
-pub trait Kind: Sized {
-    fn get(var: &Var<Self>) -> Self;
-    fn set(self, var: &Var<Self>);
-}
-
-impl Kind for f32 {
-    fn get(var: &Var<f32>) -> Self {
-        type Signature = unsafe extern "C" fn(this: *const ()) -> f32;
-
-        let method: Signature = unsafe { var.as_ptr().vget(15 * 8) };
-
-        unsafe { method(var.as_ptr()) }
-    }
-
-    fn set(self, var: &Var<f32>) {
-        type Signature = unsafe extern "C" fn(this: *const (), value: f32);
-
-        let method: Signature = unsafe { var.as_ptr().vget(18 * 8) };
-
-        unsafe { method(var.as_ptr(), self) }
-    }
-}
-
-impl Kind for i32 {
-    fn get(var: &Var<i32>) -> Self {
-        type Signature = unsafe extern "C" fn(this: *const ()) -> i32;
-
-        let method: Signature = unsafe { var.as_ptr().vget(16 * 8) };
-
-        unsafe { method(var.as_ptr()) }
-    }
-
-    fn set(self, var: &Var<i32>) {
-        type Signature = unsafe extern "C" fn(this: *const (), value: i32);
-
-        let method: Signature = unsafe { var.as_ptr().vget(19 * 8) };
-
-        unsafe { method(var.as_ptr(), self) }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct Console {
-    this: *const (),
-}
+/// The console.
+#[derive(Debug)]
+#[repr(transparent)]
+pub struct Console(NonNull<RawConsole>);
 
 impl Console {
-    pub unsafe fn from_raw(ptr: *const ()) -> Self {
-        Self { this: ptr }
-    }
-
-    pub fn as_ptr(&self) -> *const () {
-        self.this
-    }
-
-    pub fn as_mut_ptr(&self) -> *mut () {
-        self.this as *mut ()
-    }
-
-    pub fn var<T>(&self, var: impl Into<Vec<u8>>) -> Option<Var<T>>
-    where
-        T: Kind,
-    {
-        type Signature = unsafe extern "C" fn(this: *const (), var: *const i8) -> *const ();
-
-        let var = CString::new(var).unwrap();
-        let method: Signature = unsafe { self.as_ptr().vget(15 * 8) };
-
-        unsafe {
-            let ptr = method(self.as_ptr(), var.as_ptr());
-
-            println!("{:?} {:?}", &var, &ptr);
-
-            if ptr.is_null() {
-                None
-            } else {
-                Some(Var::from_raw(ptr))
-            }
+    pub const fn from_raw(raw: *mut RawConsole) -> Option<Self> {
+        if raw.is_null() {
+            None
+        } else {
+            Some(unsafe { Self::from_raw_unchecked(raw) })
         }
     }
 
-    pub fn write(&self, buf: impl Into<Vec<u8>>) {
-        type Signature =
-            unsafe extern "C" fn(this: *const (), format: *const i8, text: *const i8) -> bool;
+    pub const unsafe fn from_raw_unchecked(raw: *mut RawConsole) -> Self {
+        Self(NonNull::new_unchecked(raw))
+    }
 
-        let text = CString::new(buf).unwrap();
-        let method: Signature = unsafe { self.as_ptr().vget(27 * 8) };
+    pub const fn as_ptr(&self) -> *const RawConsole {
+        self.0.as_ptr()
+    }
+
+    pub const fn virtual_table(&self) -> *const () {
+        unsafe { *(self.as_ptr() as *const *const ()) }
+    }
+
+    pub fn var<'a, T, V>(&self, var: V) -> Option<Var<T>>
+    where
+        T: Kind,
+        V: Into<Cow<'a, CStr>>,
+    {
+        type GetVar = unsafe extern "C" fn(this: *const RawConsole, var: *const i8) -> *mut RawVar;
 
         unsafe {
-            method(self.as_ptr(), "%s\0".as_ptr().cast(), text.as_ptr());
+            let raw_var = virt::get::<GetVar>(self.virtual_table(), 15 * 8)(
+                self.as_ptr(),
+                var.into().as_ptr(),
+            );
+
+            Var::from_raw(raw_var)
+        }
+    }
+
+    pub fn write<'a, S>(&self, string: S)
+    where
+        S: Into<Cow<'a, CStr>>,
+    {
+        type Write = unsafe extern "C" fn(this: *const RawConsole, fmt: *const i8, txt: *const i8);
+
+        unsafe {
+            virt::get::<Write>(self.virtual_table(), 27 * 8)(
+                self.as_ptr(),
+                b"%s\0".as_ptr().cast(),
+                string.into().as_ptr(),
+            );
         }
     }
 }
-
-unsafe impl Send for Console {}
-unsafe impl Sync for Console {}

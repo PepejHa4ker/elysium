@@ -1,6 +1,7 @@
 use crate::client::Client;
 use crate::console::{Console, Var};
 use crate::consts::interface;
+use crate::consts::var;
 use crate::engine::Engine;
 use crate::entity::EntityList;
 use crate::globals::Globals;
@@ -73,13 +74,12 @@ pub struct Interfaces {
 
 impl Interfaces {
     pub fn new(libraries: &Libraries) -> Self {
-        let console = unsafe {
-            Console::from_raw(
-                libraries
-                    .materialsystem
-                    .get_interface(interface::VENGINECVAR),
-            )
-        };
+        let console = Console::from_raw(
+            libraries
+                .materialsystem
+                .get_interface(interface::VENGINECVAR) as _,
+        )
+        .unwrap();
 
         let client =
             Client::from_raw(libraries.client.get_interface(interface::VCLIENT) as _).unwrap();
@@ -161,17 +161,17 @@ impl Interfaces {
                 .add(52) as *const u32)
         };
 
-        let cheats = console.var("sv_cheats").unwrap();
-        let ffa = console.var("mp_teammates_are_enemies").unwrap();
-        let gravity = console.var("sv_gravity").unwrap();
-        let infinite_ammo = console.var("sv_infinite_ammo").unwrap();
-        let lost_focus_sleep = console.var("engine_no_focus_sleep").unwrap();
-        let model_stats_overlay = console.var("r_drawmodelstatsoverlay").unwrap();
-        let panorama_blur = console.var("@panorama_disable_blur").unwrap();
-        let physics_timescale = console.var("cl_phys_timescale").unwrap();
-        let post_processing = console.var("mat_postprocess_enable").unwrap();
-        let ragdoll_gravity = console.var("cl_ragdoll_gravity").unwrap();
-        let show_impacts = console.var("sv_showimpacts").unwrap();
+        let cheats = console.var(var::CHEATS).unwrap();
+        let ffa = console.var(var::FFA).unwrap();
+        let gravity = console.var(var::GRAVITY).unwrap();
+        let infinite_ammo = console.var(var::INFINITE_AMMO).unwrap();
+        let lost_focus_sleep = console.var(var::LOST_FOCUS_SLEEP).unwrap();
+        let model_stats_overlay = console.var(var::MODEL_STATS_OVERLAY).unwrap();
+        let panorama_blur = console.var(var::PANORAMA_BLUR).unwrap();
+        let physics_timescale = console.var(var::PHYSICS_TIMESCALE).unwrap();
+        let post_processing = console.var(var::POST_PROCESS).unwrap();
+        let ragdoll_gravity = console.var(var::RAGDOLL_GRAVITY).unwrap();
+        let show_impacts = console.var(var::SHOW_IMPACTS).unwrap();
 
         Self {
             console,
