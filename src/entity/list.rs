@@ -3,14 +3,14 @@ use crate::global::Global;
 use core::ptr::NonNull;
 
 extern "C" {
-    /// Raw handle to the engine's entity list.
+    /// Raw handle to the entity list.
     pub type RawEntityList;
 }
 
 unsafe impl Send for RawEntityList {}
 unsafe impl Sync for RawEntityList {}
 
-/// Engine's entity list.
+/// Entity list.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct EntityList(NonNull<RawEntityList>);

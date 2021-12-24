@@ -2,7 +2,6 @@ use crate::entity::EntityId;
 use core::fmt;
 use core::ptr::NonNull;
 use daisy_chain::Chain;
-use vptr::Virtual;
 
 #[repr(C)]
 pub struct ClientNetworkable;
@@ -191,32 +190,61 @@ fn next(class: &ClientClass) -> *mut ClientClass {
     class.next
 }
 
-#[derive(Debug)]
-pub struct Client {
-    this: *const (),
+extern "C" {
+    /// Raw handle to the client.
+    pub type RawClient;
 }
+
+unsafe impl Send for RawClient {}
+unsafe impl Sync for RawClient {}
+
+/// The client.
+#[derive(Debug)]
+#[repr(transparent)]
+pub struct Client(NonNull<RawClient>);
 
 impl Client {
-    pub unsafe fn from_raw(ptr: *const ()) -> Self {
-        Self { this: ptr }
+    pub const fn from_raw(raw: *mut RawClient) -> Option<Self> {
+        if raw.is_null() {
+            None
+        } else {
+            Some(unsafe { Self::from_raw_unchecked(raw) })
+        }
     }
 
-    pub fn as_ptr(&self) -> *const () {
-        self.this
+    pub const unsafe fn from_raw_unchecked(raw: *mut RawClient) -> Self {
+        Self(NonNull::new_unchecked(raw))
     }
 
-    pub fn as_mut_ptr(&self) -> *mut () {
-        self.this as *mut ()
+    pub const fn as_ptr(&self) -> *const RawClient {
+        self.0.as_ptr()
     }
 
-    pub fn get_all_classes(&self) -> Chain<ClientClass, Next> {
-        type Signature = unsafe extern "C" fn(this: *const ()) -> *mut ClientClass;
+    pub const fn virtual_table(&self) -> *const *const u8 {
+        unsafe { *(self.as_ptr() as *const *const *const u8) }
+    }
 
-        let method: Signature = unsafe { self.as_ptr().vget(8 * 8) };
+    pub fn activate_mouse_ptr(&self) -> *const u8 {
+        unsafe { *self.virtual_table().add(16) }
+    }
 
-        unsafe { Chain::from_ptr(method(self.as_ptr()), next as Next) }
+    // TODO: Remove Chain<ClientClass, Next>
+    pub fn classes(&self) -> Chain<ClientClass, Next> {
+        type Classes = unsafe extern "C" fn(this: *const RawClient) -> *mut ClientClass;
+
+        unsafe {
+            let classes =
+                virt::get::<Classes>(self.virtual_table() as *const (), 64)(self.as_ptr());
+
+            Chain::from_ptr(classes, next as Next)
+        }
+    }
+
+    pub fn hud_process_input_ptr(&self) -> *const u8 {
+        unsafe { *self.virtual_table().add(10) }
+    }
+
+    pub fn hud_update_ptr(&self) -> *const u8 {
+        unsafe { *self.virtual_table().add(11) }
     }
 }
-
-unsafe impl Send for Client {}
-unsafe impl Sync for Client {}

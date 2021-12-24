@@ -11,12 +11,14 @@ mod id;
 mod list;
 
 extern "C" {
+    /// Raw handle to an entity.
     pub type RawEntity;
 }
 
 unsafe impl Send for RawEntity {}
 unsafe impl Sync for RawEntity {}
 
+/// An entity.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Entity(NonNull<RawEntity>);

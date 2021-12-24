@@ -1,3 +1,4 @@
+use crate::client::Client;
 use crate::command::Command;
 use crate::console::{Console, Var};
 use crate::consts::offset;
@@ -80,7 +81,7 @@ impl Global {
 
             ptr::write(
                 this.frame_stage_notify_original_ptr(),
-                this.interfaces().client.as_mut_ptr().vreplace_protected(
+                (this.interfaces().client.as_ptr() as *mut ()).vreplace_protected(
                     hooks::frame_stage_notify::hook, // as *const hooks::frame_stage_notify::Signature
                     //as *mut (),
                     offset::FRAME_STAGE_NOTIFY * 8,
@@ -90,10 +91,7 @@ impl Global {
             println!("hooked frame_stage_notify");
         }
 
-        let client =
-            unsafe { crate::client::Client::from_raw(this.interfaces().client.as_mut_ptr()) };
-
-        netvars::set(&client);
+        netvars::set(this.client());
 
         Ok(this)
     }
@@ -124,6 +122,10 @@ impl Global {
 
     pub fn entity_list(&self) -> &EntityList {
         &self.0.interfaces.entity_list
+    }
+
+    pub fn client(&self) -> &Client {
+        &self.0.interfaces.client
     }
 
     pub fn console(&self) -> &Console {

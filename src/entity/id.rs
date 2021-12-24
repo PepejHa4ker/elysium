@@ -1,3 +1,4 @@
+/// The entity's ID.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[repr(i32)]
 pub enum EntityId {

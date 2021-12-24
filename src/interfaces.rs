@@ -9,7 +9,7 @@ use crate::libraries::Libraries;
 use crate::pattern;
 use crate::trace::EngineTrace;
 use core::mem;
-use vptr::{Pointer, VirtualMut};
+use vptr::Pointer;
 
 #[derive(Debug)]
 pub struct Interfaces {
@@ -82,7 +82,7 @@ impl Interfaces {
         };
 
         let client =
-            unsafe { Client::from_raw(libraries.client.get_interface(interface::VCLIENT)) };
+            Client::from_raw(libraries.client.get_interface(interface::VCLIENT) as _).unwrap();
 
         let engine =
             unsafe { Engine::from_raw(libraries.engine.get_interface(interface::VENGINECLIENT)) };
@@ -122,7 +122,7 @@ impl Interfaces {
             .get_exact_interface(interface::GAMEVENTSMANAGER);
 
         let client_mode = unsafe {
-            let hud_process_input: *const () = client.as_mut_ptr().vget(10 * 8);
+            let hud_process_input = client.hud_process_input_ptr();
             let get_client_mode = hud_process_input.add_bytes(11).to_offset_absolute(1, 5);
             let get_client_mode: unsafe extern "C" fn() -> *mut () =
                 mem::transmute(get_client_mode);
@@ -132,7 +132,7 @@ impl Interfaces {
         };
 
         let globals = unsafe {
-            let hud_update: *const () = client.as_mut_ptr().vget(11 * 8);
+            let hud_update = client.hud_update_ptr();
             let globals =
                 *(hud_update.add_bytes(13).to_offset_absolute(3, 7) as *const *const Globals);
 
@@ -140,7 +140,7 @@ impl Interfaces {
         };
 
         let input = unsafe {
-            let activate_mouse: *const () = client.as_mut_ptr().vget(16 * 8);
+            let activate_mouse = client.activate_mouse_ptr();
             let input = **(activate_mouse.to_offset_absolute(3, 7) as *const *const *const Input);
 
             &*input
@@ -153,6 +153,7 @@ impl Interfaces {
                 .unwrap()
                 .add(35) as *const u32)
         };
+
         let animation_state = unsafe {
             *(patterns
                 .address_of("client_client.so", &pattern::ANIMATION_STATE)

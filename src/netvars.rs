@@ -139,7 +139,7 @@ pub fn iterate_table(props: &'static RecvTable, table: &'static str, offset: isi
 }
 
 pub fn set(client: &Client) {
-    let all = client.get_all_classes();
+    let all = client.classes();
 
     for class in all.iter() {
         if let Some(table) = class.recv_table {
