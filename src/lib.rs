@@ -42,7 +42,6 @@ pub mod netvars;
 pub mod pad;
 pub mod pattern;
 pub mod player_state;
-pub mod skybox;
 pub mod trace;
 
 fn main() -> Result<()> {

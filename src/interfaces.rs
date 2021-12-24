@@ -8,7 +8,7 @@ use crate::globals::Globals;
 use crate::input::Input;
 use crate::libraries::Libraries;
 use crate::pattern;
-use crate::trace::EngineTrace;
+use crate::trace::Tracer;
 use core::mem;
 use vptr::Pointer;
 
@@ -27,7 +27,7 @@ pub struct Interfaces {
     pub model_info: *mut (),
     pub materialsystem: *mut (),
     pub sound: *mut (),
-    pub trace: EngineTrace,
+    pub tracer: Tracer,
     pub movement: *mut (),
     pub prediction: *mut (),
     pub events: *mut (),
@@ -100,9 +100,9 @@ impl Interfaces {
 
         let model_info = libraries.engine.get_interface(interface::VMODELINFOCLIENT);
 
-        let trace = unsafe {
-            EngineTrace::from_raw(libraries.engine.get_interface(interface::ENGINETRACECLIENT))
-        };
+        let tracer =
+            Tracer::from_raw(libraries.engine.get_interface(interface::ENGINETRACECLIENT) as _)
+                .unwrap();
 
         let movement = libraries.engine.get_interface(interface::GAMEMOVEMENT);
 
@@ -188,7 +188,7 @@ impl Interfaces {
             model_info,
             materialsystem,
             sound,
-            trace,
+            tracer,
             movement,
             prediction,
             events,

@@ -1,7 +1,7 @@
 use super::entity::Entity;
 use super::hit_group::HitGroup;
+use core::ptr::NonNull;
 use sdk::{Matrix3x4, Vector};
-use vptr::Virtual;
 
 #[derive(Debug)]
 #[repr(C)]
@@ -16,7 +16,7 @@ pub struct Plane {
 #[derive(Debug)]
 #[repr(C)]
 pub struct Surface {
-    name: *const u8,
+    name: *const i8,
     surface_properties: i16,
     flags: u16,
 }
@@ -41,37 +41,58 @@ pub struct Trace {
     hitbox: i32,
 }
 
-#[derive(Debug)]
-#[repr(C)]
-pub struct EngineTrace {
-    this: *const (),
+extern "C" {
+    /// Raw handle to the engine's tracer.
+    pub type RawTracer;
 }
 
-impl EngineTrace {
-    pub unsafe fn from_raw(ptr: *const ()) -> Self {
-        Self { this: ptr }
+/// The engine's tracer.
+#[derive(Debug)]
+#[repr(transparent)]
+pub struct Tracer(NonNull<RawTracer>);
+
+impl Tracer {
+    pub const fn from_raw(raw: *mut RawTracer) -> Option<Self> {
+        if raw.is_null() {
+            None
+        } else {
+            Some(unsafe { Self::from_raw_unchecked(raw) })
+        }
     }
 
-    pub fn as_ptr(&self) -> *const () {
-        self.this
+    pub const unsafe fn from_raw_unchecked(raw: *mut RawTracer) -> Self {
+        Self(NonNull::new_unchecked(raw))
     }
 
-    pub fn as_mut_ptr(&self) -> *mut () {
-        self.this as *mut ()
+    pub const fn as_ptr(&self) -> *const RawTracer {
+        self.0.as_ptr()
     }
 
-    pub fn get_point_contents(
+    pub const fn virtual_table(&self) -> *const () {
+        unsafe { *(self.as_ptr() as *const *const ()) }
+    }
+
+    pub fn point_contents(
         &self,
         position: Vector,
         mask: i32,
         entities: *const *const Entity,
     ) -> i32 {
-        type Signature =
-            unsafe extern "C" fn(this: *const (), *const Vector, i32, *const *const Entity) -> i32;
+        type PointContents = unsafe extern "C" fn(
+            this: *const RawTracer,
+            position: *const Vector,
+            mask: i32,
+            entities: *const *const Entity,
+        ) -> i32;
 
-        let method: Signature = unsafe { self.as_ptr().vget(0 * 8) };
-
-        unsafe { method(self.as_ptr(), &position, mask, entities) }
+        unsafe {
+            virt::get::<PointContents>(self.virtual_table(), 0 * 8)(
+                self.as_ptr(),
+                &position,
+                mask,
+                entities,
+            )
+        }
     }
 
     pub fn clip_to_entity(
@@ -81,26 +102,45 @@ impl EngineTrace {
         filter: *const usize,
         entities: *const usize,
     ) {
-        type Signature =
-            unsafe extern "C" fn(this: *const (), *const Ray, u32, *const usize, *const usize);
+        type ClipToEntity = unsafe extern "C" fn(
+            this: *const RawTracer,
+            ray: *const Ray,
+            mask: u32,
+            filter: *const usize,
+            entities: *const usize,
+        );
 
-        let method: Signature = unsafe { self.as_ptr().vget(3 * 8) };
-
-        unsafe { method(self.as_ptr(), ray, mask, filter, entities) }
+        unsafe {
+            virt::get::<ClipToEntity>(self.virtual_table(), 3 * 8)(
+                self.as_ptr(),
+                ray,
+                mask,
+                filter,
+                entities,
+            )
+        }
     }
 
     pub fn trace(&self, ray: &Ray, mask: u32, filter: *const usize, entities: *const usize) {
-        type Signature =
-            unsafe extern "C" fn(this: *const (), *const Ray, u32, *const usize, *const usize);
+        type Trace = unsafe extern "C" fn(
+            this: *const RawTracer,
+            raw: *const Ray,
+            mask: u32,
+            filter: *const usize,
+            entities: *const usize,
+        );
 
-        let method: Signature = unsafe { self.as_ptr().vget(5 * 8) };
-
-        unsafe { method(self.as_ptr(), ray, mask, filter, entities) }
+        unsafe {
+            virt::get::<Trace>(self.virtual_table(), 5 * 8)(
+                self.as_ptr(),
+                ray,
+                mask,
+                filter,
+                entities,
+            )
+        }
     }
 }
-
-unsafe impl Send for EngineTrace {}
-unsafe impl Sync for EngineTrace {}
 
 #[derive(Debug)]
 #[repr(C)]
