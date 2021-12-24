@@ -1,7 +1,6 @@
 use crate::command::Command;
 use crate::entity::Entity;
 use crate::global::Global;
-use crate::intrinsics;
 use crate::movement::Movement;
 
 pub type Signature =
@@ -24,7 +23,9 @@ pub unsafe extern "C" fn hook(
         return true;
     }
 
-    let send_packet = &mut *(*(intrinsics::frame_address(0) as *mut *mut bool)).sub(0x18);
+    let rbp: *mut *mut bool;
+    core::arch::asm!("mov {}, rbp", out(reg) rbp, options(nostack));
+    let send_packet = &mut *(*rbp).sub(24);
     let original_angle = command.view_angle;
     let original_forward = command.forward_move;
     let original_side = command.side_move;

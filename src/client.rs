@@ -1,4 +1,4 @@
-use crate::entity_id::EntityId;
+use crate::entity::EntityId;
 use core::fmt;
 use core::ptr::NonNull;
 use daisy_chain::Chain;

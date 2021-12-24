@@ -1,6 +1,3 @@
-pub const MAX_SPLITSCREEN_CLIENT_BITS: u32 = 2;
-pub const MAX_SPLITSCREEN_CLIENTS: u32 = 4;
-
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
 pub struct Button(i32);

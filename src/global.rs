@@ -2,8 +2,7 @@ use crate::command::Command;
 use crate::console::{Console, Var};
 use crate::consts::offset;
 use crate::engine::Engine;
-use crate::entities::Entities;
-use crate::entity::Entity;
+use crate::entity::{Entity, EntityList};
 use crate::frame::Frame;
 use crate::globals::Globals;
 use crate::hooks;
@@ -123,8 +122,8 @@ impl Global {
         &self.0.interfaces.engine
     }
 
-    pub fn entities(&self) -> &Entities {
-        &self.0.interfaces.entities
+    pub fn entity_list(&self) -> &EntityList {
+        &self.0.interfaces.entity_list
     }
 
     pub fn console(&self) -> &Console {
@@ -133,6 +132,10 @@ impl Global {
 
     pub fn animation_layers(&self) -> u32 {
         self.0.interfaces.animation_layers
+    }
+
+    pub fn animation_state(&self) -> u32 {
+        self.0.interfaces.animation_state
     }
 
     pub fn cheats(&self) -> &Var<i32> {

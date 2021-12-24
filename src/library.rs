@@ -70,8 +70,6 @@ impl<'a> Interfaces<'a> {
             {
                 let new = interface.new();
 
-                tracing::info!("{} ({}) -> {:?}", &name, &interface_name, new);
-
                 return new;
             }
         }
@@ -85,8 +83,6 @@ impl<'a> Interfaces<'a> {
 
             if interface_name == name {
                 let new = interface.new();
-
-                tracing::info!("{} ({}) -> {:?}", &name, interface_name, new);
 
                 return new;
             }
@@ -127,8 +123,6 @@ impl Library {
         let ptr = unsafe {
             unix::Library::open(Some(&name), RTLD_NOLOAD | RTLD_NOW | RTLD_LOCAL)?.into_raw()
         };
-
-        tracing::debug!("{} -> {:?}", &name, ptr);
 
         let lib = unsafe { unix::Library::from_raw(ptr) };
 

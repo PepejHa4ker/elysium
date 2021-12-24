@@ -1,21 +1,49 @@
 use super::netvars::Netvar;
-use crate::animation_layer::AnimationLayer;
 use crate::global::Global;
 use crate::player_state::PlayerState;
-use sdk::{Angle, Vector};
+use core::ptr::NonNull;
+use sdk::{Angle, AnimationLayer, AnimationState, Vector};
 
-#[derive(Debug)]
-pub struct Entity {
-    pub this: *const (),
+pub use self::id::EntityId;
+pub use self::list::{EntityList, RawEntityList};
+
+mod id;
+mod list;
+
+extern "C" {
+    pub type RawEntity;
 }
 
+unsafe impl Send for RawEntity {}
+unsafe impl Sync for RawEntity {}
+
+#[derive(Debug)]
+#[repr(transparent)]
+pub struct Entity(NonNull<RawEntity>);
+
 impl Entity {
-    pub const unsafe fn from_raw(ptr: *const ()) -> Self {
-        Self { this: ptr }
+    pub const fn from_raw(raw: *mut RawEntity) -> Option<Self> {
+        if raw.is_null() {
+            None
+        } else {
+            Some(unsafe { Self::from_raw_unchecked(raw) })
+        }
     }
 
-    pub fn as_ptr(&self) -> *const () {
-        self.this
+    pub const unsafe fn from_raw_unchecked(raw: *mut RawEntity) -> Self {
+        Self(NonNull::new_unchecked(raw))
+    }
+
+    pub const fn as_ptr(&self) -> *const RawEntity {
+        self.0.as_ptr()
+    }
+
+    pub const fn virtual_table(&self) -> *const *const u8 {
+        unsafe { *(self.as_ptr() as *const *const *const u8) }
+    }
+
+    pub unsafe fn get(&self, offset: usize) -> *const u8 {
+        (self.as_ptr() as *const u8).add(offset)
     }
 
     pub fn flags(&self) -> &PlayerState {
@@ -42,15 +70,36 @@ impl Entity {
 
     pub fn animation_layers(&self) -> &mut [AnimationLayer; 13] {
         unsafe {
-            &mut *((self.as_ptr() as *const u8).add(Global::handle().animation_layers() as usize)
-                as *mut [AnimationLayer; 13])
+            let animlayersptr =
+                self.get(Global::handle().animation_layers() as usize) as *mut [AnimationLayer; 13];
+
+            core::mem::transmute(animlayersptr)
+        }
+    }
+
+    pub fn animation_state(&self) -> Option<&mut AnimationState> {
+        unsafe {
+            let animstateptrptr =
+                self.get(Global::handle().animation_state() as usize) as *mut *mut AnimationState;
+
+            if animstateptrptr.is_null() {
+                return None;
+            }
+
+            let animstateptr = *animstateptrptr;
+
+            if animstateptr.is_null() {
+                return None;
+            }
+
+            core::mem::transmute(animstateptr)
         }
     }
 }
 
 impl Netvar for Entity {
     fn as_ptr(&self) -> *const () {
-        self.this
+        Entity::as_ptr(self) as _
     }
 }
 

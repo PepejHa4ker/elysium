@@ -2,10 +2,11 @@ use crate::client::Client;
 use crate::console::{Console, Var};
 use crate::consts::interface;
 use crate::engine::Engine;
-use crate::entities::Entities;
+use crate::entity::EntityList;
 use crate::globals::Globals;
 use crate::input::Input;
 use crate::libraries::Libraries;
+use crate::pattern;
 use crate::trace::EngineTrace;
 use core::mem;
 use vptr::{Pointer, VirtualMut};
@@ -19,7 +20,7 @@ pub struct Interfaces {
     pub globals: &'static Globals,
     pub input: &'static Input,
     pub panel: *mut (),
-    pub entities: Entities,
+    pub entity_list: EntityList,
     pub engine_vgui: *mut (),
     pub model: *mut (),
     pub model_info: *mut (),
@@ -32,6 +33,9 @@ pub struct Interfaces {
 
     /// offset for animation layers
     pub animation_layers: u32,
+
+    /// offset for animation state
+    pub animation_state: u32,
 
     /// enable variables locked behing cheats (`sv_cheats`)
     pub cheats: Var<i32>,
@@ -85,9 +89,9 @@ impl Interfaces {
 
         let panel = libraries.vgui2.get_interface(interface::VENGINEVGUI);
 
-        let entities = unsafe {
-            Entities::from_raw(libraries.client.get_interface(interface::VCLIENTENTITYLIST))
-        };
+        let entity_list =
+            EntityList::from_raw(libraries.client.get_interface(interface::VCLIENTENTITYLIST) as _)
+                .unwrap();
 
         let engine_vgui = libraries.engine.get_interface(interface::VENGINEVGUI);
 
@@ -142,16 +146,18 @@ impl Interfaces {
             &*input
         };
 
-        let patterns = crate::pattern::Libraries::new();
-        let patterns = patterns.0.read();
-        let (base, client_client) = patterns.get("client_client.so").unwrap();
-        let client_client: &[u8] = &**client_client;
-        let animation_layers = crate::pattern::ANIMATION_LAYERS
-            .find(client_client)
-            .unwrap();
+        let patterns = pattern::Libraries::new();
         let animation_layers = unsafe {
-            *(((base + animation_layers.start()) as *const usize as *const u8).add(35)
-                as *const u32)
+            *(patterns
+                .address_of("client_client.so", &pattern::ANIMATION_LAYERS)
+                .unwrap()
+                .add(35) as *const u32)
+        };
+        let animation_state = unsafe {
+            *(patterns
+                .address_of("client_client.so", &pattern::ANIMATION_STATE)
+                .unwrap()
+                .add(52) as *const u32)
         };
 
         let cheats = console.var("sv_cheats").unwrap();
@@ -174,7 +180,7 @@ impl Interfaces {
             globals,
             input,
             panel,
-            entities,
+            entity_list,
             engine_vgui,
             model,
             model_info,
@@ -186,6 +192,7 @@ impl Interfaces {
             events,
 
             animation_layers,
+            animation_state,
 
             cheats,
             ffa,

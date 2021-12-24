@@ -139,8 +139,6 @@ pub fn iterate_table(props: &'static RecvTable, table: &'static str, offset: isi
 }
 
 pub fn set(client: &Client) {
-    tracing::info!("Intialising netvars...");
-
     let all = client.get_all_classes();
 
     for class in all.iter() {
@@ -148,8 +146,6 @@ pub fn set(client: &Client) {
             iterate_table(table, table.name(), 0);
         }
     }
-
-    tracing::info!("{:#?}", NETVARS);
 }
 
 pub unsafe fn offset<T>(ptr: *const (), table: &str, prop: &str) -> *const T {

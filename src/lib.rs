@@ -1,16 +1,16 @@
-#![feature(const_trait_impl)]
-#![feature(const_fn_fn_ptr_basics)]
-#![feature(once_cell)]
 #![feature(const_fn_floating_point_arithmetic)]
-#![feature(link_llvm_intrinsics)]
+#![feature(const_fn_fn_ptr_basics)]
 #![feature(const_mut_refs)]
+#![feature(const_trait_impl)]
+#![feature(const_ptr_is_null)]
+#![feature(once_cell)]
+#![feature(extern_types)]
+#![feature(ptr_metadata)]
 #![feature(trait_alias)]
 
 use crate::global::Global;
-use crate::log::Logger;
 use atomic_float::AtomicF32;
-use rand::{thread_rng, Rng};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
@@ -18,16 +18,12 @@ use std::time::Duration;
 pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
-pub mod animation_layer;
-pub mod animation_state;
 pub mod client;
 pub mod command;
 pub mod console;
 pub mod consts;
 pub mod engine;
-pub mod entities;
 pub mod entity;
-pub mod entity_id;
 pub mod error;
 pub mod frame;
 pub mod global;
@@ -36,20 +32,19 @@ pub mod hit_group;
 pub mod hooks;
 pub mod input;
 pub mod interfaces;
-pub mod intrinsics;
 pub mod item_kind;
 pub mod libraries;
 pub mod library;
-pub mod log;
 pub mod move_kind;
 pub mod movement;
 pub mod netvars;
+pub mod pad;
 pub mod pattern;
 pub mod player_state;
 pub mod skybox;
 pub mod trace;
 
-fn main(_logger: Logger) -> Result<()> {
+fn main() -> Result<()> {
     if library::Library::serverbrowser().is_err() {
         println!("waiting for csgo to load");
 
@@ -66,20 +61,25 @@ fn main(_logger: Logger) -> Result<()> {
     let next_lby_update = Arc::new(AtomicF32::new(0.0));
     let next_lby_update2 = next_lby_update.clone();
     let lby_updated = Arc::new(AtomicBool::new(false));
+    let choked_packets = Arc::new(AtomicUsize::new(0));
 
     global.on_frame(move |_frame| {
         if let Some(local_player) = global2.local_player() {
             // thirdperson fix
+            unsafe {
+                *(&global2.input().thirdperson as *const bool as *mut bool) = true;
+            }
+
             if global2.input().thirdperson {
                 local_player.view_angle().pitch = 89.0;
                 local_player.view_angle().yaw = yaw.load(Ordering::SeqCst);
             }
 
-            for player in global2.entities().iter() {
+            /*for player in global2.entities().iter() {
                 let mut animation_layers = player.animation_layers();
 
                 animation_layers[12].weight = 0.0;
-            }
+            }*/
         }
 
         global2.cheats().set(1);
@@ -91,8 +91,6 @@ fn main(_logger: Logger) -> Result<()> {
     });
 
     global.on_move(move |mut movement| {
-        //movement.send_packet = movement.tick_count % 14 == 0;
-
         if !movement.local_player.flags().on_ground() {
             movement.in_jump = false;
         }
@@ -116,29 +114,44 @@ fn main(_logger: Logger) -> Result<()> {
 
             movement.view_angle = global3.engine().view_angle();
 
-            let client_yaw = movement.view_angle.yaw + 180.0;
+            let client_yaw = movement.view_angle.yaw + 180.0 + 58.0;
 
             if lby_updated.load(Ordering::SeqCst) {
                 movement.view_angle.yaw = client_yaw - 58.0;
                 movement.send_packet = false;
 
-                println!("lby  yaw = {:?}", movement.view_angle.yaw);
+                //println!("lby  yaw = {:?}", movement.view_angle.yaw);
             } else if movement.send_packet {
                 movement.view_angle.yaw = client_yaw;
 
-                println!("real yaw = {:?}", movement.view_angle.yaw);
+                //println!("real yaw = {:?}", movement.view_angle.yaw);
             } else {
                 movement.view_angle.yaw = client_yaw + 120.0;
 
-                println!("fake yaw = {:?}", movement.view_angle.yaw);
+                //println!("fake yaw = {:?}", movement.view_angle.yaw);
             }
 
             movement.view_angle.pitch = 89.0;
         }
 
-        if movement.send_packet {
+        if !movement.send_packet {
             yaw2.store(movement.view_angle.yaw, Ordering::SeqCst);
         }
+
+        //println!("tick_count = {}", movement.tick_count);
+
+        let choked_packets2 = choked_packets.load(Ordering::SeqCst);
+
+        if choked_packets2 > 6 {
+            movement.send_packet = true;
+            //movement.tick_count = i32::MAX;
+            choked_packets.store(0, Ordering::SeqCst);
+        } else {
+            movement.send_packet = false;
+            choked_packets.store(choked_packets2 + 1, Ordering::SeqCst);
+        }
+
+        println!("choked_packets = {:?}", choked_packets2);
 
         movement
     });
@@ -147,23 +160,8 @@ fn main(_logger: Logger) -> Result<()> {
 }
 
 #[ctor::ctor]
-fn providence_init() {
-    thread::Builder::new()
-        .name(env!("CARGO_PKG_NAME").to_string())
-        .spawn(move || {
-            let logger = Logger::new();
-            let (non_blocking, _guard) = tracing_appender::non_blocking(logger.clone());
-            let subscriber = tracing_subscriber::fmt()
-                .with_ansi(false)
-                .with_level(false)
-                .with_max_level(tracing::Level::TRACE)
-                .with_writer(non_blocking)
-                .without_time();
-
-            tracing::subscriber::with_default(subscriber.finish(), || {
-                tracing::info!("And... we're in!");
-                tracing::info!("Main returned: {:?}", main(logger));
-            });
-        })
-        .unwrap();
+fn load() {
+    let _ = thread::Builder::new().spawn(move || {
+        let _ = main();
+    });
 }
