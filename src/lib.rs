@@ -115,7 +115,7 @@ fn main() -> Result<()> {
 
             movement.view_angle = global3.engine().view_angle();
 
-            let client_yaw = movement.view_angle.yaw + 180.0 + 58.0;
+            let client_yaw = movement.view_angle.yaw + 180.0;
 
             if lby_updated.load(Ordering::SeqCst) {
                 movement.view_angle.yaw = client_yaw - 58.0;
@@ -152,7 +152,9 @@ fn main() -> Result<()> {
             choked_packets.store(choked_packets2 + 1, Ordering::SeqCst);
         }
 
-        println!("choked_packets = {:?}", choked_packets2);
+        //println!("choked_packets = {:?}", choked_packets2);
+
+        yaw2.store(movement.view_angle.yaw, Ordering::SeqCst);
 
         movement
     });

@@ -1,13 +1,13 @@
-use sdk::Angle;
+use sdk::{Angle, Vector};
 
 #[derive(Debug)]
 #[repr(C)]
 pub struct Command {
-    vtable: *const usize,
+    vtable: *const (),
     pub command_number: i32,
     pub tick_count: i32,
     pub view_angle: Angle,
-    pub aim_direction: (f32, f32, f32),
+    pub aim_direction: Angle,
     pub forward_move: f32,
     pub side_move: f32,
     pub up_move: f32,
@@ -20,5 +20,5 @@ pub struct Command {
     pub mouse_dy: i16,
     pub has_been_predicted: bool,
     pub head_angles: Angle,
-    pub head_offset: (f32, f32, f32),
+    pub head_offset: Vector,
 }

@@ -85,7 +85,8 @@ impl Interfaces {
             Client::from_raw(libraries.client.get_interface(interface::VCLIENT) as _).unwrap();
 
         let engine =
-            unsafe { Engine::from_raw(libraries.engine.get_interface(interface::VENGINECLIENT)) };
+            Engine::from_raw(libraries.engine.get_interface(interface::VENGINECLIENT) as _)
+                .unwrap();
 
         let panel = libraries.vgui2.get_interface(interface::VENGINEVGUI);
 
