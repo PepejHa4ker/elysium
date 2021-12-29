@@ -7,6 +7,8 @@ use crate::entity::EntityList;
 use crate::globals::Globals;
 use crate::input::Input;
 use crate::libraries::Libraries;
+use crate::material::{Material, MaterialSystem};
+use crate::model::{ModelInfo, ModelRender};
 use crate::pattern;
 use crate::trace::Tracer;
 use core::mem;
@@ -23,9 +25,9 @@ pub struct Interfaces {
     pub panel: *mut (),
     pub entity_list: EntityList,
     pub engine_vgui: *mut (),
-    pub model: *mut (),
-    pub model_info: *mut (),
-    pub materialsystem: *mut (),
+    pub model_render: ModelRender,
+    pub model_info: ModelInfo,
+    pub material_system: MaterialSystem,
     pub sound: *mut (),
     pub tracer: Tracer,
     pub movement: *mut (),
@@ -70,6 +72,8 @@ pub struct Interfaces {
 
     /// show bullet impacts
     pub show_impacts: Var<i32>,
+
+    pub flat: Material,
 }
 
 impl Interfaces {
@@ -96,9 +100,13 @@ impl Interfaces {
 
         let engine_vgui = libraries.engine.get_interface(interface::VENGINEVGUI);
 
-        let model = libraries.engine.get_interface(interface::VENGINEMODEL);
+        let model_render =
+            ModelRender::from_raw(libraries.engine.get_interface(interface::VENGINEMODEL) as _)
+                .unwrap();
 
-        let model_info = libraries.engine.get_interface(interface::VMODELINFOCLIENT);
+        let model_info =
+            ModelInfo::from_raw(libraries.engine.get_interface(interface::VMODELINFOCLIENT) as _)
+                .unwrap();
 
         let tracer =
             Tracer::from_raw(libraries.engine.get_interface(interface::ENGINETRACECLIENT) as _)
@@ -106,9 +114,12 @@ impl Interfaces {
 
         let movement = libraries.engine.get_interface(interface::GAMEMOVEMENT);
 
-        let materialsystem = libraries
-            .materialsystem
-            .get_interface(interface::VMATERIALSYSTEM);
+        let material_system = MaterialSystem::from_raw(
+            libraries
+                .materialsystem
+                .get_interface(interface::VMATERIALSYSTEM) as _,
+        )
+        .unwrap();
 
         let sound = libraries
             .engine
@@ -174,6 +185,15 @@ impl Interfaces {
         let ragdoll_gravity = console.var(var::RAGDOLL_GRAVITY).unwrap();
         let show_impacts = console.var(var::SHOW_IMPACTS).unwrap();
 
+        let flat = material_system
+            .find(
+                "debug/debugdrawflat\0".as_ptr() as _,
+                core::ptr::null(),
+                true,
+                core::ptr::null(),
+            )
+            .unwrap();
+
         Self {
             console,
             client,
@@ -184,9 +204,9 @@ impl Interfaces {
             panel,
             entity_list,
             engine_vgui,
-            model,
+            model_render,
             model_info,
-            materialsystem,
+            material_system,
             sound,
             tracer,
             movement,
@@ -207,6 +227,8 @@ impl Interfaces {
             post_processing,
             ragdoll_gravity,
             show_impacts,
+
+            flat,
         }
     }
 }

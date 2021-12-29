@@ -3,6 +3,7 @@ use core::fmt;
 use core::ptr::NonNull;
 use daisy_chain::Chain;
 
+#[non_exhaustive]
 #[repr(C)]
 pub struct ClientNetworkable;
 
@@ -21,11 +22,23 @@ pub union VariantData {
     pub int64: i64,
 }
 
+#[non_exhaustive]
 #[repr(C)]
 pub struct Variant {
     pub data: VariantData,
     pub kind: i32,
 }
+
+/*TODO WHEN#[derive(Debug)]
+#[non_exhaustive]
+enum Variant {
+    Float(f32),
+    Int(i32),
+    String(Option<&'static spirit::Str),
+    Data(*const usize),
+    Vector(Vector),
+    Int64(i64),
+}*/
 
 impl fmt::Debug for Variant {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -37,6 +50,7 @@ impl fmt::Debug for Variant {
 }
 
 #[derive(Debug)]
+#[non_exhaustive]
 #[repr(C)]
 pub struct RecvProxyData {
     pub recv_prop: Option<&'static RecvProp>,
@@ -46,6 +60,7 @@ pub struct RecvProxyData {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
 #[repr(i32)]
 pub enum RecvPropKind {
     Int = 0,
@@ -58,6 +73,7 @@ pub enum RecvPropKind {
 }
 
 #[derive(Clone, Copy)]
+#[non_exhaustive]
 #[repr(C)]
 pub struct RecvProp {
     pub name: Option<&'static spirit::Str>,
@@ -116,6 +132,7 @@ impl fmt::Debug for RecvProp {
 unsafe impl Send for RecvProp {}
 unsafe impl Sync for RecvProp {}
 
+#[non_exhaustive]
 #[repr(C)]
 pub struct RecvTable {
     pub props: *const usize,
@@ -153,6 +170,7 @@ impl fmt::Debug for RecvTable {
 unsafe impl Send for RecvTable {}
 unsafe impl Sync for RecvTable {}
 
+#[non_exhaustive]
 #[repr(C)]
 pub struct ClientClass {
     pub new: Option<New>,

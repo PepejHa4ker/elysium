@@ -36,6 +36,8 @@ pub mod interfaces;
 pub mod item_kind;
 pub mod libraries;
 pub mod library;
+pub mod material;
+pub mod model;
 pub mod move_kind;
 pub mod movement;
 pub mod netvars;

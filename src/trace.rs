@@ -4,6 +4,7 @@ use core::ptr::NonNull;
 use sdk::{Matrix3x4, Vector};
 
 #[derive(Debug)]
+#[non_exhaustive]
 #[repr(C)]
 pub struct Plane {
     normal: Vector,
@@ -14,6 +15,7 @@ pub struct Plane {
 }
 
 #[derive(Debug)]
+#[non_exhaustive]
 #[repr(C)]
 pub struct Surface {
     name: *const i8,
@@ -22,6 +24,7 @@ pub struct Surface {
 }
 
 #[derive(Debug)]
+#[non_exhaustive]
 #[repr(C)]
 pub struct Trace {
     start: Vector,
@@ -45,6 +48,9 @@ extern "C" {
     /// Raw handle to the engine's tracer.
     pub type RawTracer;
 }
+
+unsafe impl Send for RawTracer {}
+unsafe impl Sync for RawTracer {}
 
 /// The engine's tracer.
 #[derive(Debug)]
@@ -143,6 +149,7 @@ impl Tracer {
 }
 
 #[derive(Debug)]
+#[non_exhaustive]
 #[repr(C)]
 pub struct Ray {
     start: Vector,

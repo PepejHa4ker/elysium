@@ -2,6 +2,7 @@ use core::ptr;
 use vptr::VirtualMut;
 
 pub mod create_move;
+pub mod draw_model_execute;
 pub mod frame_stage_notify;
 
 pub struct Hook<T: Copy> {

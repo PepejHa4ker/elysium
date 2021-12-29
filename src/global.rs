@@ -1,7 +1,6 @@
 use crate::client::Client;
 use crate::command::Command;
 use crate::console::{Console, Var};
-use crate::consts::offset;
 use crate::engine::Engine;
 use crate::entity::{Entity, EntityList};
 use crate::frame::Frame;
@@ -10,10 +9,13 @@ use crate::hooks;
 use crate::input::Input;
 use crate::interfaces::Interfaces;
 use crate::libraries::Libraries;
+use crate::material::Material;
+use crate::model::{DrawModelState, ModelInfo, ModelRender, ModelRenderInfo};
 use crate::movement::Movement;
 use crate::netvars;
 use crate::Result;
 use core::ptr;
+use sdk::Matrix3x4;
 use std::lazy::SyncOnceCell;
 use std::sync::Arc;
 use vptr::VirtualMut;
@@ -30,6 +32,7 @@ pub(crate) struct GlobalRef {
     on_move: OnMove,
     create_move_original: Box<hooks::create_move::Signature>,
     frame_stage_notify_original: Box<hooks::frame_stage_notify::Signature>,
+    draw_model_execute_original: Box<hooks::draw_model_execute::Signature>,
     local_player: Box<Option<Entity>>,
 }
 
@@ -59,6 +62,7 @@ impl Global {
             // TODO: replace these with dummies
             create_move_original: Box::new(hooks::create_move::hook),
             frame_stage_notify_original: Box::new(hooks::frame_stage_notify::hook),
+            draw_model_execute_original: Box::new(hooks::draw_model_execute::hook),
             local_player: Box::new(None),
         }));
 
@@ -71,24 +75,28 @@ impl Global {
         unsafe {
             ptr::write(
                 this.create_move_original_ptr(),
-                this.interfaces().client_mode.vreplace_protected(
-                    hooks::create_move::hook, // as *const hooks::create_move::Signature as *mut (),
-                    offset::CREATE_MOVE * 8,
-                ),
+                this.interfaces()
+                    .client_mode
+                    .vreplace_protected(hooks::create_move::hook, 25 * 8),
             );
 
             println!("hooked create_move");
 
             ptr::write(
                 this.frame_stage_notify_original_ptr(),
-                (this.interfaces().client.as_ptr() as *mut ()).vreplace_protected(
-                    hooks::frame_stage_notify::hook, // as *const hooks::frame_stage_notify::Signature
-                    //as *mut (),
-                    offset::FRAME_STAGE_NOTIFY * 8,
-                ),
+                (this.interfaces().client.as_ptr() as *mut ())
+                    .vreplace_protected(hooks::frame_stage_notify::hook, 37 * 8),
             );
 
             println!("hooked frame_stage_notify");
+
+            ptr::write(
+                this.draw_model_execute_original_ptr(),
+                (this.interfaces().model_render.as_ptr() as *mut ())
+                    .vreplace_protected(hooks::draw_model_execute::hook, 21 * 8),
+            );
+
+            println!("hooked draw_model_execute");
         }
 
         netvars::set(this.client());
@@ -126,6 +134,14 @@ impl Global {
 
     pub fn client(&self) -> &Client {
         &self.0.interfaces.client
+    }
+
+    pub fn model_render(&self) -> &ModelRender {
+        &self.0.interfaces.model_render
+    }
+
+    pub fn model_info(&self) -> &ModelInfo {
+        &self.0.interfaces.model_info
     }
 
     pub fn console(&self) -> &Console {
@@ -221,6 +237,26 @@ impl Global {
         unsafe { original(this, frame) }
     }
 
+    pub(crate) fn draw_model_execute_original_ptr(
+        &self,
+    ) -> *mut hooks::draw_model_execute::Signature {
+        &*self.0.draw_model_execute_original as *const hooks::draw_model_execute::Signature
+            as *mut hooks::draw_model_execute::Signature
+    }
+
+    pub(crate) fn draw_model_execute_original(
+        &self,
+        this: *const (),
+        context: *const (),
+        state: *const DrawModelState,
+        info: *const ModelRenderInfo,
+        bone_to_world: *const Matrix3x4,
+    ) {
+        let original = unsafe { *self.draw_model_execute_original_ptr() };
+
+        unsafe { original(this, context, state, info, bone_to_world) }
+    }
+
     pub(crate) fn local_player_ptr(&self) -> *mut Box<Option<Entity>> {
         &self.0.local_player as *const Box<Option<Entity>> as *mut Box<Option<Entity>>
     }
@@ -247,5 +283,9 @@ impl Global {
         unsafe {
             ptr::write(self.on_move_ptr(), Box::new(f));
         }
+    }
+
+    pub fn flat_material(&self) -> &Material {
+        &self.0.interfaces.flat
     }
 }
