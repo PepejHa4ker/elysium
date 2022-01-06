@@ -1,49 +1,32 @@
 use crate::pad::Pad;
 use crate::{Vector, Vector2D};
+use core::fmt;
 
-#[derive(Debug)]
 #[repr(C)]
 pub struct AnimationState {
-    _pad0: Pad<128>,
-    pub last_animation_update_time: f32,
-    pub last_animation_update_frame: i32,
-    pub eye_pitch: f32,
-    pub yaw: f32,
-    pub pitch: f32,
-    pub goal_feet_yaw: f32,
-    pub current_feet_yaw: f32,
-    pub absolute_movement_direction: f32,
-    pub last_absolute_movement_direction: f32,
-    pub lean_amount: f32,
-    _pad1: Pad<4>,
-    pub feet_cycle: f32,
-    pub feet_yaw_rate: f32,
-    _pad2: Pad<4>,
-    pub duck_progress: f32,
-    pub landing_animation_time_left_until_done: f32,
-    _pad3: Pad<4>,
-    pub origin: Vector,
-    pub last_origin: Vector,
-    pub axis_velocity: Vector2D,
-    _pad4: Pad<4>,
-    pub current_direction: Vector2D,
-    _pad5: Pad<4>,
-    pub last_known_direction: Vector2D,
-    _pad6: Pad<4>,
-    pub plane_velocity: Vector2D,
-    pub speed: f32,
-    pub feet_shuffle_speed: f32,
-    pub feet_shuffle_speed2: f32,
-    pub time_since_started_moving: f32,
-    pub time_since_stopped_moving: f32,
-    pub on_ground: bool,
-    pub in_jump_recovery: bool,
-    _pad7: Pad<10>,
-    pub height_before_jump: [u8; 10],
-    _pad8: Pad<4>,
-    pub running_accel_progress: f32,
-    _pad9: Pad<580>,
-    pub min_yaw: f32,
-    pub max_yaw: f32,
-    _pad10: Pad<52>,
+    _pad0: Pad<164>,
+    pub duck_amount: f32,
+    _pad1: Pad<80>,
+    pub foot_speed: f32,
+    pub foot_speed2: f32,
+    _pad2: Pad<22>,
+    pub stop_to_full_running_fraction: f32,
+    _pad3: Pad<532>,
+    // p sure wrong offset
+    pub velocity_subtract_y: f32,
+}
+
+impl fmt::Debug for AnimationState {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("AnimationState")
+            .field("duck_amount", &self.duck_amount)
+            .field("foot_speed", &self.foot_speed)
+            .field("foot_speed2", &self.foot_speed2)
+            .field(
+                "stop_to_full_running_fraction",
+                &self.stop_to_full_running_fraction,
+            )
+            .field("velocity_subtract_y", &self.velocity_subtract_y)
+            .finish()
+    }
 }

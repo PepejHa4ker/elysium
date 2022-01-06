@@ -42,8 +42,8 @@ where
         self.0.as_ptr()
     }
 
-    pub const fn virtual_table(&self) -> *const *const u8 {
-        unsafe { *(self.as_ptr() as *const *const *const u8) }
+    pub const fn virtual_table(&self) -> *const () {
+        unsafe { *(self.as_ptr() as *const *const ()) }
     }
 
     pub fn get(&self) -> T {
@@ -62,13 +62,13 @@ impl Kind for f32 {
     fn get(var: &Var<f32>) -> Self {
         type Get = unsafe extern "C" fn(this: *const RawVar) -> f32;
 
-        unsafe { virt::get::<Get>(var.virtual_table() as *const (), 15 * 8)(var.as_ptr()) }
+        unsafe { virt::get::<Get>(var.virtual_table(), 15 * 8)(var.as_ptr()) }
     }
 
     fn set(self, var: &Var<f32>) {
         type Set = unsafe extern "C" fn(this: *const RawVar, value: f32);
 
-        unsafe { virt::get::<Set>(var.virtual_table() as *const (), 18 * 8)(var.as_ptr(), self) }
+        unsafe { virt::get::<Set>(var.virtual_table(), 18 * 8)(var.as_ptr(), self) }
     }
 }
 
@@ -76,12 +76,12 @@ impl Kind for i32 {
     fn get(var: &Var<i32>) -> Self {
         type Get = unsafe extern "C" fn(this: *const RawVar) -> i32;
 
-        unsafe { virt::get::<Get>(var.virtual_table() as *const (), 16 * 8)(var.as_ptr()) }
+        unsafe { virt::get::<Get>(var.virtual_table(), 16 * 8)(var.as_ptr()) }
     }
 
     fn set(self, var: &Var<i32>) {
         type Set = unsafe extern "C" fn(this: *const RawVar, value: i32);
 
-        unsafe { virt::get::<Set>(var.virtual_table() as *const (), 19 * 8)(var.as_ptr(), self) }
+        unsafe { virt::get::<Set>(var.virtual_table(), 19 * 8)(var.as_ptr(), self) }
     }
 }

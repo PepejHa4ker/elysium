@@ -1,7 +1,4 @@
-use core::marker::PhantomData;
-use core::ptr;
 use core::ptr::NonNull;
-use sdk::{Angle, Matrix3x4, Pad, Vector};
 
 extern "C" {
     /// Raw handle to a material.
@@ -126,6 +123,11 @@ impl Material {
     pub fn set_rgba(&self, r: f32, g: f32, b: f32, a: f32) {
         self.set_rgb(r, g, b);
         self.set_alpha(a);
+    }
+
+    pub fn set_rgba8(&self, r: u8, g: u8, b: u8, a: u8) {
+        self.set_rgb(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0);
+        self.set_alpha(a as f32 / 255.0);
     }
 
     pub fn set_tint(&self, r: f32, g: f32, b: f32) {

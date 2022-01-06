@@ -9,12 +9,12 @@ pub struct Movement {
     pub view_angle: Angle,
     pub tick_count: i32,
     pub send_packet: bool,
-    pub in_attack: bool,
-    pub in_jump: bool,
-    pub in_duck: bool,
-    /// you may be vac banned using this
-    pub in_fast_duck: bool,
+    pub do_attack: bool,
+    pub do_jump: bool,
+    pub do_duck: bool,
+    pub do_fast_duck: bool,
     pub local_player: Entity,
-    /// `local_player->tick_base * interfaces->globals->interval_per_tick`
-    pub current_time: f32,
+    pub client_time: f32,
+    pub prediction_time: f32,
+    pub server_time: f32,
 }

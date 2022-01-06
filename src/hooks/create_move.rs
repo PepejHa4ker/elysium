@@ -31,6 +31,16 @@ pub unsafe extern "C" fn hook(
     let original_side = command.side_move;
 
     if let Some(local_player) = global.local_player() {
+        //println!("old = {:?}", command);
+
+        if global.last_command_has_been_predicted() {
+            global.set_tick(local_player.tick_base());
+        } else {
+            global.increment_tick();
+        }
+
+        global.set_last_command_has_been_predicted(command.has_been_predicted);
+
         let on_move = &*global.on_move_ptr();
         let movement = on_move(Movement {
             forward_move: command.forward_move,
@@ -39,27 +49,25 @@ pub unsafe extern "C" fn hook(
             view_angle: command.view_angle,
             send_packet: *send_packet,
             tick_count: command.tick_count,
-            in_attack: command.state & IN_ATTACK != 0,
-            in_jump: command.state & IN_JUMP != 0,
-            in_duck: command.state & IN_DUCK != 0,
-            in_fast_duck: command.state & (IN_DUCK | IN_BULLRUSH) != 0,
+            do_attack: command.in_attack(),
+            do_jump: command.in_jump(),
+            do_duck: command.in_duck(),
+            do_fast_duck: command.in_fast_duck(),
             local_player: (local_player as *const Entity).read(),
-            current_time: *local_player.tick_base() as f32
-                * global.globals().interval_per_tick as f32,
+            client_time: global.client_time(),
+            prediction_time: local_player.tick_base() as f32 * global.interval_per_tick(),
+            server_time: global.tick() as f32 * global.interval_per_tick(),
         });
 
-        command.state &= !(IN_ATTACK | IN_JUMP | IN_DUCK | IN_BULLRUSH);
-        command.state |= movement.in_attack as i32;
-        command.state |= ((movement.in_jump as u32) << 1) as i32;
-        command.state |= (((movement.in_duck | movement.in_fast_duck) as u32) << 2) as i32;
-        command.state |= ((movement.in_fast_duck as u32) << 21) as i32;
+        command.attack(movement.do_attack);
+        command.jump(movement.do_jump);
+        command.duck(movement.do_duck);
+        command.fast_duck(movement.do_fast_duck);
 
         command.forward_move = movement.forward_move;
         command.side_move = movement.side_move;
         command.up_move = movement.up_move;
-
         command.view_angle = movement.view_angle;
-
         command.tick_count = movement.tick_count;
 
         *send_packet = movement.send_packet;
@@ -93,6 +101,8 @@ pub unsafe extern "C" fn hook(
 
     command.side_move =
         delta_radian.sin() * original_forward + delta_radian_90.sin() * original_side;
+
+    //println!("new = {:?}", command);
 
     return false;
 }

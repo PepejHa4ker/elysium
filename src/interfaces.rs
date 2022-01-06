@@ -10,6 +10,7 @@ use crate::libraries::Libraries;
 use crate::material::{Material, MaterialSystem};
 use crate::model::{ModelInfo, ModelRender};
 use crate::pattern;
+use crate::physics::Physics;
 use crate::trace::Tracer;
 use core::mem;
 use vptr::Pointer;
@@ -27,6 +28,7 @@ pub struct Interfaces {
     pub engine_vgui: *mut (),
     pub model_render: ModelRender,
     pub model_info: ModelInfo,
+    pub physics: Physics,
     pub material_system: MaterialSystem,
     pub sound: *mut (),
     pub tracer: Tracer,
@@ -107,6 +109,13 @@ impl Interfaces {
         let model_info =
             ModelInfo::from_raw(libraries.engine.get_interface(interface::VMODELINFOCLIENT) as _)
                 .unwrap();
+
+        let physics = Physics::from_raw(
+            libraries
+                .vphysics
+                .get_interface(interface::VPHYSICSSURFACEPROPS) as _,
+        )
+        .unwrap();
 
         let tracer =
             Tracer::from_raw(libraries.engine.get_interface(interface::ENGINETRACECLIENT) as _)
@@ -206,6 +215,7 @@ impl Interfaces {
             engine_vgui,
             model_render,
             model_info,
+            physics,
             material_system,
             sound,
             tracer,

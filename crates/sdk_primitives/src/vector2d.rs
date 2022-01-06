@@ -10,8 +10,8 @@ pub struct Vector2D {
 
 impl Vector2D {
     /// create a new vector
-    pub const fn new(y: f32, x: f32) -> Self {
-        Self { y, x }
+    pub const fn new(x: f32, y: f32) -> Self {
+        Self { x, y }
     }
 
     /// zero... lol

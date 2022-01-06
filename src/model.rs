@@ -3,6 +3,7 @@ use core::marker::PhantomData;
 use core::ptr;
 use core::ptr::NonNull;
 use sdk::{Angle, Matrix3x4, Pad, Vector};
+use spirit::Str;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[non_exhaustive]
@@ -79,8 +80,8 @@ impl Bone {
         self as *const Self as *const u8
     }
 
-    unsafe fn name(&self) -> *const i8 {
-        self.as_ptr().offset(self.name_offset as isize).cast()
+    fn name<'a>(&'a self) -> &'a Str {
+        unsafe { Str::new(self.as_ptr().offset(self.name_offset as isize).cast()) }
     }
 
     unsafe fn procedural(&self) -> *const () {
@@ -116,10 +117,12 @@ impl BoundingBox {
         self as *const Self as *const u8
     }
 
-    unsafe fn name(&self) -> *const i8 {
-        match self.hitbox_name_offset {
-            0 => ptr::null(),
-            offset => self.as_ptr().offset(offset as isize).cast(),
+    pub fn name<'a>(&'a self) -> Option<&'a Str> {
+        unsafe {
+            match self.hitbox_name_offset {
+                0 => None,
+                offset => Some(Str::new(self.as_ptr().offset(offset as isize).cast())),
+            }
         }
     }
 }
@@ -137,8 +140,8 @@ impl HitboxSet {
         self as *const Self as *const u8
     }
 
-    pub unsafe fn name(&self) -> *const i8 {
-        self.as_ptr().offset(self.name_offset as isize).cast()
+    pub fn name<'a>(&'a self) -> &'a Str {
+        unsafe { Str::new(self.as_ptr().offset(self.name_offset as isize).cast()) }
     }
 
     pub unsafe fn hitbox_unchecked(&self, index: i32) -> *const BoundingBox {
@@ -213,7 +216,7 @@ unsafe impl Sync for RawModelInfo {}
 pub struct ModelInfo(NonNull<RawModelInfo>);
 
 impl ModelInfo {
-    pub const fn from_raw(raw: *mut RawModelInfo) -> Option<Self> {
+    pub(crate) const fn from_raw(raw: *mut RawModelInfo) -> Option<Self> {
         if raw.is_null() {
             None
         } else {
@@ -221,15 +224,15 @@ impl ModelInfo {
         }
     }
 
-    pub const unsafe fn from_raw_unchecked(raw: *mut RawModelInfo) -> Self {
+    pub(crate) const unsafe fn from_raw_unchecked(raw: *mut RawModelInfo) -> Self {
         Self(NonNull::new_unchecked(raw))
     }
 
-    pub const fn as_ptr(&self) -> *const RawModelInfo {
+    pub(crate) const fn as_ptr(&self) -> *const RawModelInfo {
         self.0.as_ptr()
     }
 
-    pub const fn virtual_table(&self) -> *const () {
+    pub(crate) const fn virtual_table(&self) -> *const () {
         unsafe { *(self.as_ptr() as *const *const ()) }
     }
 
@@ -239,11 +242,16 @@ impl ModelInfo {
         unsafe { virt::get::<IndexOf>(self.virtual_table(), 3 * 8)(self.as_ptr(), filename) }
     }
 
-    pub fn name_of(&self, model: &Model) -> *const i8 {
+    pub fn name_of<'a>(&'a self, model: &Model) -> &'a Str {
         type NameOf =
-            unsafe extern "C" fn(this: *const RawModelInfo, model: *const Model) -> *const i8;
+            unsafe extern "C" fn(this: *const RawModelInfo, model: *const Model) -> *const u8;
 
-        unsafe { virt::get::<NameOf>(self.virtual_table(), 4 * 8)(self.as_ptr(), model) }
+        unsafe {
+            Str::new(virt::get::<NameOf>(self.virtual_table(), 4 * 8)(
+                self.as_ptr(),
+                model,
+            ))
+        }
     }
 
     pub fn studio_model_of(&self, model: &Model) -> *const Hdr {
@@ -328,10 +336,14 @@ impl ModelRender {
         unsafe { *(self.as_ptr() as *const *const ()) }
     }
 
-    pub fn material_override(&self, material: &Material) {
+    pub fn set_material(&self, material: &Material) {
         unsafe {
             self.material_override_unchecked(material.as_ptr());
         }
+    }
+
+    pub fn reset_material(&self) {
+        unsafe { self.material_override_unchecked(ptr::null::<()>() as *const RawMaterial) }
     }
 
     pub unsafe fn material_override_unchecked(&self, material: *const RawMaterial) {

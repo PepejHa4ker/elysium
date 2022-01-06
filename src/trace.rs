@@ -1,47 +1,53 @@
 use super::entity::Entity;
 use super::hit_group::HitGroup;
 use core::ptr::NonNull;
-use sdk::{Matrix3x4, Vector};
+use sdk::{Matrix3x4, Pad, Vector};
 
 #[derive(Debug)]
 #[non_exhaustive]
 #[repr(C)]
 pub struct Plane {
-    normal: Vector,
-    dist: f32,
-    kind: u8,
-    signbits: u8,
-    pad: [u8; 2],
+    pub normal: Vector,
+    pub dist: f32,
+    pub kind: u8,
+    pub signbits: u8,
+    pub _pad0: [u8; 2],
 }
 
 #[derive(Debug)]
 #[non_exhaustive]
 #[repr(C)]
 pub struct Surface {
-    name: *const i8,
-    surface_properties: i16,
-    flags: u16,
+    pub name: *const i8,
+    pub index: i16,
+    pub flags: u16,
 }
 
 #[derive(Debug)]
 #[non_exhaustive]
 #[repr(C)]
 pub struct Trace {
-    start: Vector,
-    end: Vector,
-    plane: Plane,
-    fraction: f32,
-    contents: i32,
-    disp_flags: u32,
-    all_solid: bool,
-    start_solid: bool,
-    fraction_left_solid: f32,
-    surface: Surface,
-    hit_group: HitGroup,
-    physics_bone: i32,
-    world_surface_index: u16,
-    entity_hit: *const Entity,
-    hitbox: i32,
+    pub start: Vector,
+    pub end: Vector,
+    pub plane: Plane,
+    pub fraction: f32,
+    pub contents: i32,
+    pub disp_flags: u32,
+    pub all_solid: bool,
+    pub start_solid: bool,
+    pub fraction_left_solid: f32,
+    pub surface: Surface,
+    pub hit_group: HitGroup,
+    pub physics_bone: i32,
+    pub world_surface_index: u16,
+    pub entity_hit: *const Entity,
+    pub hitbox: i32,
+}
+
+impl Trace {
+    pub fn new() -> Self {
+        unsafe { core::mem::transmute_copy(&[0u8; core::mem::size_of::<Trace>()]) }
+    }
 }
 
 extern "C" {
@@ -51,6 +57,22 @@ extern "C" {
 
 unsafe impl Send for RawTracer {}
 unsafe impl Sync for RawTracer {}
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct Filter {
+    _pad0: Pad<16>,
+    pub skip: *const (),
+}
+
+impl Filter {
+    pub fn new(skip: *const ()) -> Self {
+        Self {
+            _pad0: Pad::zeroed(),
+            skip,
+        }
+    }
+}
 
 /// The engine's tracer.
 #[derive(Debug)]
@@ -127,22 +149,22 @@ impl Tracer {
         }
     }
 
-    pub fn trace(&self, ray: &Ray, mask: u32, filter: *const usize, entities: *const usize) {
-        type Trace = unsafe extern "C" fn(
+    pub fn trace(&self, ray: &Ray, mask: u32, filter: *const Filter, trace: &mut Trace) {
+        type TraceFn = unsafe extern "C" fn(
             this: *const RawTracer,
             raw: *const Ray,
             mask: u32,
-            filter: *const usize,
-            entities: *const usize,
+            filter: *const Filter,
+            trace: *const Trace,
         );
 
         unsafe {
-            virt::get::<Trace>(self.virtual_table(), 5 * 8)(
+            virt::get::<TraceFn>(self.virtual_table(), 5 * 8)(
                 self.as_ptr(),
                 ray,
                 mask,
                 filter,
-                entities,
+                trace,
             )
         }
     }
@@ -152,13 +174,13 @@ impl Tracer {
 #[non_exhaustive]
 #[repr(C)]
 pub struct Ray {
-    start: Vector,
-    delta: Vector,
-    start_offset: Vector,
-    extents: Vector,
-    world_axis_transform: Matrix3x4,
-    is_ray: bool,
-    is_swept: bool,
+    pub start: Vector,
+    pub delta: Vector,
+    pub start_offset: Vector,
+    pub extents: Vector,
+    pub world_axis_transform: Matrix3x4,
+    pub is_ray: bool,
+    pub is_swept: bool,
 }
 
 impl Ray {

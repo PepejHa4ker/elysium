@@ -9,9 +9,21 @@
 #![feature(ptr_metadata)]
 #![feature(trait_alias)]
 
+// todo
+// introduce Managed<T> as in by csgo
+// Managed::virtual_table()
+// Managed::virtual_entry::<Fn>(5)(self.as_ptr())
+// Managed::relative_entry::<f32>()
+// Managed::networked_entry::<f32>(Class::Player, Variable::Health)
+// remove crates/virt
+// remove crates/vptr
+
+use crate::entity::Weapon;
 use crate::global::Global;
 use atomic_float::AtomicF32;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use sdk::Angle;
+use std::ptr;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
@@ -43,8 +55,495 @@ pub mod movement;
 pub mod netvars;
 pub mod pad;
 pub mod pattern;
-pub mod player_state;
+pub mod physics;
 pub mod trace;
+
+#[derive(Clone)]
+pub struct Choker(Arc<AtomicUsize>);
+
+impl Choker {
+    pub fn new() -> Self {
+        Self(Arc::new(AtomicUsize::new(0)))
+    }
+
+    pub fn reset(&self) {
+        self.0.store(0, Ordering::SeqCst);
+    }
+
+    pub fn count(&self) -> usize {
+        self.0.load(Ordering::SeqCst)
+    }
+
+    pub fn increment(&self) {
+        self.0.fetch_add(1, Ordering::SeqCst);
+    }
+}
+
+struct ThirdpersonAngleRef {
+    pitch: AtomicF32,
+    yaw: AtomicF32,
+}
+
+#[derive(Clone)]
+pub struct ThirdpersonAngle(Arc<ThirdpersonAngleRef>);
+
+impl ThirdpersonAngle {
+    pub fn new() -> Self {
+        Self(Arc::new(ThirdpersonAngleRef {
+            pitch: AtomicF32::new(0.0),
+            yaw: AtomicF32::new(0.0),
+        }))
+    }
+
+    pub fn pitch(&self) -> f32 {
+        self.0.pitch.load(Ordering::SeqCst)
+    }
+
+    pub fn yaw(&self) -> f32 {
+        self.0.yaw.load(Ordering::SeqCst)
+    }
+
+    pub fn set_pitch(&self, pitch: f32) {
+        self.0.pitch.store(pitch, Ordering::SeqCst);
+    }
+
+    pub fn set_yaw(&self, yaw: f32) {
+        self.0.yaw.store(yaw, Ordering::SeqCst);
+    }
+
+    pub fn get(&self) -> Angle {
+        Angle::new(self.pitch(), self.yaw())
+    }
+
+    pub fn set(&self, angle: Angle) {
+        self.set_pitch(angle.pitch);
+        self.set_yaw(angle.yaw);
+    }
+}
+
+const CONTENTS_EMPTY: u32 = 0; // No contents
+
+const CONTENTS_SOLID: u32 = 0x1; // an eye is never valid in a solid
+const CONTENTS_WINDOW: u32 = 0x2; // translucent, but not watery: u32 = glass;
+const CONTENTS_AUX: u32 = 0x4;
+const CONTENTS_GRATE: u32 = 0x8; // alpha-tested "grate" textures. Bullets/sight pass through, but solids don't
+const CONTENTS_SLIME: u32 = 0x10;
+const CONTENTS_WATER: u32 = 0x20;
+const CONTENTS_BLOCKLOS: u32 = 0x40; // block AI line of sight
+const CONTENTS_OPAQUE: u32 = 0x80; // things that cannot be seen through: u32 = may be non-solid though;
+
+const CONTENTS_TESTFOGVOLUME: u32 = 0x100;
+const CONTENTS_UNUSED: u32 = 0x200;
+
+// unused
+// NOTE: If it's visible, grab from the top update LAST_VISIBLE_CONTENTS
+// if not visible, then grab from the bottom.
+// CONTENTS_OPAQUE SURF_NODRAW count as CONTENTS_OPAQUE: u32 = shadow-casting toolsblocklight textures;
+const CONTENTS_BLOCKLIGHT: u32 = 0x400;
+
+const CONTENTS_TEAM1: u32 = 0x800; // per team contents used to differentiate collisions
+const CONTENTS_TEAM2: u32 = 0x1000; // between players and objects on different teams
+
+// ignore CONTENTS_OPAQUE on surfaces that have SURF_NODRAW
+const CONTENTS_IGNORE_NODRAW_OPAQUE: u32 = 0x2000;
+
+// hits entities which are MOVETYPE_PUSH: u32 = doors, plats, etc.;
+const CONTENTS_MOVEABLE: u32 = 0x4000;
+
+// remaining contents are non-visible, and don't eat brushes
+const CONTENTS_AREAPORTAL: u32 = 0x8000;
+
+const CONTENTS_PLAYERCLIP: u32 = 0x10000;
+const CONTENTS_MONSTERCLIP: u32 = 0x20000;
+
+// currents can be added to any other contents, and may be mixed
+const CONTENTS_CURRENT_0: u32 = 0x40000;
+const CONTENTS_CURRENT_90: u32 = 0x80000;
+const CONTENTS_CURRENT_180: u32 = 0x100000;
+const CONTENTS_CURRENT_270: u32 = 0x200000;
+const CONTENTS_CURRENT_UP: u32 = 0x400000;
+const CONTENTS_CURRENT_DOWN: u32 = 0x800000;
+
+const CONTENTS_ORIGIN: u32 = 0x1000000; // removed before bsping an entity
+
+const CONTENTS_MONSTER: u32 = 0x2000000; // should never be on a brush, only in game
+const CONTENTS_DEBRIS: u32 = 0x4000000;
+const CONTENTS_DETAIL: u32 = 0x8000000; // brushes to be added after vis leafs
+const CONTENTS_TRANSLUCENT: u32 = 0x10000000; // auto set if any surface has trans
+const CONTENTS_LADDER: u32 = 0x20000000;
+const CONTENTS_HITBOX: u32 = 0x40000000; // use accurate hitboxes on trace
+
+// NOTE: These are stored in a short in the engine now. Don't use more than 16 bits
+const SURF_LIGHT: u32 = 0x0001; // value will hold the light strength
+const SURF_SKY2D: u32 = 0x0002; // don't draw, indicates we should skylight draw 2d sky but not draw the 3D skybox
+const SURF_SKY: u32 = 0x0004; // don't draw, but add to skybox
+const SURF_WARP: u32 = 0x0008; // turbulent water warp
+const SURF_TRANS: u32 = 0x0010;
+const SURF_NOPORTAL: u32 = 0x0020; // the surface can not have a portal placed on it
+const SURF_TRIGGER: u32 = 0x0040; // FIXME: This is an xbox hack to work around elimination of trigger surfaces, which breaks occluders
+const SURF_NODRAW: u32 = 0x0080; // don't bother referencing the texture
+
+const SURF_HINT: u32 = 0x0100; // make a primary bsp splitter
+
+const SURF_SKIP: u32 = 0x0200; // completely ignore, allowing non-closed brushes
+const SURF_NOLIGHT: u32 = 0x0400; // Don't calculate light
+const SURF_BUMPLIGHT: u32 = 0x0800; // calculate three lightmaps for the surface for bumpmapping
+const SURF_NOSHADOWS: u32 = 0x1000; // Don't receive shadows
+const SURF_NODECALS: u32 = 0x2000; // Don't receive decals
+const SURF_NOPAINT: u32 = SURF_NODECALS; // the surface can not have paint placed on it
+const SURF_NOCHOP: u32 = 0x4000; // Don't subdivide patches on this surface
+const SURF_HITBOX: u32 = 0x8000; // surface is part of a hitbox
+
+const MASK_ALL: u32 = 0xFFFFFFFF;
+// everything that is normally solid
+const MASK_SOLID: u32 =
+    CONTENTS_SOLID | CONTENTS_MOVEABLE | CONTENTS_WINDOW | CONTENTS_MONSTER | CONTENTS_GRATE;
+// everything that blocks player movement
+const MASK_PLAYERSOLID: u32 = CONTENTS_SOLID
+    | CONTENTS_MOVEABLE
+    | CONTENTS_PLAYERCLIP
+    | CONTENTS_WINDOW
+    | CONTENTS_MONSTER
+    | CONTENTS_GRATE;
+
+// blocks nc movement
+const MASK_NPCSOLID: u32 = CONTENTS_SOLID
+    | CONTENTS_MOVEABLE
+    | CONTENTS_MONSTERCLIP
+    | CONTENTS_WINDOW
+    | CONTENTS_MONSTER
+    | CONTENTS_GRATE;
+
+// blocks fluid movement
+const MASK_NPCFLUID: u32 =
+    CONTENTS_SOLID | CONTENTS_MOVEABLE | CONTENTS_MONSTERCLIP | CONTENTS_WINDOW | CONTENTS_MONSTER;
+
+// water physics in these contents
+const MASK_WATER: u32 = CONTENTS_WATER | CONTENTS_MOVEABLE | CONTENTS_SLIME;
+// everything that blocks lighting
+const MASK_OPAQUE: u32 = CONTENTS_SOLID | CONTENTS_MOVEABLE | CONTENTS_OPAQUE;
+// everything that blocks lighting, but with monsters added.
+const MASK_OPAQUE_AND_NPCS: u32 = MASK_OPAQUE | CONTENTS_MONSTER;
+// everything that blocks line of sight for AI
+const MASK_BLOCKLOS: u32 = CONTENTS_SOLID | CONTENTS_MOVEABLE | CONTENTS_BLOCKLOS;
+// everything that blocks line of sight for AI plus NPCs
+const MASK_BLOCKLOS_AND_NPCS: u32 = MASK_BLOCKLOS | CONTENTS_MONSTER;
+// everything that blocks line of sight for players
+const MASK_VISIBLE: u32 = MASK_OPAQUE | CONTENTS_IGNORE_NODRAW_OPAQUE;
+// everything that blocks line of sight for players, but with monsters added.
+const MASK_VISIBLE_AND_NPCS: u32 = MASK_OPAQUE_AND_NPCS | CONTENTS_IGNORE_NODRAW_OPAQUE;
+// bullets see these as solid
+const MASK_SHOT: u32 = CONTENTS_SOLID
+    | CONTENTS_MOVEABLE
+    | CONTENTS_MONSTER
+    | CONTENTS_WINDOW
+    | CONTENTS_DEBRIS
+    | CONTENTS_HITBOX;
+
+// bullets see these as solid, except monsters: u32 = world+brush only;
+const MASK_SHOT_BRUSHONLY: u32 =
+    CONTENTS_SOLID | CONTENTS_MOVEABLE | CONTENTS_WINDOW | CONTENTS_DEBRIS;
+
+// non-raycasted weapons see this as solid: u32 = includes grates;
+const MASK_SHOT_HULL: u32 = CONTENTS_SOLID
+    | CONTENTS_MOVEABLE
+    | CONTENTS_MONSTER
+    | CONTENTS_WINDOW
+    | CONTENTS_DEBRIS
+    | CONTENTS_GRATE;
+
+// hits solids: u32 = not grates; and passes through everything else
+const MASK_SHOT_PORTAL: u32 =
+    CONTENTS_SOLID | CONTENTS_MOVEABLE | CONTENTS_WINDOW | CONTENTS_MONSTER;
+
+// everything normally solid, except monsters: u32 = world+brush only;
+const MASK_SOLID_BRUSHONLY: u32 =
+    CONTENTS_SOLID | CONTENTS_MOVEABLE | CONTENTS_WINDOW | CONTENTS_GRATE;
+
+// everything normally solid for player movement, except monsters: u32 = world+brush only;
+const MASK_PLAYERSOLID_BRUSHONLY: u32 =
+    CONTENTS_SOLID | CONTENTS_MOVEABLE | CONTENTS_WINDOW | CONTENTS_PLAYERCLIP | CONTENTS_GRATE;
+
+// everything normally solid for npc movement, except monsters: u32 = world+brush only;
+const MASK_NPCSOLID_BRUSHONLY: u32 =
+    CONTENTS_SOLID | CONTENTS_MOVEABLE | CONTENTS_WINDOW | CONTENTS_MONSTERCLIP | CONTENTS_GRATE;
+
+// just the world, used for route rebuilding
+const MASK_NPCWORLDSTATIC: u32 =
+    CONTENTS_SOLID | CONTENTS_WINDOW | CONTENTS_MONSTERCLIP | CONTENTS_GRATE;
+
+// just the world, used for route rebuilding
+const MASK_NPCWORLDSTATIC_FLUID: u32 = CONTENTS_SOLID | CONTENTS_WINDOW | CONTENTS_MONSTERCLIP;
+
+// These are things that can split areaportals
+const MASK_SPLITAREAPORTAL: u32 = CONTENTS_WATER | CONTENTS_SLIME;
+
+// UNDONE: This is untested, any moving water
+const MASK_CURRENT: u32 = CONTENTS_CURRENT_0
+    | CONTENTS_CURRENT_90
+    | CONTENTS_CURRENT_180
+    | CONTENTS_CURRENT_270
+    | CONTENTS_CURRENT_UP
+    | CONTENTS_CURRENT_DOWN;
+
+// everything that blocks corpse movement
+// UNDONE: Not used yet; / may be deleted
+const MASK_DEADSOLID: u32 = CONTENTS_SOLID | CONTENTS_PLAYERCLIP | CONTENTS_WINDOW | CONTENTS_GRATE;
+
+use crate::trace::{Filter, Ray, Trace};
+use sdk::Vector;
+
+fn trace_to_exit(
+    start: Vector,
+    direction: Vector,
+    enter_trace: &Trace,
+    exit_trace: &mut Trace,
+    end: &mut Vector,
+) -> bool {
+    let global = Global::handle();
+    let mut distance = 0.0;
+
+    while distance <= 90.0 {
+        distance += 4.0;
+        *end = start + direction * distance;
+
+        let contents = global.tracer().point_contents(
+            *end,
+            (MASK_SHOT_HULL | CONTENTS_HITBOX) as _,
+            ptr::null(),
+        );
+
+        if (contents & MASK_SHOT_HULL as i32) != 0 && (contents & CONTENTS_HITBOX as i32) != 0 {
+            continue;
+        }
+
+        let new_end = *end - (direction * 4.0);
+
+        global.tracer().trace(
+            &Ray::new(*end, new_end),
+            (MASK_SHOT_HULL | CONTENTS_HITBOX) as _,
+            ptr::null(),
+            exit_trace,
+        );
+
+        if exit_trace.start_solid && (exit_trace.surface.flags & SURF_HITBOX as u16) != 0 {
+            global.tracer().trace(
+                &Ray::new(*end, start),
+                (MASK_SHOT_HULL | CONTENTS_HITBOX) as _,
+                &Filter::new(exit_trace.entity_hit as *const ()),
+                exit_trace,
+            );
+
+            if (exit_trace.fraction <= 1.0 || exit_trace.all_solid) && !exit_trace.start_solid {
+                *end = exit_trace.end;
+
+                return true;
+            }
+
+            continue;
+        }
+
+        if !(exit_trace.fraction <= 1.0 || exit_trace.all_solid || exit_trace.start_solid)
+            || exit_trace.start_solid
+        {
+            if !exit_trace.entity_hit.is_null() {
+                return true;
+            }
+
+            continue;
+        }
+
+        if (exit_trace.surface.flags & SURF_NODRAW as u16) != 0 {
+            continue;
+        }
+
+        if exit_trace.plane.normal.dot(direction) <= 1.0 {
+            *end = *end - (direction * (exit_trace.fraction * 4.0));
+
+            return true;
+        }
+    }
+
+    false
+}
+
+pub struct ShotData {
+    pub source: Vector,
+    pub enter_trace: Trace,
+    pub direction: Vector,
+    pub filter: *const (),
+    pub trace_length: f32,
+    pub trace_length_remaining: f32,
+    pub current_damage: f32,
+    pub penetrate_count: i32,
+}
+
+impl ShotData {
+    pub fn new() -> Self {
+        Self {
+            source: Vector::zero(),
+            enter_trace: Trace::new(),
+            direction: Vector::zero(),
+            filter: ptr::null(),
+            trace_length: 0.0,
+            trace_length_remaining: 0.0,
+            current_damage: 0.0,
+            penetrate_count: 0,
+        }
+    }
+
+    pub fn handle_bullet_penetration(&mut self, weapon: &Weapon) -> bool {
+        let global = Global::handle();
+        let surface = match global
+            .physics()
+            .query(self.enter_trace.surface.index as i32)
+        {
+            Some(surface) => surface,
+            None => return true,
+        };
+
+        let enter_material = surface.material;
+        let enter_penetration_modifier = surface.penetration_modifier;
+
+        self.trace_length += self.trace_length_remaining * self.enter_trace.fraction;
+        self.current_damage *= weapon.range_modifier().powf(self.trace_length * 0.002);
+
+        if self.trace_length > 3000.0 || enter_penetration_modifier < 0.1 {
+            self.penetrate_count = 0;
+        }
+
+        if self.penetrate_count <= 0 {
+            return false;
+        }
+
+        let mut end = Vector::zero();
+        let mut exit_trace = Trace::new();
+
+        if !trace_to_exit(
+            /* start */ self.enter_trace.end,
+            /* direction */ self.direction,
+            /* enter_trace */ &self.enter_trace,
+            /* exit_trace */ &mut exit_trace,
+            /* end_pos */ &mut end,
+        ) {
+            return false;
+        }
+
+        let surface = match global.physics().query(exit_trace.surface.index as _) {
+            Some(surface) => surface,
+            None => return true,
+        };
+
+        let exit_material = surface.material;
+        let exit_penetration_modifier = surface.penetration_modifier;
+        let mut final_damage_modifier: f32 = 0.16;
+        let mut combined_penetration_modifier: f32 = 0.0;
+
+        if (self.enter_trace.contents & CONTENTS_GRATE as i32) != 0
+            || matches!(enter_material, 71 | 89)
+        {
+            final_damage_modifier = 0.05;
+            combined_penetration_modifier = 3.0;
+        } else {
+            combined_penetration_modifier =
+                (enter_penetration_modifier + exit_penetration_modifier) * 0.5;
+        }
+
+        if enter_material == exit_material {
+            if matches!(exit_material, 85 | 87) {
+                combined_penetration_modifier = 3.0;
+            } else {
+                combined_penetration_modifier = 2.0
+            }
+        }
+
+        let v34 = (1.0 / combined_penetration_modifier).max(0.0);
+        let v35 = self.current_damage * final_damage_modifier
+            + v34 * 3.0 * (3.0 / weapon.penetration()).max(0.0) * 1.25;
+
+        let mut thickness = (exit_trace.end - self.enter_trace.end).magnitude();
+
+        thickness = (thickness * thickness * v34) / 24.0;
+
+        let lost_damage = (v35 + thickness).max(0.0);
+
+        if lost_damage > self.current_damage {
+            return false;
+        }
+
+        if lost_damage >= 0.0 {
+            self.current_damage -= lost_damage;
+        }
+
+        if self.current_damage < 1.0 {
+            return false;
+        }
+
+        self.source = exit_trace.end;
+        self.penetrate_count -= 1;
+
+        // cant shoot through this
+        true
+    }
+
+    pub fn simulate_shot(&mut self, weapon: &Weapon) -> bool {
+        let global = Global::handle();
+        let local_player = match global.local_player() {
+            Some(local_player) => local_player,
+            None => return false,
+        };
+
+        self.penetrate_count = 4;
+        self.trace_length = 0.0;
+        self.current_damage = weapon.damage();
+
+        while self.penetrate_count > 0 && self.current_damage >= 1.0 {
+            self.trace_length_remaining = weapon.range() - self.trace_length;
+
+            let end = self.source + self.direction * self.trace_length_remaining;
+            let new_end = end + self.direction * 40.0;
+
+            println!("before tracing");
+
+            global.tracer().trace(
+                &Ray::new(self.source, end),
+                MASK_SHOT as _,
+                &Filter::new(local_player.as_ptr() as *const ()),
+                &mut self.enter_trace,
+            );
+
+            global.tracer().trace(
+                &Ray::new(self.source, new_end),
+                MASK_SHOT as _,
+                &Filter::new(self.filter as *const ()),
+                &mut self.enter_trace,
+            );
+
+            global.tracer().trace(
+                &Ray::new(self.source, new_end),
+                MASK_SHOT as _,
+                &Filter::new(local_player.as_ptr() as *const ()),
+                &mut self.enter_trace,
+            );
+
+            if self.enter_trace.fraction == 1.0 {
+                break;
+            }
+
+            if self.enter_trace.hit_group.is_hit() {
+                return true;
+            }
+
+            return true;
+
+            if !self.handle_bullet_penetration(weapon) {
+                break;
+            }
+        }
+
+        false
+    }
+}
 
 fn main() -> Result<()> {
     if library::Library::serverbrowser().is_err() {
@@ -58,30 +557,17 @@ fn main() -> Result<()> {
     let global = Global::init()?;
     let global2 = global.clone();
     let global3 = global.clone();
-    let yaw = Arc::new(AtomicF32::new(0.0));
-    let yaw2 = yaw.clone();
-    let next_lby_update = Arc::new(AtomicF32::new(0.0));
-    let next_lby_update2 = next_lby_update.clone();
-    let lby_updated = Arc::new(AtomicBool::new(false));
-    let choked_packets = Arc::new(AtomicUsize::new(0));
+
+    let choked_packets = Choker::new();
+
+    let thirdperson_angle = ThirdpersonAngle::new();
+    let thirdperson_angle2 = thirdperson_angle.clone();
 
     global.on_frame(move |_frame| {
         if let Some(local_player) = global2.local_player() {
-            // thirdperson fix
-            unsafe {
-                *(&global2.input().thirdperson as *const bool as *mut bool) = true;
-            }
-
             if global2.input().thirdperson {
-                local_player.view_angle().pitch = 89.0;
-                local_player.view_angle().yaw = yaw.load(Ordering::SeqCst);
+                local_player.set_view_angle(thirdperson_angle.get());
             }
-
-            /*for player in global2.entities().iter() {
-                let mut animation_layers = player.animation_layers();
-
-                animation_layers[12].weight = 0.0;
-            }*/
         }
 
         global2.cheats().set(1);
@@ -93,69 +579,81 @@ fn main() -> Result<()> {
     });
 
     global.on_move(move |mut movement| {
-        if !movement.local_player.flags().on_ground() {
-            movement.in_jump = false;
+        let max_desync = movement.local_player.max_desync_angle();
+        let eye_yaw_on_send = global3.engine().view_angle().yaw;
+        let eye_yaw_on_choke = eye_yaw_on_send + (max_desync * 2.0);
+        let real_yaw = eye_yaw_on_send + max_desync;
+        let fake_yaw = eye_yaw_on_send - max_desync;
+
+        println!("max_desync = {max_desync}");
+        println!("eye_yaw_on_send = {eye_yaw_on_send}");
+        println!("eye_yaw_on_choke = {eye_yaw_on_choke}");
+        println!("real_yaw = {real_yaw}");
+        println!("fake_yaw = {fake_yaw}");
+
+        movement.do_fast_duck = movement.do_duck;
+
+        if !movement.local_player.on_ground() {
+            movement.do_jump = false;
         }
 
-        if movement.in_duck {
-            movement.in_fast_duck = true;
-        }
+        let velocity = movement.local_player.velocity();
 
-        if movement.in_attack {
-            yaw2.store(movement.view_angle.yaw, Ordering::SeqCst);
-            lby_updated.store(false, Ordering::SeqCst);
-        } else {
-            if movement.local_player.velocity().magnitude() > 0.1 {
-                next_lby_update2.store(movement.current_time + 0.22, Ordering::SeqCst);
-            }
-
-            if movement.current_time >= next_lby_update2.load(Ordering::SeqCst) {
-                next_lby_update2.store(movement.current_time + 1.1, Ordering::SeqCst);
-                lby_updated.store(!lby_updated.load(Ordering::SeqCst), Ordering::SeqCst);
-            }
-
-            movement.view_angle = global3.engine().view_angle();
-
-            let client_yaw = movement.view_angle.yaw + 180.0;
-
-            if lby_updated.load(Ordering::SeqCst) {
-                movement.view_angle.yaw = client_yaw - 58.0;
-                movement.send_packet = false;
-
-                //println!("lby  yaw = {:?}", movement.view_angle.yaw);
-            } else if movement.send_packet {
-                movement.view_angle.yaw = client_yaw;
-
-                //println!("real yaw = {:?}", movement.view_angle.yaw);
-            } else {
-                movement.view_angle.yaw = client_yaw + 120.0;
-
-                //println!("fake yaw = {:?}", movement.view_angle.yaw);
-            }
-
-            movement.view_angle.pitch = 89.0;
-        }
-
-        if !movement.send_packet {
-            yaw2.store(movement.view_angle.yaw, Ordering::SeqCst);
-        }
-
-        //println!("tick_count = {}", movement.tick_count);
-
-        let choked_packets2 = choked_packets.load(Ordering::SeqCst);
-
-        if choked_packets2 > 6 {
+        if choked_packets.count() > 1 {
             movement.send_packet = true;
-            //movement.tick_count = i32::MAX;
-            choked_packets.store(0, Ordering::SeqCst);
+            choked_packets.reset();
         } else {
             movement.send_packet = false;
-            choked_packets.store(choked_packets2 + 1, Ordering::SeqCst);
+            choked_packets.increment();
         }
 
-        //println!("choked_packets = {:?}", choked_packets2);
+        if !(movement.do_attack
+            || movement.local_player.on_ladder()
+            || movement.local_player.is_noclip())
+        {
+            if movement.send_packet {
+                movement.view_angle.yaw = eye_yaw_on_send;
+            } else {
+                movement.view_angle.yaw = eye_yaw_on_choke;
+            }
 
-        yaw2.store(movement.view_angle.yaw, Ordering::SeqCst);
+            if movement.side_move.abs() < 5.0 {
+                if movement.do_duck {
+                    movement.side_move = if (movement.tick_count & 1) != 0 {
+                        3.25
+                    } else {
+                        -3.25
+                    };
+                } else {
+                    movement.side_move = if (movement.tick_count & 1) != 0 {
+                        1.1
+                    } else {
+                        -1.1
+                    };
+                }
+            }
+        }
+
+        if let Some(weapon) = movement.local_player.weapon() {
+            let mut shot_data = ShotData::new();
+            // todo fix segfault
+            //let damage = shot_data.simulate_shot(&weapon);
+
+            //println!("{damage:?}");
+
+            if movement.do_attack == true {
+                if let Some(time) = weapon.revolver_cock_time() {
+                    if time - 1.0 < movement.client_time {
+                        movement.do_attack = false;
+                    }
+                }
+            }
+        }
+
+        thirdperson_angle2.set(Angle {
+            yaw: fake_yaw,
+            ..movement.view_angle
+        });
 
         movement
     });

@@ -1,6 +1,6 @@
 use crate::Pad;
+use core::fmt;
 
-#[derive(Debug)]
 #[repr(C)]
 pub struct AnimationLayer {
     _pad0: Pad<24>,
@@ -11,7 +11,19 @@ pub struct AnimationLayer {
     pub weight_delta_rate: f32,
     pub playback_rate: f32,
     pub cycle: f32,
-    /// pointer to the owner of this animation layer
-    pub owner: *const (),
-    _pad1: Pad<8>,
+    _pad1: Pad<16>,
+}
+
+impl fmt::Debug for AnimationLayer {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("AnimationLayer")
+            .field("order", &self.order)
+            .field("sequence", &self.sequence)
+            .field("previous_cycle", &self.previous_cycle)
+            .field("weight", &self.weight)
+            .field("weight_delta_rate", &self.weight_delta_rate)
+            .field("playback_rate", &self.playback_rate)
+            .field("cycle", &self.cycle)
+            .finish()
+    }
 }

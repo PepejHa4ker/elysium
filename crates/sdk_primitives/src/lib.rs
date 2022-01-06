@@ -1,4 +1,5 @@
 #![feature(const_fn_floating_point_arithmetic)]
+#![feature(const_mut_refs)]
 #![feature(const_trait_impl)]
 
 pub use self::angle::Angle;

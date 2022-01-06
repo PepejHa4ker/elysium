@@ -13,10 +13,13 @@ use crate::material::Material;
 use crate::model::{DrawModelState, ModelInfo, ModelRender, ModelRenderInfo};
 use crate::movement::Movement;
 use crate::netvars;
+use crate::physics::Physics;
+use crate::trace::Tracer;
 use crate::Result;
 use core::ptr;
 use sdk::Matrix3x4;
 use std::lazy::SyncOnceCell;
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
 use vptr::VirtualMut;
 
@@ -30,6 +33,8 @@ pub(crate) struct GlobalRef {
     interfaces: Interfaces,
     on_frame: OnFrame,
     on_move: OnMove,
+    tick: AtomicU32,
+    last_command_has_been_predicted: AtomicBool,
     create_move_original: Box<hooks::create_move::Signature>,
     frame_stage_notify_original: Box<hooks::frame_stage_notify::Signature>,
     draw_model_execute_original: Box<hooks::draw_model_execute::Signature>,
@@ -59,6 +64,8 @@ impl Global {
             interfaces,
             on_frame: Box::new(move |_frame| {}),
             on_move: Box::new(move |movement| movement),
+            tick: AtomicU32::new(0),
+            last_command_has_been_predicted: AtomicBool::new(false),
             // TODO: replace these with dummies
             create_move_original: Box::new(hooks::create_move::hook),
             frame_stage_notify_original: Box::new(hooks::frame_stage_notify::hook),
@@ -108,6 +115,43 @@ impl Global {
         unsafe { GLOBAL.get().unwrap_unchecked() }
     }
 
+    /// Current client time.
+    pub fn client_time(&self) -> f32 {
+        self.0.interfaces.globals.current_time
+    }
+
+    /// The interval (in seconds) that one tick takes.
+    ///
+    /// 1 second / 64 ticks = 0.015625 seconds
+    /// 1 second / 128 ticks = 0.0078125 seconds
+    pub fn interval_per_tick(&self) -> f32 {
+        self.0.interfaces.globals.interval_per_tick
+    }
+
+    pub fn tick(&self) -> u32 {
+        self.0.tick.load(Ordering::SeqCst)
+    }
+
+    pub fn set_tick(&self, tick: u32) {
+        self.0.tick.store(tick, Ordering::SeqCst);
+    }
+
+    pub fn increment_tick(&self) {
+        self.0.tick.fetch_add(1, Ordering::SeqCst);
+    }
+
+    pub fn last_command_has_been_predicted(&self) -> bool {
+        self.0
+            .last_command_has_been_predicted
+            .load(Ordering::SeqCst)
+    }
+
+    pub fn set_last_command_has_been_predicted(&self, predicted: bool) {
+        self.0
+            .last_command_has_been_predicted
+            .store(predicted, Ordering::SeqCst);
+    }
+
     pub fn libraries(&self) -> &Libraries {
         &self.0.libraries
     }
@@ -120,6 +164,10 @@ impl Global {
         self.0.interfaces.globals
     }
 
+    pub fn physics(&self) -> &Physics {
+        &self.0.interfaces.physics
+    }
+
     pub fn input(&self) -> &Input {
         self.0.interfaces.input
     }
@@ -130,6 +178,10 @@ impl Global {
 
     pub fn entity_list(&self) -> &EntityList {
         &self.0.interfaces.entity_list
+    }
+
+    pub fn tracer(&self) -> &Tracer {
+        &self.0.interfaces.tracer
     }
 
     pub fn client(&self) -> &Client {
