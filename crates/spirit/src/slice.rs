@@ -41,14 +41,14 @@ impl<T> Slice<T> {
 
     pub const fn len(&self) -> usize
     where
-        [(); mem::size_of::<T>()]: ,
+        [(); mem::size_of::<T>()]:,
     {
         util::len(self.as_ptr())
     }
 
     pub const fn as_slice(&self) -> &[T]
     where
-        [(); mem::size_of::<T>()]: ,
+        [(); mem::size_of::<T>()]:,
     {
         unsafe { &*ptr::from_raw_parts(self.as_ptr() as *const (), self.len()) }
     }
@@ -56,7 +56,7 @@ impl<T> Slice<T> {
 
 impl<T: fmt::Debug> fmt::Debug for Slice<T>
 where
-    [(); mem::size_of::<T>()]: ,
+    [(); mem::size_of::<T>()]:,
 {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_list().entries(self.as_slice()).finish()

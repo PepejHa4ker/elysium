@@ -1,50 +1,63 @@
-use crate::entity::{Entity, RawEntity};
+use crate::entity::Entity;
 use crate::global::Global;
-use core::ptr::NonNull;
+use crate::managed::{handle, Managed};
 
-extern "C" {
-    /// Raw handle to the entity list.
-    pub type RawEntityList;
-}
-
-unsafe impl Send for RawEntityList {}
-unsafe impl Sync for RawEntityList {}
-
-/// Entity list.
+/// Entity list interface.
 #[derive(Debug)]
 #[repr(transparent)]
-pub struct EntityList(NonNull<RawEntityList>);
+pub struct EntityList(Managed<handle::EntityList>);
 
 impl EntityList {
-    /// Creates a new `EntityList` list if `raw` is non-null.
-    pub const fn from_raw(raw: *mut RawEntityList) -> Option<Self> {
-        if raw.is_null() {
-            None
-        } else {
-            Some(unsafe { Self::from_raw_unchecked(raw) })
-        }
+    pub fn new(ptr: *mut handle::EntityList) -> Option<Self> {
+        Some(Self(Managed::new(ptr)?))
     }
 
-    pub const unsafe fn from_raw_unchecked(raw: *mut RawEntityList) -> Self {
-        Self(NonNull::new_unchecked(raw))
+    pub unsafe fn new_unchecked(ptr: *mut handle::EntityList) -> Self {
+        Self(Managed::new_unchecked(ptr))
     }
 
-    pub const fn as_ptr(&self) -> *const RawEntityList {
+    pub fn as_ptr(&self) -> *const handle::EntityList {
         self.0.as_ptr()
     }
 
-    pub const fn virtual_table(&self) -> *const *const u8 {
-        unsafe { *(self.as_ptr() as *const *const *const u8) }
+    /// Returns a pointer to the first element within the virtual table.
+    pub unsafe fn virtual_table(&self) -> *const () {
+        self.0.virtual_table()
+    }
+
+    /// Returns a pointer to the object at `offset` in the virtual table.
+    pub unsafe fn virtual_offset(&self, offset: usize) -> *const () {
+        self.0.virtual_offset(offset)
+    }
+
+    /// Returns the object at `offset` as a function signature.
+    pub unsafe fn virtual_entry<U>(&self, offset: usize) -> U
+    where
+        U: Sized,
+    {
+        self.0.virtual_entry(offset)
+    }
+
+    /// Returns a pointer to the object at `offset` (in bytes).
+    pub unsafe fn relative_offset(&self, offset: usize) -> *const () {
+        self.0.relative_offset(offset)
+    }
+
+    /// Returns an object at `offset` (in bytes).
+    pub unsafe fn relative_entry<U>(&self, offset: usize) -> U
+    where
+        U: Sized,
+    {
+        self.0.relative_entry(offset)
     }
 
     pub fn get(&self, index: i32) -> Option<Entity> {
-        type Get = unsafe extern "C" fn(*const RawEntityList, i32) -> *mut RawEntity;
+        type Fn = unsafe extern "C" fn(this: *const handle::EntityList, i32) -> *mut handle::Entity;
 
         unsafe {
-            let raw_entity =
-                virt::get::<Get>(self.virtual_table() as *const (), 24)(self.as_ptr(), index);
+            let ptr = self.virtual_entry::<Fn>(3)(self.as_ptr(), index);
 
-            Entity::from_raw(raw_entity)
+            Entity::new(ptr)
         }
     }
 

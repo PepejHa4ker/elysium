@@ -1,16 +1,9 @@
+use crate::managed::{handle, Managed};
 use core::marker::PhantomData;
-use core::ptr::NonNull;
 
-extern "C" {
-    /// Raw handle to a variable.
-    pub type RawVar;
-}
-
-unsafe impl Send for RawVar {}
-unsafe impl Sync for RawVar {}
-
-#[derive(Clone, Debug)]
-pub struct Var<T>(NonNull<RawVar>, PhantomData<T>)
+#[derive(Debug)]
+#[repr(transparent)]
+pub struct Var<T>(Managed<handle::ConsoleVar>, PhantomData<T>)
 where
     T: Kind;
 
@@ -25,25 +18,47 @@ impl<T> Var<T>
 where
     T: Kind,
 {
-    /// Creates a new `EntityList` list if `raw` is non-null.
-    pub const fn from_raw(raw: *mut RawVar) -> Option<Self> {
-        if raw.is_null() {
-            None
-        } else {
-            Some(unsafe { Self::from_raw_unchecked(raw) })
-        }
+    pub fn new(ptr: *mut handle::ConsoleVar) -> Option<Self> {
+        Some(Self(Managed::new(ptr)?, PhantomData))
     }
 
-    pub const unsafe fn from_raw_unchecked(raw: *mut RawVar) -> Self {
-        Self(NonNull::new_unchecked(raw), PhantomData)
+    pub unsafe fn new_unchecked(ptr: *mut handle::ConsoleVar) -> Self {
+        Self(Managed::new_unchecked(ptr), PhantomData)
     }
 
-    pub const fn as_ptr(&self) -> *const RawVar {
+    pub fn as_ptr(&self) -> *const handle::ConsoleVar {
         self.0.as_ptr()
     }
 
-    pub const fn virtual_table(&self) -> *const () {
-        unsafe { *(self.as_ptr() as *const *const ()) }
+    /// Returns a pointer to the first element within the virtual table.
+    pub unsafe fn virtual_table(&self) -> *const () {
+        self.0.virtual_table()
+    }
+
+    /// Returns a pointer to the object at `offset` in the virtual table.
+    pub unsafe fn virtual_offset(&self, offset: usize) -> *const () {
+        self.0.virtual_offset(offset)
+    }
+
+    /// Returns the object at `offset` as a function signature.
+    pub unsafe fn virtual_entry<U>(&self, offset: usize) -> U
+    where
+        U: Sized,
+    {
+        self.0.virtual_entry(offset)
+    }
+
+    /// Returns a pointer to the object at `offset` (in bytes).
+    pub unsafe fn relative_offset(&self, offset: usize) -> *const () {
+        self.0.relative_offset(offset)
+    }
+
+    /// Returns an object at `offset` (in bytes).
+    pub unsafe fn relative_entry<U>(&self, offset: usize) -> U
+    where
+        U: Sized,
+    {
+        self.0.relative_entry(offset)
     }
 
     pub fn get(&self) -> T {
@@ -60,28 +75,28 @@ impl Sealed for i32 {}
 
 impl Kind for f32 {
     fn get(var: &Var<f32>) -> Self {
-        type Get = unsafe extern "C" fn(this: *const RawVar) -> f32;
+        type Fn = unsafe extern "C" fn(this: *const handle::ConsoleVar) -> f32;
 
-        unsafe { virt::get::<Get>(var.virtual_table(), 15 * 8)(var.as_ptr()) }
+        unsafe { var.virtual_entry::<Fn>(15)(var.as_ptr()) }
     }
 
     fn set(self, var: &Var<f32>) {
-        type Set = unsafe extern "C" fn(this: *const RawVar, value: f32);
+        type Fn = unsafe extern "C" fn(this: *const handle::ConsoleVar, value: f32);
 
-        unsafe { virt::get::<Set>(var.virtual_table(), 18 * 8)(var.as_ptr(), self) }
+        unsafe { var.virtual_entry::<Fn>(18)(var.as_ptr(), self) }
     }
 }
 
 impl Kind for i32 {
     fn get(var: &Var<i32>) -> Self {
-        type Get = unsafe extern "C" fn(this: *const RawVar) -> i32;
+        type Fn = unsafe extern "C" fn(this: *const handle::ConsoleVar) -> i32;
 
-        unsafe { virt::get::<Get>(var.virtual_table(), 16 * 8)(var.as_ptr()) }
+        unsafe { var.virtual_entry::<Fn>(16)(var.as_ptr()) }
     }
 
     fn set(self, var: &Var<i32>) {
-        type Set = unsafe extern "C" fn(this: *const RawVar, value: i32);
+        type Fn = unsafe extern "C" fn(this: *const handle::ConsoleVar, value: i32);
 
-        unsafe { virt::get::<Set>(var.virtual_table(), 19 * 8)(var.as_ptr(), self) }
+        unsafe { var.virtual_entry::<Fn>(19)(var.as_ptr(), self) }
     }
 }

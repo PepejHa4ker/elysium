@@ -2,7 +2,7 @@ use core::mem;
 
 pub const fn len<T>(ptr: *const T) -> usize
 where
-    [(); mem::size_of::<T>()]: ,
+    [(); mem::size_of::<T>()]:,
 {
     if mem::size_of::<T>() == 0 {
         return 0;

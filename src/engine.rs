@@ -1,124 +1,125 @@
-use core::ptr::NonNull;
+use crate::managed::{handle, Managed};
 use sdk::Angle;
 use std::borrow::Cow;
 use std::ffi::CStr;
 
-extern "C" {
-    /// Raw handle to the engine.
-    pub type RawEngine;
-}
-
-unsafe impl Send for RawEngine {}
-unsafe impl Sync for RawEngine {}
-
-/// The engine.
+/// The engine interface.
 #[derive(Debug)]
 #[repr(transparent)]
-pub struct Engine(NonNull<RawEngine>);
+pub struct Engine(Managed<handle::Engine>);
 
 impl Engine {
-    pub const fn from_raw(raw: *mut RawEngine) -> Option<Self> {
-        if raw.is_null() {
-            None
-        } else {
-            Some(unsafe { Self::from_raw_unchecked(raw) })
-        }
+    pub fn new(ptr: *mut handle::Engine) -> Option<Self> {
+        Some(Self(Managed::new(ptr)?))
     }
 
-    pub const unsafe fn from_raw_unchecked(raw: *mut RawEngine) -> Self {
-        Self(NonNull::new_unchecked(raw))
+    pub unsafe fn new_unchecked(ptr: *mut handle::Engine) -> Self {
+        Self(Managed::new_unchecked(ptr))
     }
 
-    pub const fn as_ptr(&self) -> *const RawEngine {
+    pub fn as_ptr(&self) -> *const handle::Engine {
         self.0.as_ptr()
     }
 
-    pub const fn virtual_table(&self) -> *const () {
-        unsafe { *(self.as_ptr() as *const *const ()) }
+    /// Returns a pointer to the first element within the virtual table.
+    pub unsafe fn virtual_table(&self) -> *const () {
+        self.0.virtual_table()
+    }
+
+    /// Returns a pointer to the object at `offset` in the virtual table.
+    pub unsafe fn virtual_offset(&self, offset: usize) -> *const () {
+        self.0.virtual_offset(offset)
+    }
+
+    /// Returns the object at `offset` as a function signature.
+    pub unsafe fn virtual_entry<U>(&self, offset: usize) -> U
+    where
+        U: Sized,
+    {
+        self.0.virtual_entry(offset)
+    }
+
+    /// Returns a pointer to the object at `offset` (in bytes).
+    pub unsafe fn relative_offset(&self, offset: usize) -> *const () {
+        self.0.relative_offset(offset)
+    }
+
+    /// Returns an object at `offset` (in bytes).
+    pub unsafe fn relative_entry<U>(&self, offset: usize) -> U
+    where
+        U: Sized,
+    {
+        self.0.relative_entry(offset)
     }
 
     pub fn clients_capacity(&self) -> i32 {
-        type ClientsCapacity = unsafe extern "C" fn(this: *const RawEngine) -> i32;
+        type Fn = unsafe extern "C" fn(this: *const handle::Engine) -> i32;
 
-        unsafe { virt::get::<ClientsCapacity>(self.virtual_table(), 20 * 8)(self.as_ptr()) }
+        unsafe { self.virtual_entry::<Fn>(20)(self.as_ptr()) }
     }
 
     pub fn command<'a, C>(&self, command: C)
     where
         C: Into<Cow<'a, CStr>>,
     {
-        type Command = unsafe extern "C" fn(this: *const RawEngine, command: *const i8);
+        type Fn = unsafe extern "C" fn(this: *const handle::Engine, command: *const i8);
 
-        unsafe {
-            virt::get::<Command>(self.virtual_table(), 108 * 8)(
-                self.as_ptr(),
-                command.into().as_ptr(),
-            )
-        }
+        unsafe { self.virtual_entry::<Fn>(108)(self.as_ptr(), command.into().as_ptr()) }
     }
 
     pub fn command_unrestricted<'a, C>(&self, command: C)
     where
         C: Into<Cow<'a, CStr>>,
     {
-        type CommandUnrestricted = unsafe extern "C" fn(this: *const RawEngine, command: *const i8);
+        type Fn = unsafe extern "C" fn(this: *const handle::Engine, command: *const i8);
 
-        unsafe {
-            virt::get::<CommandUnrestricted>(self.virtual_table(), 113 * 8)(
-                self.as_ptr(),
-                command.into().as_ptr(),
-            )
-        }
+        unsafe { self.virtual_entry::<Fn>(113)(self.as_ptr(), command.into().as_ptr()) }
     }
 
     pub fn in_game(&self) -> bool {
-        type InGame = unsafe extern "C" fn(this: *const RawEngine) -> bool;
+        type Fn = unsafe extern "C" fn(this: *const handle::Engine) -> bool;
 
-        unsafe { virt::get::<InGame>(self.virtual_table(), 26 * 8)(self.as_ptr()) }
+        unsafe { self.virtual_entry::<Fn>(26)(self.as_ptr()) }
     }
 
     pub fn is_connected(&self) -> bool {
-        type IsConnected = unsafe extern "C" fn(this: *const RawEngine) -> bool;
+        type Fn = unsafe extern "C" fn(this: *const handle::Engine) -> bool;
 
-        unsafe { virt::get::<IsConnected>(self.virtual_table(), 27 * 8)(self.as_ptr()) }
+        unsafe { self.virtual_entry::<Fn>(27)(self.as_ptr()) }
     }
 
     pub fn is_voice_recording(&self) -> bool {
-        type IsVoiceRecording = unsafe extern "C" fn(this: *const RawEngine) -> bool;
+        type Fn = unsafe extern "C" fn(this: *const handle::Engine) -> bool;
 
-        unsafe { virt::get::<IsVoiceRecording>(self.virtual_table(), 225 * 8)(self.as_ptr()) }
+        unsafe { self.virtual_entry::<Fn>(225)(self.as_ptr()) }
     }
 
     pub fn local_player(&self) -> i32 {
-        type LocalPlayer = unsafe extern "C" fn(this: *const RawEngine) -> i32;
+        type Fn = unsafe extern "C" fn(this: *const handle::Engine) -> i32;
 
-        unsafe { virt::get::<LocalPlayer>(self.virtual_table(), 12 * 8)(self.as_ptr()) }
+        unsafe { self.virtual_entry::<Fn>(12)(self.as_ptr()) }
     }
 
     pub fn screen_dimensions(&self) -> (i32, i32) {
-        type ScreenDimensions =
-            unsafe extern "C" fn(this: *const RawEngine, width: *mut i32, height: *mut i32);
+        type Fn =
+            unsafe extern "C" fn(this: *const handle::Engine, width: *mut i32, height: *mut i32);
 
         let mut size = (0, 0);
 
         unsafe {
-            virt::get::<ScreenDimensions>(self.virtual_table(), 5 * 8)(
-                self.as_ptr(),
-                &mut size.0,
-                &mut size.1,
-            );
+            self.virtual_entry::<Fn>(5)(self.as_ptr(), &mut size.0, &mut size.1);
         }
 
         size
     }
 
     pub fn view_angle(&self) -> Angle {
-        type ViewAngle = unsafe extern "C" fn(this: *const RawEngine, angle: *mut Angle);
+        type Fn = unsafe extern "C" fn(this: *const handle::Engine, angle: *mut Angle);
 
         let mut angle = Angle::zero();
 
         unsafe {
-            virt::get::<ViewAngle>(self.virtual_table(), 18 * 8)(self.as_ptr(), &mut angle);
+            self.virtual_entry::<Fn>(18)(self.as_ptr(), &mut angle);
         }
 
         angle

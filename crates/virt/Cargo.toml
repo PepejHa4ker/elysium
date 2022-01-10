@@ -1,6 +1,0 @@
-[package]
-edition = "2021"
-name = "virt"
-version = "0.0.0"
-
-[dependencies]

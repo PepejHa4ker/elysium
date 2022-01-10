@@ -1,26 +1,21 @@
+use super::Material;
 use crate::managed::{handle, Managed};
-use std::borrow::Cow;
-use std::ffi::CStr;
 
-pub use self::var::{Kind, Var};
-
-mod var;
-
-/// The console interface.
+/// Materials interface.
 #[derive(Debug)]
 #[repr(transparent)]
-pub struct Console(Managed<handle::Console>);
+pub struct Materials(Managed<handle::Materials>);
 
-impl Console {
-    pub fn new(ptr: *mut handle::Console) -> Option<Self> {
+impl Materials {
+    pub fn new(ptr: *mut handle::Materials) -> Option<Self> {
         Some(Self(Managed::new(ptr)?))
     }
 
-    pub unsafe fn new_unchecked(ptr: *mut handle::Console) -> Self {
+    pub unsafe fn new_unchecked(ptr: *mut handle::Materials) -> Self {
         Self(Managed::new_unchecked(ptr))
     }
 
-    pub fn as_ptr(&self) -> *const handle::Console {
+    pub fn as_ptr(&self) -> *const handle::Materials {
         self.0.as_ptr()
     }
 
@@ -55,36 +50,43 @@ impl Console {
         self.0.relative_entry(offset)
     }
 
-    pub fn var<'a, T, V>(&self, var: V) -> Option<Var<T>>
-    where
-        T: Kind,
-        V: Into<Cow<'a, CStr>>,
-    {
+    pub fn create(&self, name: *const i8, settings: *const ()) {
         type Fn = unsafe extern "C" fn(
-            this: *const handle::Console,
-            var: *const i8,
-        ) -> *mut handle::ConsoleVar;
+            this: *const handle::Materials,
+            name: *const i8,
+            settings: *const (),
+        );
 
         unsafe {
-            let ptr = self.virtual_entry::<Fn>(15)(self.as_ptr(), var.into().as_ptr());
-
-            Var::new(ptr)
+            self.virtual_entry::<Fn>(83)(self.as_ptr(), name, settings);
         }
     }
 
-    pub fn write<'a, S>(&self, string: S)
-    where
-        S: Into<Cow<'a, CStr>>,
-    {
-        type Fn =
-            unsafe extern "C" fn(this: *const handle::Console, fmt: *const i8, txt: *const i8);
+    pub fn find(
+        &self,
+        name: *const i8,
+        texture_group_name: *const i8,
+        complain: bool,
+        complain_prefix: *const i8,
+    ) -> Option<Material> {
+        type Fn = unsafe extern "C" fn(
+            this: *const handle::Materials,
+            name: *const i8,
+            texture_group_name: *const i8,
+            complain: bool,
+            complain_prefix: *const i8,
+        ) -> *mut handle::Material;
 
         unsafe {
-            self.virtual_entry::<Fn>(27)(
+            let ptr = self.virtual_entry::<Fn>(84)(
                 self.as_ptr(),
-                b"%s\0".as_ptr().cast(),
-                string.into().as_ptr(),
+                name,
+                texture_group_name,
+                complain,
+                complain_prefix,
             );
+
+            Material::new(ptr)
         }
     }
 }

@@ -1,5 +1,7 @@
+use crate::entity::Player;
 use crate::frame::Frame;
 use crate::global::Global;
+use crate::managed::handle;
 
 pub type Signature = unsafe extern "C" fn(this: *const (), frame: Frame);
 
@@ -8,6 +10,8 @@ pub unsafe extern "C" fn hook(this: *const (), frame: Frame) {
     let local_player = global.entity_list().get(global.engine().local_player());
 
     if let Some(local_player) = local_player {
+        let local_player = Player::new_unchecked(local_player.as_ptr() as *mut handle::Entity);
+
         *global.local_player_ptr() = Box::new(Some(local_player));
     }
 

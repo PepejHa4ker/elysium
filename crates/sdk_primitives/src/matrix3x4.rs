@@ -1,6 +1,5 @@
 use crate::{Angle, Vector};
 use core::ops::Mul;
-use vek::vec::repr_simd::{Vec3, Vec4};
 
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]

@@ -7,13 +7,12 @@ use crate::entity::EntityList;
 use crate::globals::Globals;
 use crate::input::Input;
 use crate::libraries::Libraries;
-use crate::material::{Material, MaterialSystem};
+use crate::material::{Material, Materials};
 use crate::model::{ModelInfo, ModelRender};
 use crate::pattern;
 use crate::physics::Physics;
-use crate::trace::Tracer;
-use core::mem;
-use vptr::Pointer;
+use crate::trace::RayTracer;
+use core::ptr;
 
 #[derive(Debug)]
 pub struct Interfaces {
@@ -29,9 +28,9 @@ pub struct Interfaces {
     pub model_render: ModelRender,
     pub model_info: ModelInfo,
     pub physics: Physics,
-    pub material_system: MaterialSystem,
+    pub materials: Materials,
     pub sound: *mut (),
-    pub tracer: Tracer,
+    pub tracer: RayTracer,
     pub movement: *mut (),
     pub prediction: *mut (),
     pub events: *mut (),
@@ -80,37 +79,34 @@ pub struct Interfaces {
 
 impl Interfaces {
     pub fn new(libraries: &Libraries) -> Self {
-        let console = Console::from_raw(
+        let console = Console::new(
             libraries
                 .materialsystem
                 .get_interface(interface::VENGINECVAR) as _,
         )
         .unwrap();
 
-        let client =
-            Client::from_raw(libraries.client.get_interface(interface::VCLIENT) as _).unwrap();
+        let client = Client::new(libraries.client.get_interface(interface::VCLIENT) as _).unwrap();
 
         let engine =
-            Engine::from_raw(libraries.engine.get_interface(interface::VENGINECLIENT) as _)
-                .unwrap();
+            Engine::new(libraries.engine.get_interface(interface::VENGINECLIENT) as _).unwrap();
 
         let panel = libraries.vgui2.get_interface(interface::VENGINEVGUI);
 
         let entity_list =
-            EntityList::from_raw(libraries.client.get_interface(interface::VCLIENTENTITYLIST) as _)
+            EntityList::new(libraries.client.get_interface(interface::VCLIENTENTITYLIST) as _)
                 .unwrap();
 
         let engine_vgui = libraries.engine.get_interface(interface::VENGINEVGUI);
 
         let model_render =
-            ModelRender::from_raw(libraries.engine.get_interface(interface::VENGINEMODEL) as _)
-                .unwrap();
+            ModelRender::new(libraries.engine.get_interface(interface::VENGINEMODEL) as _).unwrap();
 
         let model_info =
-            ModelInfo::from_raw(libraries.engine.get_interface(interface::VMODELINFOCLIENT) as _)
+            ModelInfo::new(libraries.engine.get_interface(interface::VMODELINFOCLIENT) as _)
                 .unwrap();
 
-        let physics = Physics::from_raw(
+        let physics = Physics::new(
             libraries
                 .vphysics
                 .get_interface(interface::VPHYSICSSURFACEPROPS) as _,
@@ -118,12 +114,12 @@ impl Interfaces {
         .unwrap();
 
         let tracer =
-            Tracer::from_raw(libraries.engine.get_interface(interface::ENGINETRACECLIENT) as _)
+            RayTracer::new(libraries.engine.get_interface(interface::ENGINETRACECLIENT) as _)
                 .unwrap();
 
         let movement = libraries.engine.get_interface(interface::GAMEMOVEMENT);
 
-        let material_system = MaterialSystem::from_raw(
+        let materials = Materials::new(
             libraries
                 .materialsystem
                 .get_interface(interface::VMATERIALSYSTEM) as _,
@@ -142,43 +138,22 @@ impl Interfaces {
             .client
             .get_exact_interface(interface::GAMEVENTSMANAGER);
 
-        let client_mode = unsafe {
-            let hud_process_input = client.hud_process_input_ptr();
-            let get_client_mode = hud_process_input.add_bytes(11).to_offset_absolute(1, 5);
-            let get_client_mode: unsafe extern "C" fn() -> *mut () =
-                mem::transmute(get_client_mode);
-            let client_mode = get_client_mode();
-
-            client_mode
-        };
-
-        let globals = unsafe {
-            let hud_update = client.hud_update_ptr();
-            let globals =
-                *(hud_update.add_bytes(13).to_offset_absolute(3, 7) as *const *const Globals);
-
-            &*globals
-        };
-
-        let input = unsafe {
-            let activate_mouse = client.activate_mouse_ptr();
-            let input = **(activate_mouse.to_offset_absolute(3, 7) as *const *const *const Input);
-
-            &*input
-        };
+        let client_mode = client.client_mode_ptr() as *mut ();
+        let globals = unsafe { &*(client.globals_ptr() as *const Globals) };
+        let input = unsafe { &*(client.input_ptr() as *const Input) };
 
         let patterns = pattern::Libraries::new();
         let animation_layers = unsafe {
             *(patterns
                 .address_of("client_client.so", &pattern::ANIMATION_LAYERS)
-                .unwrap()
+                .unwrap_or(ptr::null())
                 .add(35) as *const u32)
         };
 
         let animation_state = unsafe {
             *(patterns
                 .address_of("client_client.so", &pattern::ANIMATION_STATE)
-                .unwrap()
+                .unwrap_or(ptr::null())
                 .add(52) as *const u32)
         };
 
@@ -194,7 +169,7 @@ impl Interfaces {
         let ragdoll_gravity = console.var(var::RAGDOLL_GRAVITY).unwrap();
         let show_impacts = console.var(var::SHOW_IMPACTS).unwrap();
 
-        let flat = material_system
+        let flat = materials
             .find(
                 "debug/debugdrawflat\0".as_ptr() as _,
                 core::ptr::null(),
@@ -216,7 +191,7 @@ impl Interfaces {
             model_render,
             model_info,
             physics,
-            material_system,
+            materials,
             sound,
             tracer,
             movement,

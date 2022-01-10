@@ -1,301 +1,212 @@
 use crate::global::Global;
-use crate::netvars::Netvar;
-use core::ptr::NonNull;
-use sdk::{Angle, AnimationLayer, AnimationState, Vector};
+use crate::managed::{handle, Managed};
+use crate::mem;
+use crate::model::Model;
+use core::cmp;
+use sdk::{Matrix3x4, Vector};
 
-pub use self::id::EntityId;
-pub use self::list::{EntityList, Iter, RawEntityList};
-pub use self::weapon::{RawWeapon, Weapon};
+pub use id::EntityId;
+pub use list::{EntityList, Iter};
+pub use player::Player;
+pub use weapon::Weapon;
+pub use weapon_info::WeaponInfo;
 
 mod id;
 mod list;
+mod player;
 mod weapon;
-
-extern "C" {
-    /// Raw handle to an entity.
-    pub type RawEntity;
-}
-
-unsafe impl Send for RawEntity {}
-unsafe impl Sync for RawEntity {}
+mod weapon_info;
 
 /// An entity.
 #[derive(Debug)]
 #[repr(transparent)]
-pub struct Entity(NonNull<RawEntity>);
-
-const PLAYER: &str = "DT_CSPlayer";
-const BASE_PLAYER: &str = "DT_BasePlayer";
-const BASE_ENTITY: &str = "DT_BaseEntity";
-const BASE_ANIMATING: &str = "DT_BaseAnimating";
-
-const DUCKING: i32 = 1 << 1;
-const IN_WATER: i32 = 1 << 9;
-const ON_GROUND: i32 = 1 << 0;
-const PARTIALLY_ON_GROUND: i32 = 1 << 18;
-const WATER_JUMPING: i32 = 1 << 2;
+pub struct Entity(Managed<handle::Entity>);
 
 impl Entity {
-    pub const fn from_raw(raw: *mut RawEntity) -> Option<Self> {
-        if raw.is_null() {
-            None
-        } else {
-            Some(unsafe { Self::from_raw_unchecked(raw) })
-        }
+    pub fn new(ptr: *mut handle::Entity) -> Option<Self> {
+        Some(Self(Managed::new(ptr)?))
     }
 
-    pub const unsafe fn from_raw_unchecked(raw: *mut RawEntity) -> Self {
-        Self(NonNull::new_unchecked(raw))
+    pub unsafe fn new_unchecked(ptr: *mut handle::Entity) -> Self {
+        Self(Managed::new_unchecked(ptr))
     }
 
-    pub const fn as_ptr(&self) -> *const RawEntity {
+    pub fn as_ptr(&self) -> *const handle::Entity {
         self.0.as_ptr()
     }
 
-    pub const fn virtual_table(&self) -> *const *const u8 {
-        unsafe { *(self.as_ptr() as *const *const *const u8) }
+    /// Returns a pointer to the first element within the virtual table.
+    pub unsafe fn virtual_table(&self) -> *const () {
+        self.0.virtual_table()
     }
 
-    pub unsafe fn get(&self, offset: usize) -> *const u8 {
-        (self.as_ptr() as *const u8).add(offset)
+    /// Returns a pointer to the object at `offset` in the virtual table.
+    pub unsafe fn virtual_offset(&self, offset: usize) -> *const () {
+        self.0.virtual_offset(offset)
     }
 
-    /// Entity's flags.
-    #[inline]
-    fn flags(&self) -> i32 {
-        *self.netvar(BASE_PLAYER, "m_fFlags")
+    /// Returns the object at `offset` as a function signature.
+    pub unsafe fn virtual_entry<U>(&self, offset: usize) -> U
+    where
+        U: Sized,
+    {
+        self.0.virtual_entry(offset)
     }
 
-    /// Entity's movement kind.
-    #[inline]
-    pub fn move_kind(&self) -> i32 {
+    /// Returns a pointer to the object at `offset` (in bytes).
+    pub unsafe fn relative_offset(&self, offset: usize) -> *const () {
+        self.0.relative_offset(offset)
+    }
+
+    /// Returns an object at `offset` (in bytes).
+    pub unsafe fn relative_entry<U>(&self, offset: usize) -> U
+    where
+        U: Sized,
+    {
+        self.0.relative_entry(offset)
+    }
+
+    /// Returns a pointer to the entity's networkable.
+    pub unsafe fn networkable(&self) -> *const () {
+        self.relative_offset(16)
+    }
+
+    /// Returns a pointer to the first element in the entity's networkable virtual table.
+    pub unsafe fn networkable_virtual_table(&self) -> *const () {
+        mem::virtual_table(self.networkable())
+    }
+
+    /// Returns a pointer to the object at `offset` in the entity's networkable virtual table.
+    pub unsafe fn networkable_virtual_offset(&self, offset: usize) -> *const () {
+        mem::virtual_offset(self.networkable(), offset)
+    }
+
+    /// Returns an object at `offset` in the entity's networkable virtual table.
+    pub unsafe fn networkable_virtual_entry<U>(&self, offset: usize) -> U
+    where
+        U: Sized,
+    {
+        mem::virtual_entry(self.networkable(), offset)
+    }
+
+    /// Returns a pointer to the entity's renderable.
+    pub unsafe fn renderable(&self) -> *const () {
+        self.relative_offset(8)
+    }
+
+    /// Returns a pointer to the entity's renderable virtual table.
+    pub unsafe fn renderable_virtual_table(&self) -> *const () {
+        mem::virtual_table(self.renderable())
+    }
+
+    /// Returns a pointer to the object at `offset` in the entity's renderable virtual table.
+    pub unsafe fn renderable_virtual_offset(&self, offset: usize) -> *const () {
+        mem::virtual_offset(self.renderable(), offset)
+    }
+
+    /// Returns an object at `offset` in the entity's renderable virtual table.
+    pub unsafe fn renderable_virtual_entry<U>(&self, offset: usize) -> U
+    where
+        U: Sized,
+    {
+        mem::virtual_entry(self.renderable(), offset)
+    }
+
+    /// Is this entity dormant.
+    pub fn is_dormant(&self) -> bool {
+        type Fn = unsafe extern "C" fn(this: *const ()) -> bool;
+
+        unsafe { self.networkable_virtual_entry::<Fn>(2)(self.networkable()) }
+    }
+
+    /// Index of this entity in the engine
+    pub fn index(&self) -> i32 {
+        type Fn = unsafe extern "C" fn(this: *const ()) -> i32;
+
+        unsafe { self.networkable_virtual_entry::<Fn>(10)(self.networkable()) }
+    }
+
+    /// Model of this entity.
+    pub fn model(&self) -> Option<&Model> {
+        type Fn = unsafe extern "C" fn(this: *const ()) -> *const Model;
+
         unsafe {
-            *((self.netvar_raw(BASE_PLAYER, "m_nRenderMode") as *const u8).add(1) as *const i32)
+            let ptr = self.renderable_virtual_entry::<Fn>(8 * 8)(self.renderable());
+
+            if ptr.is_null() {
+                None
+            } else {
+                Some(&*ptr)
+            }
         }
     }
 
-    #[inline]
-    fn has_flag(&self, flag: i32) -> bool {
-        (self.flags() & flag) != 0
+    pub fn setup_bones(
+        &self,
+        bone_matrix: *mut Matrix3x4,
+        max_bones: i32,
+        bone_mask: i32,
+        current_time: f32,
+    ) -> bool {
+        type Fn = unsafe extern "C" fn(
+            this: *const (),
+            bone_matrix: *mut Matrix3x4,
+            max_bones: i32,
+            bone_mask: i32,
+            current_time: f32,
+        ) -> bool;
+
+        unsafe {
+            self.renderable_virtual_entry::<Fn>(13 * 8)(
+                self.renderable(),
+                bone_matrix,
+                max_bones,
+                bone_mask,
+                current_time,
+            )
+        }
     }
 
-    /// Is this entity ducking.
-    #[inline]
-    pub fn is_ducking(&self) -> bool {
-        self.has_flag(DUCKING)
+    pub fn origin_ptr(&self) -> *mut Vector {
+        type Fn = unsafe extern "C" fn(this: *const handle::Entity) -> *mut Vector;
+
+        unsafe { self.virtual_entry::<Fn>(12)(self.as_ptr()) }
     }
 
-    /// Is this entity in water.
-    #[inline]
-    pub fn in_water(&self) -> bool {
-        self.has_flag(IN_WATER)
+    pub fn origin(&self) -> Vector {
+        unsafe { *self.origin_ptr() }
     }
 
-    /// Is this entity jumping in water.
-    #[inline]
-    pub fn is_water_jumping(&self) -> bool {
-        self.has_flag(WATER_JUMPING)
-    }
-
-    /// Is this entity on the ground.
-    #[inline]
-    pub fn on_ground(&self) -> bool {
-        self.has_flag(ON_GROUND)
+    /// Entity's movement kind.
+    pub fn move_kind(&self) -> i32 {
+        unsafe { self.relative_entry(Global::handle().networked().base_entity().render_mode() + 1) }
     }
 
     /// If this entity is on a ladder.
-    #[inline]
     pub fn on_ladder(&self) -> bool {
         self.move_kind() == 9
     }
 
-    /// Is this entity partially on the ground.
-    #[inline]
-    pub fn partially_on_ground(&self) -> bool {
-        self.has_flag(PARTIALLY_ON_GROUND)
-    }
-
     /// Is this entity noclipping.
-    #[inline]
     pub fn is_noclip(&self) -> bool {
         self.move_kind() == 8
     }
 
-    pub fn observer(&self) -> *mut Entity {
-        unsafe { *self.netvar::<*mut Entity>(PLAYER, "m_hObserverTarget") }
-    }
-
-    /// Is this entity spectating another.
-    #[inline]
-    pub fn is_spectating(&self) -> bool {
-        self.observer().is_null()
-    }
-
-    /// Get the entity's velocity vector.
-    pub fn velocity(&self) -> &Vector {
-        self.netvar::<Vector>(BASE_PLAYER, "m_vecVelocity[0]")
-    }
-
-    /// Get the entity's speed (magnitude of velocity vector).
-    pub fn speed(&self) -> f32 {
-        self.velocity().magnitude()
-    }
-
-    fn is_dead_ptr(&self) -> *const u8 {
-        unsafe { self.netvar_raw(BASE_PLAYER, "deadflag") as *const u8 }
-    }
-
-    fn view_angle_ptr(&self) -> *const Angle {
-        unsafe { self.is_dead_ptr().add(4) as *const Angle }
-    }
-
-    /// Get the entity's view angle.
-    pub fn view_angle(&self) -> Angle {
-        unsafe { *self.view_angle_ptr() }
-    }
-
-    /// Set the entity's view angle.
-    pub fn set_view_angle(&self, angle: Angle) {
-        unsafe {
-            *(self.view_angle_ptr() as *mut Angle) = angle;
-        }
-    }
-
-    pub fn has_helmet(&self) -> bool {
-        *self.netvar(PLAYER, "m_bHasHelmet")
-    }
-
-    pub fn is_immune(&self) -> bool {
-        !*self.netvar::<bool>(PLAYER, "m_bGunGameImmunity")
-    }
-
-    pub fn lower_body_yaw(&self) -> f32 {
-        *self.netvar(PLAYER, "m_flLowerBodyYawTarget")
-    }
-
-    pub fn is_dead(&self) -> bool {
-        unsafe { *(self.is_dead_ptr() as *const bool) }
-    }
-
-    pub fn is_scoped(&self) -> bool {
-        *self.netvar(PLAYER, "m_bIsScoped")
-    }
-
-    pub fn lower_body_yaw_target(&self) -> f32 {
-        *self.netvar(PLAYER, "m_flLowerBodyYawTarget")
-    }
-
-    pub fn eye_angle(&self) -> Angle {
-        *self.netvar(PLAYER, "m_angEyeAngles[0]")
-    }
-
-    pub fn view_offset(&self) -> Vector {
-        *self.netvar(PLAYER, "m_vecViewOffset[0]")
-    }
-
-    pub fn has_defuse_kit(&self) -> bool {
-        *self.netvar(PLAYER, "m_bHasDefuser")
-    }
-
-    pub fn aim_punch(&self) -> Angle {
-        *self.netvar(PLAYER, "m_aimPunchAngle")
-    }
-
-    pub fn view_punch(&self) -> Angle {
-        *self.netvar(PLAYER, "m_viewPunchAngle")
-    }
-
-    pub fn health(&self) -> i32 {
-        *self.netvar(PLAYER, "m_iHealth")
-    }
-
-    pub fn money(&self) -> i32 {
-        *self.netvar(PLAYER, "m_iAccount")
-    }
-
-    pub fn tick_base(&self) -> u32 {
-        *self.netvar(PLAYER, "m_nTickBase")
-    }
-
-    fn raw_weapon(&self) -> usize {
-        *self.netvar(PLAYER, "m_hActiveWeapon")
-    }
-
-    pub fn weapon(&self) -> Option<Weapon> {
-        let handle = Global::handle();
-
-        unsafe {
-            let raw = handle
-                .entity_list()
-                .get((self.raw_weapon() & 0xFFF) as i32)?
-                .as_ptr() as *mut RawWeapon;
-
-            Some(Weapon::from_raw_unchecked(raw))
-        }
-    }
-
-    fn client_animate_ptr(&self) -> *const bool {
-        unsafe { self.netvar_raw(BASE_ANIMATING, "m_bClientSideAnimation") as *const bool }
-    }
-
-    pub fn set_client_animate(&self, animate: bool) {
-        unsafe {
-            *(self.client_animate_ptr() as *mut bool) = animate;
-        }
-    }
-
     pub fn is_player(&self) -> bool {
-        unsafe {
-            type IsPlayer = unsafe extern "C" fn(this: *const RawEntity) -> bool;
+        type Fn = unsafe extern "C" fn(this: *const handle::Entity) -> bool;
 
-            let is_player: IsPlayer = core::mem::transmute(self.get(157));
-
-            is_player(self.as_ptr())
-        }
-    }
-
-    pub fn animation_layers(&self) -> &mut [AnimationLayer; 13] {
-        unsafe {
-            let animlayersptr =
-                self.get(Global::handle().animation_layers() as usize) as *mut [AnimationLayer; 13];
-
-            core::mem::transmute(animlayersptr)
-        }
-    }
-
-    pub fn animation_state(&self) -> *mut AnimationState {
-        unsafe {
-            *(self.get(Global::handle().animation_state() as usize) as *mut *mut AnimationState)
-        }
-    }
-
-    pub fn max_desync_angle(&self) -> f32 {
-        let animation_state = self.animation_state();
-
-        if animation_state.is_null() {
-            return 0.0;
-        }
-
-        let animation_state = unsafe { &mut *animation_state };
-
-        println!("{animation_state:?}");
-
-        let mut yaw_modifier = (animation_state.stop_to_full_running_fraction * -0.3 - 0.2)
-            * animation_state.foot_speed.clamp(0.0, 1.0)
-            + 1.0;
-
-        if animation_state.duck_amount > 0.0 {
-            yaw_modifier += (animation_state.duck_amount
-                * animation_state.foot_speed2.clamp(0.0, 1.0))
-                * (0.5 - yaw_modifier);
-        }
-
-        animation_state.velocity_subtract_y * yaw_modifier
+        unsafe { self.relative_entry::<Fn>(157)(self.as_ptr()) }
     }
 }
 
-impl Netvar for Entity {
-    fn as_ptr(&self) -> *const () {
-        Entity::as_ptr(self) as _
+impl cmp::PartialEq<Entity> for Entity {
+    fn eq(&self, other: &Entity) -> bool {
+        self.index() == other.index()
+    }
+}
+
+impl cmp::PartialEq<Player> for Entity {
+    fn eq(&self, other: &Player) -> bool {
+        self.index() == other.index()
     }
 }

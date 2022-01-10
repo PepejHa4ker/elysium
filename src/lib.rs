@@ -1,28 +1,17 @@
-#![feature(const_fn_floating_point_arithmetic)]
 #![feature(const_fn_fn_ptr_basics)]
-#![feature(const_fn_trait_bound)]
 #![feature(const_mut_refs)]
 #![feature(const_trait_impl)]
-#![feature(const_ptr_is_null)]
-#![feature(once_cell)]
 #![feature(extern_types)]
+#![feature(once_cell)]
 #![feature(ptr_metadata)]
-#![feature(trait_alias)]
-
-// todo
-// introduce Managed<T> as in by csgo
-// Managed::virtual_table()
-// Managed::virtual_entry::<Fn>(5)(self.as_ptr())
-// Managed::relative_entry::<f32>()
-// Managed::networked_entry::<f32>(Class::Player, Variable::Health)
-// remove crates/virt
-// remove crates/vptr
 
 use crate::entity::Weapon;
+use crate::frame::Frame;
 use crate::global::Global;
+use crate::managed::handle;
 use atomic_float::AtomicF32;
+use core::ptr;
 use sdk::Angle;
-use std::ptr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -30,6 +19,11 @@ use std::time::Duration;
 
 pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 pub type Result<T, E = Error> = std::result::Result<T, E>;
+
+pub mod islice;
+pub mod managed;
+pub mod mem;
+pub mod networked;
 
 pub mod client;
 pub mod command;
@@ -52,7 +46,6 @@ pub mod material;
 pub mod model;
 pub mod move_kind;
 pub mod movement;
-pub mod netvars;
 pub mod pad;
 pub mod pattern;
 pub mod physics;
@@ -79,17 +72,17 @@ impl Choker {
     }
 }
 
-struct ThirdpersonAngleRef {
+struct AtomicAngleInner {
     pitch: AtomicF32,
     yaw: AtomicF32,
 }
 
 #[derive(Clone)]
-pub struct ThirdpersonAngle(Arc<ThirdpersonAngleRef>);
+pub struct AtomicAngle(Arc<AtomicAngleInner>);
 
-impl ThirdpersonAngle {
+impl AtomicAngle {
     pub fn new() -> Self {
-        Self(Arc::new(ThirdpersonAngleRef {
+        Self(Arc::new(AtomicAngleInner {
             pitch: AtomicF32::new(0.0),
             yaw: AtomicF32::new(0.0),
         }))
@@ -290,14 +283,15 @@ const MASK_CURRENT: u32 = CONTENTS_CURRENT_0
 // UNDONE: Not used yet; / may be deleted
 const MASK_DEADSOLID: u32 = CONTENTS_SOLID | CONTENTS_PLAYERCLIP | CONTENTS_WINDOW | CONTENTS_GRATE;
 
-use crate::trace::{Filter, Ray, Trace};
+use crate::entity::Entity;
+use crate::trace::{Ray, Summary};
 use sdk::Vector;
 
 fn trace_to_exit(
     start: Vector,
     direction: Vector,
-    enter_trace: &Trace,
-    exit_trace: &mut Trace,
+    enter_summary: &Summary,
+    exit_summary: &mut Summary,
     end: &mut Vector,
 ) -> bool {
     let global = Global::handle();
@@ -307,7 +301,7 @@ fn trace_to_exit(
         distance += 4.0;
         *end = start + direction * distance;
 
-        let contents = global.tracer().point_contents(
+        let contents = global.ray_tracer().point_contents(
             *end,
             (MASK_SHOT_HULL | CONTENTS_HITBOX) as _,
             ptr::null(),
@@ -319,23 +313,31 @@ fn trace_to_exit(
 
         let new_end = *end - (direction * 4.0);
 
-        global.tracer().trace(
+        global.ray_tracer().trace_mut(
             &Ray::new(*end, new_end),
             (MASK_SHOT_HULL | CONTENTS_HITBOX) as _,
-            ptr::null(),
-            exit_trace,
+            None,
+            exit_summary,
         );
 
-        if exit_trace.start_solid && (exit_trace.surface.flags & SURF_HITBOX as u16) != 0 {
-            global.tracer().trace(
+        if exit_summary.start_solid && (exit_summary.surface.flags & SURF_HITBOX as u16) != 0 {
+            let skip_entity = match exit_summary.entity_hit.as_ref() {
+                Some(entity) => {
+                    Some(unsafe { Entity::new_unchecked(entity.as_ptr() as *mut handle::Entity) })
+                }
+                None => None,
+            };
+
+            global.ray_tracer().trace_mut(
                 &Ray::new(*end, start),
                 (MASK_SHOT_HULL | CONTENTS_HITBOX) as _,
-                &Filter::new(exit_trace.entity_hit as *const ()),
-                exit_trace,
+                skip_entity.as_ref(),
+                exit_summary,
             );
 
-            if (exit_trace.fraction <= 1.0 || exit_trace.all_solid) && !exit_trace.start_solid {
-                *end = exit_trace.end;
+            if (exit_summary.fraction <= 1.0 || exit_summary.all_solid) && !exit_summary.start_solid
+            {
+                *end = exit_summary.end;
 
                 return true;
             }
@@ -343,22 +345,22 @@ fn trace_to_exit(
             continue;
         }
 
-        if !(exit_trace.fraction <= 1.0 || exit_trace.all_solid || exit_trace.start_solid)
-            || exit_trace.start_solid
+        if !(exit_summary.fraction <= 1.0 || exit_summary.all_solid || exit_summary.start_solid)
+            || exit_summary.start_solid
         {
-            if !exit_trace.entity_hit.is_null() {
+            if let None = exit_summary.entity_hit {
                 return true;
             }
 
             continue;
         }
 
-        if (exit_trace.surface.flags & SURF_NODRAW as u16) != 0 {
+        if (exit_summary.surface.flags & SURF_NODRAW as u16) != 0 {
             continue;
         }
 
-        if exit_trace.plane.normal.dot(direction) <= 1.0 {
-            *end = *end - (direction * (exit_trace.fraction * 4.0));
+        if exit_summary.plane.normal.dot(direction) <= 1.0 {
+            *end = *end - (direction * (exit_summary.fraction * 4.0));
 
             return true;
         }
@@ -369,9 +371,9 @@ fn trace_to_exit(
 
 pub struct ShotData {
     pub source: Vector,
-    pub enter_trace: Trace,
+    pub enter_summary: Summary,
     pub direction: Vector,
-    pub filter: *const (),
+    pub filter: Option<Entity>,
     pub trace_length: f32,
     pub trace_length_remaining: f32,
     pub current_damage: f32,
@@ -382,9 +384,9 @@ impl ShotData {
     pub fn new() -> Self {
         Self {
             source: Vector::zero(),
-            enter_trace: Trace::new(),
+            enter_summary: Summary::new(),
             direction: Vector::zero(),
-            filter: ptr::null(),
+            filter: None,
             trace_length: 0.0,
             trace_length_remaining: 0.0,
             current_damage: 0.0,
@@ -396,7 +398,7 @@ impl ShotData {
         let global = Global::handle();
         let surface = match global
             .physics()
-            .query(self.enter_trace.surface.index as i32)
+            .query(self.enter_summary.surface.index as i32)
         {
             Some(surface) => surface,
             None => return true,
@@ -405,7 +407,7 @@ impl ShotData {
         let enter_material = surface.material;
         let enter_penetration_modifier = surface.penetration_modifier;
 
-        self.trace_length += self.trace_length_remaining * self.enter_trace.fraction;
+        self.trace_length += self.trace_length_remaining * self.enter_summary.fraction;
         self.current_damage *= weapon.range_modifier().powf(self.trace_length * 0.002);
 
         if self.trace_length > 3000.0 || enter_penetration_modifier < 0.1 {
@@ -417,19 +419,19 @@ impl ShotData {
         }
 
         let mut end = Vector::zero();
-        let mut exit_trace = Trace::new();
+        let mut exit_summary = Summary::new();
 
         if !trace_to_exit(
-            /* start */ self.enter_trace.end,
+            /* start */ self.enter_summary.end,
             /* direction */ self.direction,
-            /* enter_trace */ &self.enter_trace,
-            /* exit_trace */ &mut exit_trace,
+            /* enter_summary */ &self.enter_summary,
+            /* exit_summary */ &mut exit_summary,
             /* end_pos */ &mut end,
         ) {
             return false;
         }
 
-        let surface = match global.physics().query(exit_trace.surface.index as _) {
+        let surface = match global.physics().query(exit_summary.surface.index as _) {
             Some(surface) => surface,
             None => return true,
         };
@@ -439,7 +441,7 @@ impl ShotData {
         let mut final_damage_modifier: f32 = 0.16;
         let mut combined_penetration_modifier: f32 = 0.0;
 
-        if (self.enter_trace.contents & CONTENTS_GRATE as i32) != 0
+        if (self.enter_summary.contents & CONTENTS_GRATE as i32) != 0
             || matches!(enter_material, 71 | 89)
         {
             final_damage_modifier = 0.05;
@@ -461,7 +463,7 @@ impl ShotData {
         let v35 = self.current_damage * final_damage_modifier
             + v34 * 3.0 * (3.0 / weapon.penetration()).max(0.0) * 1.25;
 
-        let mut thickness = (exit_trace.end - self.enter_trace.end).magnitude();
+        let mut thickness = (exit_summary.end - self.enter_summary.end).magnitude();
 
         thickness = (thickness * thickness * v34) / 24.0;
 
@@ -479,7 +481,7 @@ impl ShotData {
             return false;
         }
 
-        self.source = exit_trace.end;
+        self.source = exit_summary.end;
         self.penetrate_count -= 1;
 
         // cant shoot through this
@@ -505,36 +507,34 @@ impl ShotData {
 
             println!("before tracing");
 
-            global.tracer().trace(
+            global.ray_tracer().trace_mut(
                 &Ray::new(self.source, end),
                 MASK_SHOT as _,
-                &Filter::new(local_player.as_ptr() as *const ()),
-                &mut self.enter_trace,
+                Some(&local_player.as_entity()),
+                &mut self.enter_summary,
             );
 
-            global.tracer().trace(
+            global.ray_tracer().trace_mut(
                 &Ray::new(self.source, new_end),
                 MASK_SHOT as _,
-                &Filter::new(self.filter as *const ()),
-                &mut self.enter_trace,
+                self.filter.as_ref(),
+                &mut self.enter_summary,
             );
 
-            global.tracer().trace(
+            global.ray_tracer().trace_mut(
                 &Ray::new(self.source, new_end),
                 MASK_SHOT as _,
-                &Filter::new(local_player.as_ptr() as *const ()),
-                &mut self.enter_trace,
+                Some(&local_player.as_entity()),
+                &mut self.enter_summary,
             );
 
-            if self.enter_trace.fraction == 1.0 {
+            if self.enter_summary.fraction == 1.0 {
                 break;
             }
 
-            if self.enter_trace.hit_group.is_hit() {
+            if self.enter_summary.hit_group.is_hit() {
                 return true;
             }
-
-            return true;
 
             if !self.handle_bullet_penetration(weapon) {
                 break;
@@ -560,13 +560,32 @@ fn main() -> Result<()> {
 
     let choked_packets = Choker::new();
 
-    let thirdperson_angle = ThirdpersonAngle::new();
+    let thirdperson_angle = AtomicAngle::new();
     let thirdperson_angle2 = thirdperson_angle.clone();
 
-    global.on_frame(move |_frame| {
+    global.on_frame(move |frame| {
         if let Some(local_player) = global2.local_player() {
-            if global2.input().thirdperson {
-                local_player.set_view_angle(thirdperson_angle.get());
+            println!("{:?}", frame);
+
+            match frame {
+                Frame::RENDER_START => {
+                    // no recoil / punch
+                    global2.set_aim_punch_angle(local_player.actual_aim_punch_angle());
+                    global2.set_view_punch_angle(local_player.actual_view_punch_angle());
+
+                    local_player.set_aim_punch_angle(Angle::zero());
+                    local_player.set_view_punch_angle(Angle::zero());
+
+                    if global2.input().thirdperson {
+                        local_player.set_view_angle(thirdperson_angle.get());
+                    }
+                }
+                Frame::RENDER_END => {
+                    // restore no recoil / punch
+                    local_player.set_aim_punch_angle(global2.aim_punch_angle());
+                    local_player.set_view_punch_angle(global2.view_punch_angle());
+                }
+                _ => {}
             }
         }
 
@@ -580,16 +599,11 @@ fn main() -> Result<()> {
 
     global.on_move(move |mut movement| {
         let max_desync = movement.local_player.max_desync_angle();
+        let max_desync = 270.0;
         let eye_yaw_on_send = global3.engine().view_angle().yaw;
         let eye_yaw_on_choke = eye_yaw_on_send + (max_desync * 2.0);
         let real_yaw = eye_yaw_on_send + max_desync;
         let fake_yaw = eye_yaw_on_send - max_desync;
-
-        println!("max_desync = {max_desync}");
-        println!("eye_yaw_on_send = {eye_yaw_on_send}");
-        println!("eye_yaw_on_choke = {eye_yaw_on_choke}");
-        println!("real_yaw = {real_yaw}");
-        println!("fake_yaw = {fake_yaw}");
 
         movement.do_fast_duck = movement.do_duck;
 
@@ -634,12 +648,39 @@ fn main() -> Result<()> {
             }
         }
 
+        movement.view_angle = movement.view_angle - (movement.local_player.aim_punch_angle() * 2.0);
+
+        /*print!(
+                    "max_desync_angle={:.2?} ",
+                    movement.local_player.max_desync_angle()
+                );
+                print!("money={:.2?} ", movement.local_player.money());
+                print!("observer={:.2?} ", movement.local_player.observer());
+                print!("on_ground={:.2?} ", movement.local_player.on_ground());
+                print!("on_ladder={:.2?} ", movement.local_player.on_ladder());
+                print!(
+                    "partially_on_ground={:.2?} ",
+                    movement.local_player.partially_on_ground()
+                );
+                print!("speed={:.2?} ", movement.local_player.speed());
+                print!("tick_base={:.2?} ", movement.local_player.tick_base());
+                print!("velocity={:.2?} ", movement.local_player.velocity());
+                print!("view_angle={:.2?} ", movement.local_player.view_angle());
+                print!("view_offset={:.2?} ", movement.local_player.view_offset());
+        */
+
         if let Some(weapon) = movement.local_player.weapon() {
             let mut shot_data = ShotData::new();
             // todo fix segfault
             //let damage = shot_data.simulate_shot(&weapon);
 
             //println!("{damage:?}");
+
+            /*global3.ray_tracer().trace(
+                &Ray::new(Vector::new(0.0, 0.0, 0.0), Vector::new(0.0, 0.0, 0.0)),
+                MASK_SHOT as _,
+                Some(&movement.local_player.as_entity()),
+            );*/
 
             if movement.do_attack == true {
                 if let Some(time) = weapon.revolver_cock_time() {
@@ -651,7 +692,11 @@ fn main() -> Result<()> {
         }
 
         thirdperson_angle2.set(Angle {
-            yaw: fake_yaw,
+            yaw: if movement.do_attack {
+                movement.view_angle.yaw
+            } else {
+                fake_yaw
+            },
             ..movement.view_angle
         });
 

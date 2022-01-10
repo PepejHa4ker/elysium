@@ -1,7 +1,6 @@
 #![feature(const_fn_trait_bound)]
 #![feature(const_mut_refs)]
 #![feature(const_ptr_is_null)]
-#![feature(const_raw_ptr_deref)]
 
 use core::fmt;
 

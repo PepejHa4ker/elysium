@@ -1,88 +1,66 @@
-use core::ptr::NonNull;
+use crate::managed::{handle, Managed};
 
-extern "C" {
-    /// Raw handle to a material.
-    pub type RawMaterialVar;
-}
+pub use materials::Materials;
+pub use var::MaterialVar;
 
-unsafe impl Send for RawMaterialVar {}
-unsafe impl Sync for RawMaterialVar {}
-
-/// A material variable.
-#[derive(Debug)]
-#[repr(transparent)]
-pub struct MaterialVar(NonNull<RawMaterialVar>);
-
-impl MaterialVar {
-    pub const fn from_raw(raw: *mut RawMaterialVar) -> Option<Self> {
-        if raw.is_null() {
-            None
-        } else {
-            Some(unsafe { Self::from_raw_unchecked(raw) })
-        }
-    }
-
-    pub const unsafe fn from_raw_unchecked(raw: *mut RawMaterialVar) -> Self {
-        Self(NonNull::new_unchecked(raw))
-    }
-
-    pub const fn as_ptr(&self) -> *const RawMaterialVar {
-        self.0.as_ptr()
-    }
-
-    pub const fn virtual_table(&self) -> *const () {
-        unsafe { *(self.as_ptr() as *const *const ()) }
-    }
-
-    pub fn set_tint(&self, r: f32, g: f32, b: f32) {
-        type SetRgb = unsafe extern "C" fn(this: *const RawMaterialVar, r: f32, g: f32, b: f32);
-
-        unsafe {
-            virt::get::<SetRgb>(self.virtual_table(), 12 * 8)(self.as_ptr(), r, g, b);
-        }
-    }
-}
-
-extern "C" {
-    /// Raw handle to a material.
-    pub type RawMaterial;
-}
-
-unsafe impl Send for RawMaterial {}
-unsafe impl Sync for RawMaterial {}
+mod materials;
+mod var;
 
 /// A material.
 #[derive(Debug)]
 #[repr(transparent)]
-pub struct Material(NonNull<RawMaterial>);
+pub struct Material(Managed<handle::Material>);
 
 impl Material {
-    pub const fn from_raw(raw: *mut RawMaterial) -> Option<Self> {
-        if raw.is_null() {
-            None
-        } else {
-            Some(unsafe { Self::from_raw_unchecked(raw) })
-        }
+    pub fn new(ptr: *mut handle::Material) -> Option<Self> {
+        Some(Self(Managed::new(ptr)?))
     }
 
-    pub const unsafe fn from_raw_unchecked(raw: *mut RawMaterial) -> Self {
-        Self(NonNull::new_unchecked(raw))
+    pub unsafe fn new_unchecked(ptr: *mut handle::Material) -> Self {
+        Self(Managed::new_unchecked(ptr))
     }
 
-    pub const fn as_ptr(&self) -> *const RawMaterial {
+    pub fn as_ptr(&self) -> *const handle::Material {
         self.0.as_ptr()
     }
 
-    pub const fn virtual_table(&self) -> *const () {
-        unsafe { *(self.as_ptr() as *const *const ()) }
+    /// Returns a pointer to the first element within the virtual table.
+    pub unsafe fn virtual_table(&self) -> *const () {
+        self.0.virtual_table()
+    }
+
+    /// Returns a pointer to the object at `offset` in the virtual table.
+    pub unsafe fn virtual_offset(&self, offset: usize) -> *const () {
+        self.0.virtual_offset(offset)
+    }
+
+    /// Returns the object at `offset` as a function signature.
+    pub unsafe fn virtual_entry<U>(&self, offset: usize) -> U
+    where
+        U: Sized,
+    {
+        self.0.virtual_entry(offset)
+    }
+
+    /// Returns a pointer to the object at `offset` (in bytes).
+    pub unsafe fn relative_offset(&self, offset: usize) -> *const () {
+        self.0.relative_offset(offset)
+    }
+
+    /// Returns an object at `offset` (in bytes).
+    pub unsafe fn relative_entry<U>(&self, offset: usize) -> U
+    where
+        U: Sized,
+    {
+        self.0.relative_entry(offset)
     }
 
     pub fn var(&self, name: *const i8) -> Option<MaterialVar> {
         let mut found = false;
-        let var = unsafe { self.var_unchecked(name, &mut found, true) };
+        let ptr = unsafe { self.var_unchecked(name, &mut found, true) };
 
         if found {
-            MaterialVar::from_raw(var)
+            MaterialVar::new(ptr)
         } else {
             None
         }
@@ -93,30 +71,30 @@ impl Material {
         name: *const i8,
         found: &mut bool,
         complain: bool,
-    ) -> *mut RawMaterialVar {
-        type Var = unsafe extern "C" fn(
-            this: *const RawMaterial,
+    ) -> *mut handle::MaterialVar {
+        type Fn = unsafe extern "C" fn(
+            this: *const handle::Material,
             name: *const i8,
             found: *mut bool,
             complain: bool,
-        ) -> *mut RawMaterialVar;
+        ) -> *mut handle::MaterialVar;
 
-        virt::get::<Var>(self.virtual_table(), 11 * 8)(self.as_ptr(), name, found, complain)
+        self.virtual_entry::<Fn>(11)(self.as_ptr(), name, found, complain)
     }
 
     pub fn set_alpha(&self, a: f32) {
-        type SetRgb = unsafe extern "C" fn(this: *const RawMaterial, a: f32);
+        type Fn = unsafe extern "C" fn(this: *const handle::Material, a: f32);
 
         unsafe {
-            virt::get::<SetRgb>(self.virtual_table(), 27 * 8)(self.as_ptr(), a);
+            self.virtual_entry::<Fn>(27)(self.as_ptr(), a);
         }
     }
 
     pub fn set_rgb(&self, r: f32, g: f32, b: f32) {
-        type SetRgb = unsafe extern "C" fn(this: *const RawMaterial, r: f32, g: f32, b: f32);
+        type Fn = unsafe extern "C" fn(this: *const handle::Material, r: f32, g: f32, b: f32);
 
         unsafe {
-            virt::get::<SetRgb>(self.virtual_table(), 28 * 8)(self.as_ptr(), r, g, b);
+            self.virtual_entry::<Fn>(28)(self.as_ptr(), r, g, b);
         }
     }
 
@@ -137,10 +115,10 @@ impl Material {
     }
 
     pub fn set_flag(&self, flag: i32, enabled: bool) {
-        type SetFlag = unsafe extern "C" fn(this: *const RawMaterial, flag: i32, enabled: bool);
+        type Fn = unsafe extern "C" fn(this: *const handle::Material, flag: i32, enabled: bool);
 
         unsafe {
-            virt::get::<SetFlag>(self.virtual_table(), 29 * 8)(self.as_ptr(), flag, enabled);
+            self.virtual_entry::<Fn>(29)(self.as_ptr(), flag, enabled);
         }
     }
 
@@ -153,25 +131,29 @@ impl Material {
     }
 
     pub fn get_alpha(&self) -> f32 {
-        type GetAlpha = unsafe extern "C" fn(this: *const RawMaterial, alpha: *mut f32);
+        type Fn = unsafe extern "C" fn(this: *const handle::Material, alpha: *mut f32);
 
         let mut alpha = 0.0;
 
         unsafe {
-            virt::get::<GetAlpha>(self.virtual_table(), 44 * 8)(self.as_ptr(), &mut alpha);
+            self.virtual_entry::<Fn>(44)(self.as_ptr(), &mut alpha);
         }
 
         alpha
     }
 
     pub fn get_rgb(&self) -> [f32; 3] {
-        type GetRgb =
-            unsafe extern "C" fn(this: *const RawMaterial, r: *mut f32, g: *mut f32, b: *mut f32);
+        type Fn = unsafe extern "C" fn(
+            this: *const handle::Material,
+            r: *mut f32,
+            g: *mut f32,
+            b: *mut f32,
+        );
 
         let mut rgb = [0.0; 3];
 
         unsafe {
-            virt::get::<GetRgb>(self.virtual_table(), 45 * 8)(
+            self.virtual_entry::<Fn>(45)(
                 self.as_ptr(),
                 rgb.get_unchecked_mut(0),
                 rgb.get_unchecked_mut(1),
@@ -187,80 +169,5 @@ impl Material {
         let a = self.get_alpha();
 
         [r, g, b, a]
-    }
-}
-
-extern "C" {
-    /// Raw handle to a material.
-    pub type RawMaterialSystem;
-}
-
-unsafe impl Send for RawMaterialSystem {}
-unsafe impl Sync for RawMaterialSystem {}
-
-/// A material.
-#[derive(Debug)]
-#[repr(transparent)]
-pub struct MaterialSystem(NonNull<RawMaterialSystem>);
-
-impl MaterialSystem {
-    pub const fn from_raw(raw: *mut RawMaterialSystem) -> Option<Self> {
-        if raw.is_null() {
-            None
-        } else {
-            Some(unsafe { Self::from_raw_unchecked(raw) })
-        }
-    }
-
-    pub const unsafe fn from_raw_unchecked(raw: *mut RawMaterialSystem) -> Self {
-        Self(NonNull::new_unchecked(raw))
-    }
-
-    pub const fn as_ptr(&self) -> *const RawMaterialSystem {
-        self.0.as_ptr()
-    }
-
-    pub const fn virtual_table(&self) -> *const () {
-        unsafe { *(self.as_ptr() as *const *const ()) }
-    }
-
-    pub fn create(&self, name: *const i8, settings: *const ()) {
-        type Create = unsafe extern "C" fn(
-            this: *const RawMaterialSystem,
-            name: *const i8,
-            settings: *const (),
-        );
-
-        unsafe {
-            virt::get::<Create>(self.virtual_table(), 83 * 8)(self.as_ptr(), name, settings);
-        }
-    }
-
-    pub fn find(
-        &self,
-        name: *const i8,
-        texture_group_name: *const i8,
-        complain: bool,
-        complain_prefix: *const i8,
-    ) -> Option<Material> {
-        type Find = unsafe extern "C" fn(
-            this: *const RawMaterialSystem,
-            name: *const i8,
-            texture_group_name: *const i8,
-            complain: bool,
-            complain_prefix: *const i8,
-        ) -> *mut RawMaterial;
-
-        unsafe {
-            let raw = virt::get::<Find>(self.virtual_table(), 84 * 8)(
-                self.as_ptr(),
-                name,
-                texture_group_name,
-                complain,
-                complain_prefix,
-            );
-
-            Material::from_raw(raw)
-        }
     }
 }

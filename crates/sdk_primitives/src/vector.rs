@@ -43,7 +43,7 @@ impl Vector {
 
     pub fn to_angle(self) -> Angle {
         let mut yaw = 0.0;
-        let mut pitch = 0.0;
+        let mut pitch;
 
         if self.x == 0.0 && self.y == 0.0 {
             if self.z > 0.0 {
@@ -85,7 +85,7 @@ impl Vector {
         let new_y = this.x * sin + this.y * cos;
 
         this.x = new_x + origin.x;
-        this.y = new_x + origin.y;
+        this.y = new_y + origin.y;
         this
     }
 

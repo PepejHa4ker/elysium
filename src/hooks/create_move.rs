@@ -1,5 +1,5 @@
 use crate::command::Command;
-use crate::entity::Entity;
+use crate::entity::Player;
 use crate::global::Global;
 use crate::movement::Movement;
 
@@ -31,8 +31,6 @@ pub unsafe extern "C" fn hook(
     let original_side = command.side_move;
 
     if let Some(local_player) = global.local_player() {
-        //println!("old = {:?}", command);
-
         if global.last_command_has_been_predicted() {
             global.set_tick(local_player.tick_base());
         } else {
@@ -53,7 +51,7 @@ pub unsafe extern "C" fn hook(
             do_jump: command.in_jump(),
             do_duck: command.in_duck(),
             do_fast_duck: command.in_fast_duck(),
-            local_player: (local_player as *const Entity).read(),
+            local_player: (local_player as *const Player).read(),
             client_time: global.client_time(),
             prediction_time: local_player.tick_base() as f32 * global.interval_per_tick(),
             server_time: global.tick() as f32 * global.interval_per_tick(),
@@ -101,8 +99,6 @@ pub unsafe extern "C" fn hook(
 
     command.side_move =
         delta_radian.sin() * original_forward + delta_radian_90.sin() * original_side;
-
-    //println!("new = {:?}", command);
 
     return false;
 }

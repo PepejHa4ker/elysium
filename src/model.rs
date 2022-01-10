@@ -1,7 +1,7 @@
-use crate::material::{Material, RawMaterial};
+use crate::managed::{handle, Managed};
+use crate::material::Material;
 use core::marker::PhantomData;
 use core::ptr;
-use core::ptr::NonNull;
 use sdk::{Angle, Matrix3x4, Pad, Vector};
 use spirit::Str;
 
@@ -202,63 +202,77 @@ pub struct Hdr {
     _pad1: Pad<16>,
 }
 
-extern "C" {
-    /// Raw handle to model info.
-    pub type RawModelInfo;
-}
-
-unsafe impl Send for RawModelInfo {}
-unsafe impl Sync for RawModelInfo {}
-
-/// Model info.
+/// Model info interface.
 #[derive(Debug)]
 #[repr(transparent)]
-pub struct ModelInfo(NonNull<RawModelInfo>);
+pub struct ModelInfo(Managed<handle::ModelInfo>);
 
 impl ModelInfo {
-    pub(crate) const fn from_raw(raw: *mut RawModelInfo) -> Option<Self> {
-        if raw.is_null() {
-            None
-        } else {
-            Some(unsafe { Self::from_raw_unchecked(raw) })
-        }
+    pub fn new(ptr: *mut handle::ModelInfo) -> Option<Self> {
+        Some(Self(Managed::new(ptr)?))
     }
 
-    pub(crate) const unsafe fn from_raw_unchecked(raw: *mut RawModelInfo) -> Self {
-        Self(NonNull::new_unchecked(raw))
+    pub unsafe fn new_unchecked(ptr: *mut handle::ModelInfo) -> Self {
+        Self(Managed::new_unchecked(ptr))
     }
 
-    pub(crate) const fn as_ptr(&self) -> *const RawModelInfo {
+    pub fn as_ptr(&self) -> *const handle::ModelInfo {
         self.0.as_ptr()
     }
 
-    pub(crate) const fn virtual_table(&self) -> *const () {
-        unsafe { *(self.as_ptr() as *const *const ()) }
+    /// Returns a pointer to the first element within the virtual table.
+    pub unsafe fn virtual_table(&self) -> *const () {
+        self.0.virtual_table()
+    }
+
+    /// Returns a pointer to the object at `offset` in the virtual table.
+    pub unsafe fn virtual_offset(&self, offset: usize) -> *const () {
+        self.0.virtual_offset(offset)
+    }
+
+    /// Returns the object at `offset` as a function signature.
+    pub unsafe fn virtual_entry<U>(&self, offset: usize) -> U
+    where
+        U: Sized,
+    {
+        self.0.virtual_entry(offset)
+    }
+
+    /// Returns a pointer to the object at `offset` (in bytes).
+    pub unsafe fn relative_offset(&self, offset: usize) -> *const () {
+        self.0.relative_offset(offset)
+    }
+
+    /// Returns an object at `offset` (in bytes).
+    pub unsafe fn relative_entry<U>(&self, offset: usize) -> U
+    where
+        U: Sized,
+    {
+        self.0.relative_entry(offset)
     }
 
     pub fn index_of(&self, filename: *const i8) -> i32 {
-        type IndexOf = unsafe extern "C" fn(this: *const RawModelInfo, filename: *const i8) -> i32;
+        type Fn = unsafe extern "C" fn(this: *const handle::ModelInfo, filename: *const i8) -> i32;
 
-        unsafe { virt::get::<IndexOf>(self.virtual_table(), 3 * 8)(self.as_ptr(), filename) }
+        unsafe { self.virtual_entry::<Fn>(3)(self.as_ptr(), filename) }
     }
 
     pub fn name_of<'a>(&'a self, model: &Model) -> &'a Str {
-        type NameOf =
-            unsafe extern "C" fn(this: *const RawModelInfo, model: *const Model) -> *const u8;
+        type Fn =
+            unsafe extern "C" fn(this: *const handle::ModelInfo, model: *const Model) -> *const u8;
 
         unsafe {
-            Str::new(virt::get::<NameOf>(self.virtual_table(), 4 * 8)(
-                self.as_ptr(),
-                model,
-            ))
+            let ptr = self.virtual_entry::<Fn>(4)(self.as_ptr(), model);
+
+            Str::new(ptr)
         }
     }
 
     pub fn studio_model_of(&self, model: &Model) -> *const Hdr {
-        type StdioModelOf =
-            unsafe extern "C" fn(this: *const RawModelInfo, model: *const Model) -> *const Hdr;
+        type Fn =
+            unsafe extern "C" fn(this: *const handle::ModelInfo, model: *const Model) -> *const Hdr;
 
-        unsafe { virt::get::<StdioModelOf>(self.virtual_table(), 31 * 8)(self.as_ptr(), model) }
+        unsafe { self.virtual_entry::<Fn>(31)(self.as_ptr(), model) }
     }
 }
 
@@ -302,38 +316,53 @@ pub struct ModelRenderInfo {
     pub instance: *const (),
 }
 
-extern "C" {
-    /// Raw handle to model renderer.
-    pub type RawModelRender;
-}
-
-unsafe impl Send for RawModelRender {}
-unsafe impl Sync for RawModelRender {}
-
-/// Model renderer.
+/// Model renderer interface.
 #[derive(Debug)]
 #[repr(transparent)]
-pub struct ModelRender(NonNull<RawModelRender>);
+pub struct ModelRender(Managed<handle::ModelRender>);
 
 impl ModelRender {
-    pub const fn from_raw(raw: *mut RawModelRender) -> Option<Self> {
-        if raw.is_null() {
-            None
-        } else {
-            Some(unsafe { Self::from_raw_unchecked(raw) })
-        }
+    pub fn new(ptr: *mut handle::ModelRender) -> Option<Self> {
+        Some(Self(Managed::new(ptr)?))
     }
 
-    pub const unsafe fn from_raw_unchecked(raw: *mut RawModelRender) -> Self {
-        Self(NonNull::new_unchecked(raw))
+    pub unsafe fn new_unchecked(ptr: *mut handle::ModelRender) -> Self {
+        Self(Managed::new_unchecked(ptr))
     }
 
-    pub const fn as_ptr(&self) -> *const RawModelRender {
+    pub fn as_ptr(&self) -> *const handle::ModelRender {
         self.0.as_ptr()
     }
 
-    pub const fn virtual_table(&self) -> *const () {
-        unsafe { *(self.as_ptr() as *const *const ()) }
+    /// Returns a pointer to the first element within the virtual table.
+    pub unsafe fn virtual_table(&self) -> *const () {
+        self.0.virtual_table()
+    }
+
+    /// Returns a pointer to the object at `offset` in the virtual table.
+    pub unsafe fn virtual_offset(&self, offset: usize) -> *const () {
+        self.0.virtual_offset(offset)
+    }
+
+    /// Returns the object at `offset` as a function signature.
+    pub unsafe fn virtual_entry<U>(&self, offset: usize) -> U
+    where
+        U: Sized,
+    {
+        self.0.virtual_entry(offset)
+    }
+
+    /// Returns a pointer to the object at `offset` (in bytes).
+    pub unsafe fn relative_offset(&self, offset: usize) -> *const () {
+        self.0.relative_offset(offset)
+    }
+
+    /// Returns an object at `offset` (in bytes).
+    pub unsafe fn relative_entry<U>(&self, offset: usize) -> U
+    where
+        U: Sized,
+    {
+        self.0.relative_entry(offset)
     }
 
     pub fn set_material(&self, material: &Material) {
@@ -343,14 +372,16 @@ impl ModelRender {
     }
 
     pub fn reset_material(&self) {
-        unsafe { self.material_override_unchecked(ptr::null::<()>() as *const RawMaterial) }
+        unsafe { self.material_override_unchecked(ptr::null::<()>() as *const handle::Material) }
     }
 
-    pub unsafe fn material_override_unchecked(&self, material: *const RawMaterial) {
-        type MaterialOverride =
-            unsafe extern "C" fn(this: *const RawModelRender, material: *const RawMaterial);
+    pub unsafe fn material_override_unchecked(&self, material: *const handle::Material) {
+        type Fn = unsafe extern "C" fn(
+            this: *const handle::ModelRender,
+            material: *const handle::Material,
+        );
 
-        virt::get::<MaterialOverride>(self.virtual_table(), 1 * 8)(self.as_ptr(), material)
+        self.virtual_entry::<Fn>(1)(self.as_ptr(), material)
     }
 
     pub fn draw_model(
@@ -361,7 +392,7 @@ impl ModelRender {
         bone_to_world: &Matrix3x4,
     ) {
         type DrawModel = unsafe extern "C" fn(
-            this: *const RawModelRender,
+            this: *const handle::ModelRender,
             context: *const (),
             state: *const DrawModelState,
             info: *const ModelRenderInfo,
@@ -369,13 +400,7 @@ impl ModelRender {
         );
 
         unsafe {
-            virt::get::<DrawModel>(self.virtual_table(), 21 * 8)(
-                self.as_ptr(),
-                context,
-                state,
-                info,
-                bone_to_world,
-            )
+            self.virtual_entry::<DrawModel>(21)(self.as_ptr(), context, state, info, bone_to_world)
         }
     }
 }

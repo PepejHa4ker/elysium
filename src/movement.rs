@@ -1,4 +1,4 @@
-use crate::entity::Entity;
+use crate::entity::Player;
 use sdk::Angle;
 
 #[derive(Debug)]
@@ -13,7 +13,7 @@ pub struct Movement {
     pub do_jump: bool,
     pub do_duck: bool,
     pub do_fast_duck: bool,
-    pub local_player: Entity,
+    pub local_player: Player,
     pub client_time: f32,
     pub prediction_time: f32,
     pub server_time: f32,

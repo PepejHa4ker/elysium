@@ -2,7 +2,6 @@
 #![feature(const_fn_trait_bound)]
 #![feature(const_precise_live_drops)]
 #![feature(const_ptr_offset)]
-#![feature(const_raw_ptr_deref)]
 #![feature(const_refs_to_cell)]
 #![feature(const_trait_impl)]
 #![feature(crate_visibility_modifier)]
