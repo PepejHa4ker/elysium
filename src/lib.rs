@@ -321,19 +321,16 @@ fn trace_to_exit(
         );
 
         if exit_summary.start_solid && (exit_summary.surface.flags & SURF_HITBOX as u16) != 0 {
-            let skip_entity = match exit_summary.entity_hit.as_ref() {
-                Some(entity) => {
-                    Some(unsafe { Entity::new_unchecked(entity.as_ptr() as *mut handle::Entity) })
-                }
-                None => None,
-            };
+            let skip_entity = crate::trace::Filter::new(exit_summary.entity_hit);
 
-            global.ray_tracer().trace_mut(
-                &Ray::new(*end, start),
-                (MASK_SHOT_HULL | CONTENTS_HITBOX) as _,
-                skip_entity.as_ref(),
-                exit_summary,
-            );
+            unsafe {
+                global.ray_tracer().raw_trace(
+                    &Ray::new(*end, start),
+                    (MASK_SHOT_HULL | CONTENTS_HITBOX) as _,
+                    &skip_entity,
+                    exit_summary,
+                );
+            }
 
             if (exit_summary.fraction <= 1.0 || exit_summary.all_solid) && !exit_summary.start_solid
             {
@@ -348,7 +345,7 @@ fn trace_to_exit(
         if !(exit_summary.fraction <= 1.0 || exit_summary.all_solid || exit_summary.start_solid)
             || exit_summary.start_solid
         {
-            if let None = exit_summary.entity_hit {
+            if exit_summary.entity_hit.is_null() {
                 return true;
             }
 
@@ -369,6 +366,8 @@ fn trace_to_exit(
     false
 }
 
+#[derive(Debug)]
+#[repr(C)]
 pub struct ShotData {
     pub source: Vector,
     pub enter_summary: Summary,
@@ -396,16 +395,21 @@ impl ShotData {
 
     pub fn handle_bullet_penetration(&mut self, weapon: &Weapon) -> bool {
         let global = Global::handle();
+
+        if self.enter_summary.surface.properties < 1 {
+            return true;
+        }
+
         let surface = match global
             .physics()
-            .query(self.enter_summary.surface.index as i32)
+            .query(self.enter_summary.surface.properties as i32)
         {
             Some(surface) => surface,
             None => return true,
         };
 
-        let enter_material = surface.material;
-        let enter_penetration_modifier = surface.penetration_modifier;
+        let enter_material = surface.properties.material;
+        let enter_penetration_modifier = surface.properties.penetration_modifier;
 
         self.trace_length += self.trace_length_remaining * self.enter_summary.fraction;
         self.current_damage *= weapon.range_modifier().powf(self.trace_length * 0.002);
@@ -431,13 +435,20 @@ impl ShotData {
             return false;
         }
 
-        let surface = match global.physics().query(exit_summary.surface.index as _) {
+        if exit_summary.surface.properties < 1 {
+            return true;
+        }
+
+        let surface = match global
+            .physics()
+            .query(exit_summary.surface.properties as i32)
+        {
             Some(surface) => surface,
             None => return true,
         };
 
-        let exit_material = surface.material;
-        let exit_penetration_modifier = surface.penetration_modifier;
+        let exit_material = surface.properties.material;
+        let exit_penetration_modifier = surface.properties.penetration_modifier;
         let mut final_damage_modifier: f32 = 0.16;
         let mut combined_penetration_modifier: f32 = 0.0;
 
@@ -505,8 +516,6 @@ impl ShotData {
             let end = self.source + self.direction * self.trace_length_remaining;
             let new_end = end + self.direction * 40.0;
 
-            println!("before tracing");
-
             global.ray_tracer().trace_mut(
                 &Ray::new(self.source, end),
                 MASK_SHOT as _,
@@ -565,11 +574,9 @@ fn main() -> Result<()> {
 
     global.on_frame(move |frame| {
         if let Some(local_player) = global2.local_player() {
-            println!("{:?}", frame);
-
             match frame {
                 Frame::RENDER_START => {
-                    // no recoil / punch
+                    // No recoil / no punch.
                     global2.set_aim_punch_angle(local_player.actual_aim_punch_angle());
                     global2.set_view_punch_angle(local_player.actual_view_punch_angle());
 
@@ -581,7 +588,7 @@ fn main() -> Result<()> {
                     }
                 }
                 Frame::RENDER_END => {
-                    // restore no recoil / punch
+                    // Restore aim and view punch to not break things.
                     local_player.set_aim_punch_angle(global2.aim_punch_angle());
                     local_player.set_view_punch_angle(global2.view_punch_angle());
                 }
@@ -598,12 +605,17 @@ fn main() -> Result<()> {
     });
 
     global.on_move(move |mut movement| {
-        let max_desync = movement.local_player.max_desync_angle();
-        let max_desync = 270.0;
-        let eye_yaw_on_send = global3.engine().view_angle().yaw;
-        let eye_yaw_on_choke = eye_yaw_on_send + (max_desync * 2.0);
-        let real_yaw = eye_yaw_on_send + max_desync;
-        let fake_yaw = eye_yaw_on_send - max_desync;
+        let max_desync = (movement.local_player.max_desync_angle() % 58.0 + 59.0) % 58.0;
+
+        let yaw_modifier = if movement.tick_count & 1 == 0 {
+            45.0
+        } else {
+            -45.0
+        };
+
+        let engine_yaw = global3.engine().view_angle().yaw;
+        let server_yaw = engine_yaw + 180.0 + yaw_modifier + max_desync;
+        let client_yaw = server_yaw - (max_desync * 2.0);
 
         movement.do_fast_duck = movement.do_duck;
 
@@ -621,14 +633,94 @@ fn main() -> Result<()> {
             choked_packets.increment();
         }
 
-        if !(movement.do_attack
-            || movement.local_player.on_ladder()
-            || movement.local_player.is_noclip())
-        {
+        if let Some(weapon) = movement.local_player.weapon() {
+            if let Some(ammo) = weapon.ammo() {
+                if ammo == 0 {
+                    movement.do_attack = false;
+                }
+            }
+        }
+
+        use crate::entity::Player;
+
+        if let Some(weapon) = movement.local_player.weapon() {
+            let mut closest_delta = f32::MAX;
+            let mut closest_angle = Angle::zero();
+
+            for i in 1..global3.globals().max_clients {
+                let entity = unsafe { global3.entity_list().get_unchecked(i) };
+
+                if entity.is_null() {
+                    continue;
+                }
+
+                let entity = unsafe { Entity::new_unchecked(entity) };
+
+                if entity.is_dormant() {
+                    //println!("{i:?} is dormant");
+                    continue;
+                }
+
+                if !entity.is_player() {
+                    println!("{i:?} is not a player");
+                    continue;
+                }
+
+                let enemy = unsafe { Player::new_unchecked(entity.as_ptr() as *mut _) };
+
+                if enemy.is_dead() {
+                    println!("{i:?} is dead");
+                    continue;
+                }
+
+                if enemy.is_immune() {
+                    println!("{i:?} no point in shooting immortal enemies.");
+                    continue;
+                }
+
+                let eye_origin = movement.local_player.eye_origin();
+                let enemy_origin = enemy.eye_origin();
+
+                if !eye_origin.is_finite() {
+                    continue;
+                }
+
+                if !enemy_origin.is_finite() {
+                    continue;
+                }
+
+                let current_angle =
+                    Angle::with_angles(eye_origin, enemy_origin) - movement.view_angle;
+
+                if !current_angle.is_finite() {
+                    continue;
+                }
+
+                let current_delta = current_angle.magnitude();
+
+                if !current_delta.is_finite() {
+                    continue;
+                }
+
+                if current_delta > closest_delta {
+                    continue;
+                }
+
+                closest_delta = current_delta;
+                closest_angle = current_angle;
+            }
+
+            movement.view_angle = movement.view_angle + closest_angle;
+            movement.view_angle =
+                movement.view_angle - (movement.local_player.aim_punch_angle() * 2.0);
+        }
+
+        /*if movement.do_attack {
+        } else if !(movement.local_player.on_ladder() || movement.local_player.is_noclip()) {
             if movement.send_packet {
-                movement.view_angle.yaw = eye_yaw_on_send;
+                movement.view_angle.yaw = server_yaw;
             } else {
-                movement.view_angle.yaw = eye_yaw_on_choke;
+                movement.view_angle.yaw = client_yaw;
             }
 
             if movement.side_move.abs() < 5.0 {
@@ -646,9 +738,9 @@ fn main() -> Result<()> {
                     };
                 }
             }
-        }
 
-        movement.view_angle = movement.view_angle - (movement.local_player.aim_punch_angle() * 2.0);
+            movement.view_angle.pitch = 89.0;
+        }*/
 
         /*print!(
                     "max_desync_angle={:.2?} ",
@@ -669,34 +761,13 @@ fn main() -> Result<()> {
                 print!("view_offset={:.2?} ", movement.local_player.view_offset());
         */
 
-        if let Some(weapon) = movement.local_player.weapon() {
-            let mut shot_data = ShotData::new();
-            // todo fix segfault
-            //let damage = shot_data.simulate_shot(&weapon);
-
-            //println!("{damage:?}");
-
-            /*global3.ray_tracer().trace(
-                &Ray::new(Vector::new(0.0, 0.0, 0.0), Vector::new(0.0, 0.0, 0.0)),
-                MASK_SHOT as _,
-                Some(&movement.local_player.as_entity()),
-            );*/
-
-            if movement.do_attack == true {
-                if let Some(time) = weapon.revolver_cock_time() {
-                    if time - 1.0 < movement.client_time {
-                        movement.do_attack = false;
-                    }
-                }
-            }
-        }
-
         thirdperson_angle2.set(Angle {
-            yaw: if movement.do_attack {
+            /*yaw: if movement.do_attack {
                 movement.view_angle.yaw
             } else {
                 fake_yaw
-            },
+            },*/
+            yaw: movement.view_angle.yaw,
             ..movement.view_angle
         });
 

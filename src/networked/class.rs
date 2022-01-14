@@ -2,22 +2,25 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum Class {
-    /// DT_BaseAnimating
+    /// `DT_BaseAnimating`
     BaseAnimating,
 
-    /// DT_BaseEntity
+    /// `DT_BaseEntity`
     BaseEntity,
 
-    /// DT_BasePlayer
+    /// `DT_BasePlayer`
     BasePlayer,
 
-    /// DT_BaseCombatWeapon
+    /// `DT_BaseCombatWeapon`
     BaseWeapon,
 
-    /// DT_CSPlayer
+    /// `DT_BaseAttributableItem`
+    Item,
+
+    /// `DT_CSPlayer`
     Player,
 
-    /// DT_WeaponCSBase
+    /// `DT_WeaponCSBase`
     Weapon,
 }
 
@@ -26,6 +29,7 @@ static CLASSES: phf::Map<&'static str, Class> = phf::phf_map! {
     "DT_BaseEntity" => Class::BaseEntity,
     "DT_BasePlayer" => Class::BasePlayer,
     "DT_BaseCombatWeapon" => Class::BaseWeapon,
+    "DT_BaseAttributableItem" => Class::Item,
     "DT_CSPlayer" => Class::Player,
     "DT_WeaponCSBase" => Class::Weapon,
 };
@@ -43,8 +47,10 @@ impl Class {
             Class::BaseEntity => "DT_BaseEntity",
             Class::BasePlayer => "DT_BasePlayer",
             Class::BaseWeapon => "DT_BaseCombatWeapon",
+            Class::Item => "DT_BaseAttributableItem",
             Class::Player => "DT_CSPlayer",
             Class::Weapon => "DT_WeaponCSBase",
+            _ => "(none)",
         }
     }
 }

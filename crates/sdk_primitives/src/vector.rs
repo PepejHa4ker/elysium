@@ -131,6 +131,14 @@ impl Vector {
     fn from_vec3(Vec3 { x, y, z }: Vec3<f32>) -> Self {
         Self::new(x, y, z)
     }
+
+    pub fn is_finite(self) -> bool {
+        self.x.is_finite() && self.y.is_finite() && self.z.is_finite()
+    }
+
+    pub fn is_normal(self) -> bool {
+        self.x.is_normal() && self.y.is_normal() && self.z.is_normal()
+    }
 }
 
 impl Add<Self> for Vector {

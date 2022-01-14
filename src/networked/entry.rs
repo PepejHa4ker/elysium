@@ -2,76 +2,79 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum Entry {
-    /// m_aimPunchAngle
+    /// `m_aimPunchAngle`
     AimPunchAngle,
 
-    /// m_iClip1
+    /// `m_iClip1`
     Ammo,
 
-    /// m_ArmorValue
+    /// `m_ArmorValue`
     Armor,
 
-    /// m_bClientSideAnimation
+    /// `m_bClientSideAnimation`
     ClientSideAnimation,
 
-    /// m_angEyeAngles[0]
+    /// `m_angEyeAngles[0]`
     EyeAngle,
 
-    /// m_fFlags
+    /// `m_fFlags`
     Flags,
 
-    /// m_bHasDefuser
+    /// `m_bHasDefuser`
     HasDefuseKit,
 
-    /// m_bHasHelmet
+    /// `m_bHasHelmet`
     HasHelmet,
 
-    /// m_iHealth
+    /// `m_iHealth`
     Health,
 
-    /// m_bInReload
+    /// `m_iItemDefinitionIndex`
+    Index,
+
+    /// `m_bInReload`
     InReload,
 
-    /// deadflag
+    /// `deadflag`
     IsDead,
 
-    /// m_bGunGameImmunity
+    /// `m_bGunGameImmunity`
     IsImmune,
 
-    /// m_bIsScoped
+    /// `m_bIsScoped`
     IsScoped,
 
-    /// m_iAccount
+    /// `m_iAccount`
     Money,
 
-    /// m_flNextPrimaryAttack
+    /// `m_flNextPrimaryAttack`
     NextAttackAvailableAfter,
 
-    /// m_flLowerBodyYawTarget
+    /// `m_flLowerBodyYawTarget`
     LowerBodyYawTarget,
 
-    /// m_hObserverTarget
+    /// `m_hObserverTarget`
     ObserverTarget,
 
-    /// m_nRenderMode
+    /// `m_nRenderMode`
     RenderMode,
 
-    /// m_flPostponeFireReadyTime
+    /// `m_flPostponeFireReadyTime`
     RevolverCockTime,
 
-    /// m_nTickBase
+    /// `m_nTickBase`
     TickBase,
 
-    /// m_vecVelocity[0]
+    /// `m_vecVelocity[0]`
     Velocity,
 
-    /// m_vecViewOffset[0]
+    /// `m_vecViewOffset[0]`
     ViewOffset,
 
-    /// m_viewPunchAngle
+    /// `m_viewPunchAngle`
     ViewPunchAngle,
 
-    /// m_hActiveWeapon
+    /// `m_hActiveWeapon`
     Weapon,
 }
 
@@ -84,6 +87,7 @@ static ENTRIES: phf::Map<&'static str, Entry> = phf::phf_map! {
     "m_fFlags" => Entry::Flags,
     "m_bHasDefuser" => Entry::HasDefuseKit,
     "m_iHealth" => Entry::Health,
+    "m_iItemDefinitionIndex" => Entry::Index,
     "m_bInReload" => Entry::InReload,
     "deadflag" => Entry::IsDead,
     "m_bHasHelmet" => Entry::HasHelmet,
@@ -120,6 +124,7 @@ impl Entry {
             Entry::HasDefuseKit => "m_bHasDefuser",
             Entry::HasHelmet => "m_bHasHelmet",
             Entry::Health => "m_iHealth",
+            Entry::Index => "m_iItemDefinitionIndex",
             Entry::InReload => "m_bInReload",
             Entry::IsDead => "deadflag",
             Entry::IsImmune => "m_bGunGameImmunity",
@@ -135,6 +140,7 @@ impl Entry {
             Entry::ViewOffset => "m_vecViewOffset[0]",
             Entry::ViewPunchAngle => "m_viewPunchAngle",
             Entry::Weapon => "m_hActiveWeapon",
+            _ => "(none)",
         }
     }
 }

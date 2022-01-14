@@ -1,6 +1,7 @@
 use crate::F32Ext;
+use crate::Vector;
 use core::ops::{Add, Div, Mul, Sub};
-use vek::vec::repr_simd::Vec2;
+use vek::vec::repr_simd::{Vec2, Vec3};
 
 /// euler angles
 #[derive(Clone, Copy, Debug)]
@@ -100,6 +101,50 @@ impl Angle {
     #[inline]
     fn from_vec2(Vec2 { x, y }: Vec2<f32>) -> Self {
         Self::new(x, y)
+    }
+
+    /// calculate the magnitude of this vector
+    pub fn magnitude(self) -> f32 {
+        Vec3::new(self.pitch, self.yaw, self.roll).magnitude()
+    }
+
+    /// calculate the magnitude without squaring
+    pub fn magnitude_squared(self) -> f32 {
+        Vec3::new(self.pitch, self.yaw, self.roll).magnitude_squared()
+    }
+
+    /// calculate the magnitude of y and x of this vector
+    pub fn magnitude2d(self) -> f32 {
+        Vec2::new(self.pitch, self.yaw).magnitude()
+    }
+
+    /// calculate the 2d magnitude without squaring
+    pub fn magnitude2d_squared(self) -> f32 {
+        Vec2::new(self.pitch, self.yaw).magnitude_squared()
+    }
+
+    pub fn is_finite(self) -> bool {
+        self.pitch.is_finite() && self.yaw.is_finite() && self.roll.is_finite()
+    }
+
+    pub fn is_normal(self) -> bool {
+        self.pitch.is_normal() && self.yaw.is_normal() && self.roll.is_normal()
+    }
+
+    pub fn with_angles(src: Vector, dst: Vector) -> Angle {
+        let mut angle = Angle::zero();
+        let delta = src - dst;
+        let hypot = delta.x.hypot(delta.y);
+
+        angle.pitch = (delta.z / hypot).atan().to_degrees();
+        angle.yaw = (delta.y / delta.x).atan().to_degrees();
+        angle.roll = 0.0;
+
+        if delta.x >= 0.0 {
+            angle.yaw += 180.0;
+        }
+
+        angle
     }
 }
 

@@ -3,16 +3,28 @@ use sdk::Pad;
 
 #[derive(Debug)]
 #[repr(C)]
-pub struct Surface {
+pub struct SurfacePhysics {
     pub friction: f32,
     pub elasticity: f32,
     pub density: f32,
     pub thickness: f32,
     pub dampening: f32,
-    _pad0: Pad<68>,
+}
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct SurfaceProperties {
     pub penetration_modifier: f32,
     pub damage_modifier: f32,
     pub material: u16,
+}
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct Surface {
+    pub physics: SurfacePhysics,
+    _pad0: Pad<68>,
+    pub properties: SurfaceProperties,
 }
 
 /// Physics.
@@ -68,7 +80,7 @@ impl Physics {
         type Fn = unsafe extern "C" fn(this: *const handle::Physics, index: i32) -> *const Surface;
 
         unsafe {
-            let ptr = self.virtual_entry::<Fn>(5)(self.as_ptr(), index);
+            let ptr = self.virtual_entry::<Fn>(4)(self.as_ptr(), index);
 
             if ptr.is_null() {
                 None

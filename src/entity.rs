@@ -6,7 +6,7 @@ use core::cmp;
 use sdk::{Matrix3x4, Vector};
 
 pub use id::EntityId;
-pub use list::{EntityList, Iter};
+pub use list::EntityList;
 pub use player::Player;
 pub use weapon::Weapon;
 pub use weapon_info::WeaponInfo;
@@ -116,7 +116,11 @@ impl Entity {
     pub fn is_dormant(&self) -> bool {
         type Fn = unsafe extern "C" fn(this: *const ()) -> bool;
 
-        unsafe { self.networkable_virtual_entry::<Fn>(2)(self.networkable()) }
+        unsafe {
+            let this = (self.as_ptr() as *const u8).add(10) as *const ();
+
+            mem::virtual_entry::<Fn>(this, 9)(this)
+        }
     }
 
     /// Index of this entity in the engine
@@ -195,7 +199,7 @@ impl Entity {
     pub fn is_player(&self) -> bool {
         type Fn = unsafe extern "C" fn(this: *const handle::Entity) -> bool;
 
-        unsafe { self.relative_entry::<Fn>(157)(self.as_ptr()) }
+        unsafe { self.virtual_entry::<Fn>(157)(self.as_ptr()) }
     }
 }
 

@@ -1,5 +1,5 @@
 use core::ptr;
-use sdk::{Matrix3x4, Vector};
+use sdk::{Matrix3x4, Pad, Vector};
 
 /// Ray to be traced.
 #[derive(Debug)]
@@ -7,10 +7,9 @@ use sdk::{Matrix3x4, Vector};
 #[repr(C)]
 pub struct Ray {
     pub start: Vector,
+    _pad0: Pad<4>,
     pub delta: Vector,
-    pub start_offset: Vector,
-    pub extents: Vector,
-    pub world_axis_transform: *const Matrix3x4,
+    _pad1: Pad<44>,
     pub is_ray: bool,
     pub is_swept: bool,
 }
@@ -18,38 +17,14 @@ pub struct Ray {
 impl Ray {
     pub fn new(start: Vector, end: Vector) -> Self {
         let delta = end - start;
-        let start_offset = Vector::zero();
-        let extents = Vector::zero();
-        let world_axis_transform = ptr::null();
         let is_ray = true;
         let is_swept = delta.magnitude() != 0.0;
 
         Self {
             start,
+            _pad0: Pad::zeroed(),
             delta,
-            start_offset,
-            extents,
-            world_axis_transform,
-            is_ray,
-            is_swept,
-        }
-    }
-
-    pub fn with_extents(start: Vector, end: Vector, min: Vector, max: Vector) -> Self {
-        let delta = end - start;
-        let start_offset = (max + min) * 5.0;
-        let extents = (max - min) * 0.5;
-        let world_axis_transform = ptr::null();
-        let is_ray = extents.magnitude() < 1e-6;
-        let is_swept = delta.magnitude() != 0.0;
-        let start = (start + start_offset) * -1.0;
-
-        Self {
-            start,
-            delta,
-            start_offset,
-            extents,
-            world_axis_transform,
+            _pad1: Pad::zeroed(),
             is_ray,
             is_swept,
         }

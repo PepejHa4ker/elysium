@@ -101,6 +101,16 @@ impl Weapon {
         unsafe { self.virtual_entry::<Fn>(521)(self.as_ptr()) }
     }
 
+    /// Gets the item index of this weapon.
+    pub fn item_index(&self) -> i32 {
+        unsafe {
+            let index: i32 = self.relative_entry(Global::handle().networked().item().index());
+
+            // Strip skin bits, etc.
+            index & 0xFFF
+        }
+    }
+
     /// Gets the weapons radius of spread (in radians).
     pub fn spread(&self) -> f32 {
         // spread + inaccuracy

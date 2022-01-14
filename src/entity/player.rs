@@ -1,6 +1,7 @@
 use super::{Entity, Weapon};
 use crate::global::Global;
 use crate::managed::handle;
+use crate::model::Model;
 use core::cmp;
 use sdk::{Angle, AnimationLayer, AnimationState, Vector};
 
@@ -63,9 +64,14 @@ impl Player {
         self.0.relative_entry(offset)
     }
 
-    /// Player's flags.
-    pub fn flags(&self) -> i32 {
+    /// Returns the player's flags.
+    fn flags(&self) -> i32 {
         unsafe { self.relative_entry(Global::handle().networked().player().flags()) }
+    }
+
+    /// If the player's flags has `flag` set.
+    fn has_flag(&self, flag: i32) -> bool {
+        (self.flags() & flag) != 0
     }
 
     /// Player's movement kind.
@@ -73,8 +79,14 @@ impl Player {
         self.0.move_kind()
     }
 
-    fn has_flag(&self, flag: i32) -> bool {
-        (self.flags() & flag) != 0
+    /// Is this player in water.
+    pub fn in_water(&self) -> bool {
+        self.has_flag(IN_WATER)
+    }
+
+    /// Index of this player in the engine.
+    pub fn index(&self) -> i32 {
+        self.0.index()
     }
 
     /// Is this player ducking.
@@ -82,9 +94,9 @@ impl Player {
         self.has_flag(DUCKING)
     }
 
-    /// Is this player in water.
-    pub fn in_water(&self) -> bool {
-        self.has_flag(IN_WATER)
+    /// Is this player dormant.
+    pub fn is_dormant(&self) -> bool {
+        self.0.is_dormant()
     }
 
     /// Is this player jumping in water.
@@ -184,12 +196,32 @@ impl Player {
         unsafe { self.relative_entry(Global::handle().networked().player().eye_angle()) }
     }
 
+    pub fn eye_origin(&self) -> Vector {
+        let origin = self.origin();
+        let view_offset = self.view_offset();
+        let view_offset = if view_offset.z > 0.0 {
+            view_offset
+        } else {
+            Vector::new(0.0, 0.0, if self.is_ducking() { 46.0 } else { 64.0 })
+        };
+
+        origin + view_offset
+    }
+
     pub fn view_offset(&self) -> Vector {
         unsafe { self.relative_entry(Global::handle().networked().base_player().view_offset()) }
     }
 
     pub fn has_defuse_kit(&self) -> bool {
         unsafe { self.relative_entry(Global::handle().networked().player().has_defuse_kit()) }
+    }
+
+    pub fn model(&self) -> Option<&Model> {
+        self.0.model()
+    }
+
+    pub fn origin(&self) -> Vector {
+        self.0.origin()
     }
 
     // Returns a pointer to the aim punch angle.
@@ -268,10 +300,6 @@ impl Player {
 
     pub fn health(&self) -> i32 {
         unsafe { self.relative_entry(Global::handle().networked().base_player().health()) }
-    }
-
-    pub fn index(&self) -> i32 {
-        self.0.index()
     }
 
     pub fn money(&self) -> i32 {

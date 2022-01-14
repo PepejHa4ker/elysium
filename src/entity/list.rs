@@ -51,55 +51,40 @@ impl EntityList {
         self.0.relative_entry(offset)
     }
 
-    pub fn get(&self, index: i32) -> Option<Entity> {
-        type Fn = unsafe extern "C" fn(this: *const handle::EntityList, i32) -> *mut handle::Entity;
+    // `GetClientNetworkable(index)->GetIClientEntity()`
+    pub unsafe fn get_unchecked(&self, index: i32) -> *mut handle::Entity {
+        type Fn = unsafe extern "C" fn(
+            this: *const handle::EntityList,
+            index: i32,
+        ) -> *mut handle::Entity;
 
+        unsafe { self.virtual_entry::<Fn>(3)(self.as_ptr(), index) }
+    }
+
+    pub fn get(&self, index: i32) -> Option<Entity> {
         unsafe {
-            let ptr = self.virtual_entry::<Fn>(3)(self.as_ptr(), index);
+            let ptr = self.get_unchecked(index);
 
             Entity::new(ptr)
         }
     }
 
-    pub fn iter(&self) -> Iter<'_> {
-        Iter::new(self)
-    }
-}
+    pub fn from_handle(&self, handle: *const ()) -> Option<Entity> {
+        type Fn = unsafe extern "C" fn(
+            this: *const handle::EntityList,
+            handle: *const (),
+        ) -> *mut handle::Entity;
 
-/// Iterator over entities within the entity list.
-pub struct Iter<'a> {
-    entities: &'a EntityList,
-    index: i32,
-    len: i32,
-}
+        unsafe {
+            let ptr = self.virtual_entry::<Fn>(4)(self.as_ptr(), handle);
 
-impl<'a> Iter<'a> {
-    pub(crate) fn new(entities: &'a EntityList) -> Self {
-        let len = Global::handle().globals().max_clients;
-
-        Self {
-            entities,
-            index: 0,
-            len,
+            Entity::new(ptr)
         }
     }
-}
 
-impl<'a> Iterator for Iter<'a> {
-    type Item = Entity;
+    pub fn highest_entity_index(&self) -> i32 {
+        type Fn = unsafe extern "C" fn(this: *const handle::EntityList) -> i32;
 
-    fn next(&mut self) -> Option<Entity> {
-        if self.index > self.len {
-            return None;
-        }
-
-        match self.entities.get(self.index) {
-            Some(entity) => {
-                self.index += 1;
-
-                Some(entity)
-            }
-            None => None,
-        }
+        unsafe { self.virtual_entry::<Fn>(6)(self.as_ptr()) }
     }
 }

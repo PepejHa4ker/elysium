@@ -1,7 +1,8 @@
 use super::{Plane, Surface};
 use crate::entity::Entity;
 use crate::hit_group::HitGroup;
-use sdk::Vector;
+use crate::managed::handle;
+use sdk::{Pad, Vector};
 
 /// Ray trace summary.
 #[derive(Debug)]
@@ -10,18 +11,28 @@ use sdk::Vector;
 pub struct Summary {
     pub start: Vector,
     pub end: Vector,
+
     pub plane: Plane,
+
     pub fraction: f32,
+
     pub contents: i32,
     pub disp_flags: u32,
+
     pub all_solid: bool,
     pub start_solid: bool,
+
     pub fraction_left_solid: f32,
+
     pub surface: Surface,
+
     pub hit_group: HitGroup,
     pub physics_bone: i32,
+
     pub world_surface_index: u16,
-    pub entity_hit: Option<Entity>,
+
+    pub entity_hit: *const handle::Entity,
+
     pub hitbox: i32,
 }
 
@@ -41,7 +52,7 @@ impl Summary {
             hit_group: HitGroup::Generic,
             physics_bone: 0,
             world_surface_index: 0,
-            entity_hit: None,
+            entity_hit: core::ptr::null::<()>() as *const _,
             hitbox: 0,
         }
     }

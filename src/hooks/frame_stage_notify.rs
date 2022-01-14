@@ -7,13 +7,15 @@ pub type Signature = unsafe extern "C" fn(this: *const (), frame: Frame);
 
 pub unsafe extern "C" fn hook(this: *const (), frame: Frame) {
     let global = Global::handle();
-    let local_player = global.entity_list().get(global.engine().local_player());
+    let local_player = unsafe {
+        let ptr = global
+            .entity_list()
+            .get_unchecked(global.engine().local_player());
 
-    if let Some(local_player) = local_player {
-        let local_player = Player::new_unchecked(local_player.as_ptr() as *mut handle::Entity);
+        Player::new(ptr)
+    };
 
-        *global.local_player_ptr() = Box::new(Some(local_player));
-    }
+    *global.local_player_ptr() = Box::new(local_player);
 
     let on_frame = &*global.on_frame_ptr();
 

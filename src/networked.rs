@@ -1,6 +1,6 @@
 use crate::client::{Client, Table};
 
-pub use api::{BaseAnimating, BaseEntity, BasePlayer, BaseWeapon, Player, Weapon};
+pub use api::{BaseAnimating, BaseEntity, BasePlayer, BaseWeapon, Item, Player, Weapon};
 
 use class::Class;
 use entry::Entry;
@@ -31,6 +31,9 @@ pub struct Networked {
     /// m_iClip1
     base_weapon: [usize; 2],
 
+    /// m_iItemDefinitionIndex
+    item: [usize; 1],
+
     /// m_ArmorValue
     /// m_angEyeAngles\[0\]
     /// m_bGunGameImmunity
@@ -55,6 +58,7 @@ impl Networked {
             base_entity: [0; 1],
             base_player: [0; 7],
             base_weapon: [0; 2],
+            item: [0; 1],
             player: [0; 11],
             weapon: [0; 1],
         };
@@ -90,6 +94,10 @@ impl Networked {
         BaseWeapon(self)
     }
 
+    pub fn item(&self) -> Item<'_> {
+        Item(self)
+    }
+
     pub fn player(&self) -> Player<'_> {
         Player(self)
     }
@@ -122,6 +130,9 @@ fn insert_entry(this: &mut Networked, class: Class, entry: Entry, offset: usize)
         // base_weapon
         (Class::BaseWeapon, Entry::NextAttackAvailableAfter) => this.base_weapon[0] = offset,
         (Class::BaseWeapon, Entry::Ammo)                     => this.base_weapon[1] = offset,
+
+        // item
+        (Class::Item, Entry::Index) => this.item[0] = offset,
 
         // player
         (Class::Player, Entry::Armor)              => this.player[0] = offset,
