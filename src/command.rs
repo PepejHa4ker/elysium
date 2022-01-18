@@ -1,4 +1,4 @@
-use sdk::{Angle, Vector};
+use sdk::Vec3;
 
 pub const IN_ATTACK: i32 = 1 << 0;
 pub const IN_JUMP: i32 = 1 << 1;
@@ -11,8 +11,8 @@ pub struct Command {
     vtable: *const (),
     pub command_number: i32,
     pub tick_count: i32,
-    pub view_angle: Angle,
-    pub aim_direction: Angle,
+    pub view_angle: Vec3,
+    pub aim_direction: Vec3,
     pub forward_move: f32,
     pub side_move: f32,
     pub up_move: f32,
@@ -24,8 +24,8 @@ pub struct Command {
     pub mouse_dx: i16,
     pub mouse_dy: i16,
     pub has_been_predicted: bool,
-    pub head_angles: Angle,
-    pub head_offset: Vector,
+    pub head_angles: Vec3,
+    pub head_offset: Vec3,
 }
 
 impl Command {

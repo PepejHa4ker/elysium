@@ -1,10 +1,10 @@
-use sdk::{Pad, Vector};
+use sdk::{Pad, Vec3};
 
 #[derive(Debug)]
 #[non_exhaustive]
 #[repr(C)]
 pub struct Plane {
-    pub normal: Vector,
+    pub normal: Vec3,
     pub distance: f32,
     pub kind: u8,
     pub sign_bits: u8,
@@ -14,7 +14,7 @@ pub struct Plane {
 impl Plane {
     pub(crate) fn new() -> Self {
         Self {
-            normal: Vector::zero(),
+            normal: Vec3::zero(),
             distance: 0.0,
             kind: 0,
             sign_bits: 0,

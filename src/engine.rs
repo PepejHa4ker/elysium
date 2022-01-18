@@ -1,5 +1,5 @@
 use crate::managed::{handle, Managed};
-use sdk::Angle;
+use sdk::Vec3;
 use std::borrow::Cow;
 use std::ffi::CStr;
 
@@ -113,10 +113,10 @@ impl Engine {
         size
     }
 
-    pub fn view_angle(&self) -> Angle {
-        type Fn = unsafe extern "C" fn(this: *const handle::Engine, angle: *mut Angle);
+    pub fn view_angle(&self) -> Vec3 {
+        type Fn = unsafe extern "C" fn(this: *const handle::Engine, angle: *mut Vec3);
 
-        let mut angle = Angle::zero();
+        let mut angle = Vec3::zero();
 
         unsafe {
             self.virtual_entry::<Fn>(18)(self.as_ptr(), &mut angle);

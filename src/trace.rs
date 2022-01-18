@@ -2,7 +2,7 @@ use super::entity::Entity;
 use crate::managed::{handle, Managed};
 use core::mem::MaybeUninit;
 use core::ptr;
-use sdk::Vector;
+use sdk::Vec3;
 
 pub use filter::Filter;
 pub use plane::Plane;
@@ -65,15 +65,10 @@ impl RayTracer {
         self.0.relative_entry(offset)
     }
 
-    pub fn point_contents(
-        &self,
-        position: Vector,
-        mask: i32,
-        entities: *const *const Entity,
-    ) -> i32 {
+    pub fn point_contents(&self, position: Vec3, mask: i32, entities: *const *const Entity) -> i32 {
         type Fn = unsafe extern "C" fn(
             this: *const handle::RayTracer,
-            position: *const Vector,
+            position: *const Vec3,
             mask: i32,
             entities: *const *const Entity,
         ) -> i32;

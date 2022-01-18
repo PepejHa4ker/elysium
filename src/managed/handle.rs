@@ -8,6 +8,9 @@ extern "C" {
     /// Handle to a console variable.
     pub type ConsoleVar;
 
+    /// Handle to the debug overlay interface.
+    pub type Debug;
+
     /// Handle to the engine interface.
     pub type Engine;
 

@@ -2,7 +2,7 @@ use crate::managed::{handle, Managed};
 use crate::material::Material;
 use core::marker::PhantomData;
 use core::ptr;
-use sdk::{Angle, Matrix3x4, Pad, Vector};
+use sdk::{Matrix3x4, Pad, Vec3};
 use spirit::Str;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -58,11 +58,11 @@ pub struct Bone {
     pub name_offset: i32,
     pub parent: i32,
     pub bone_controller: [i32; 6],
-    pub position: Vector,
+    pub position: Vec3,
     pub quaternion: [f32; 4],
     pub rotation: [f32; 3],
-    pub position_scale: Vector,
-    pub rotation_scale: Vector,
+    pub position_scale: Vec3,
+    pub rotation_scale: Vec3,
     pub position_to_bone: Matrix3x4,
     pub quaternion_alignment: [f32; 4],
     pub flags: i32,
@@ -104,8 +104,8 @@ impl Bone {
 pub struct BoundingBox {
     pub bone: i32,
     pub group: i32,
-    pub max: Vector,
-    pub min: Vector,
+    pub max: Vec3,
+    pub min: Vec3,
     pub hitbox_name_offset: i32,
     _pad0: Pad<12>,
     pub radius: f32,
@@ -158,12 +158,12 @@ pub struct Hdr {
     pub checksum: i32,
     pub name: [i8; 64],
     pub length: i32,
-    pub eye_position: Vector,
-    pub illumination_position: Vector,
-    pub hull_min: Vector,
-    pub hull_max: Vector,
-    pub view_bounding_box_min: Vector,
-    pub view_bounding_box_max: Vector,
+    pub eye_position: Vec3,
+    pub illumination_position: Vec3,
+    pub hull_min: Vec3,
+    pub hull_max: Vec3,
+    pub view_bounding_box_min: Vec3,
+    pub view_bounding_box_max: Vec3,
     pub flags: i32,
     pub bones: MagicArray<Bone>,
     pub bone_controllers: MagicArray<()>,
@@ -300,14 +300,14 @@ pub struct Model {
 #[non_exhaustive]
 #[repr(C)]
 pub struct ModelRenderInfo {
-    pub origin: Vector,
-    pub angles: Angle,
+    pub origin: Vec3,
+    pub angles: Vec3,
     _pad0: Pad<4>,
     pub renderable: *const *const (),
     pub model: *const Model,
     pub model_to_world: *const Matrix3x4,
     pub lighting_offset: *const Matrix3x4,
-    pub lighting_origin: *const Vector,
+    pub lighting_origin: *const Vec3,
     pub flags: i32,
     pub entity_index: i32,
     pub skin: i32,

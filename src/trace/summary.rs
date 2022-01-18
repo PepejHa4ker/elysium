@@ -2,15 +2,15 @@ use super::{Plane, Surface};
 use crate::entity::Entity;
 use crate::hit_group::HitGroup;
 use crate::managed::handle;
-use sdk::{Pad, Vector};
+use sdk::{Pad, Vec3};
 
 /// Ray trace summary.
 #[derive(Debug)]
 #[non_exhaustive]
 #[repr(C)]
 pub struct Summary {
-    pub start: Vector,
-    pub end: Vector,
+    pub start: Vec3,
+    pub end: Vec3,
 
     pub plane: Plane,
 
@@ -39,8 +39,8 @@ pub struct Summary {
 impl Summary {
     pub(crate) fn new() -> Self {
         Self {
-            start: Vector::zero(),
-            end: Vector::zero(),
+            start: Vec3::zero(),
+            end: Vec3::zero(),
             plane: Plane::new(),
             fraction: 0.0,
             contents: 0,

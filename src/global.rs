@@ -1,3 +1,4 @@
+use crate::bones::Bones;
 use crate::client::Client;
 use crate::command::Command;
 use crate::console::{Console, Var};
@@ -18,8 +19,8 @@ use crate::physics::Physics;
 use crate::trace::RayTracer;
 use crate::Result;
 use core::ptr;
-use sdk::Angle;
 use sdk::Matrix3x4;
+use sdk::Vec3;
 use std::lazy::SyncOnceCell;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
@@ -28,6 +29,31 @@ pub type OnFrame = Box<dyn Fn(Frame) + 'static>;
 pub type OnMove = Box<dyn Fn(Movement) -> Movement + 'static>;
 
 static GLOBAL: SyncOnceCell<Global> = SyncOnceCell::new();
+
+use std::collections::HashMap;
+
+#[repr(C)]
+pub struct CachedPlayer {
+    bones: Bones,
+}
+
+impl CachedPlayer {
+    pub fn get_bone(&self, index: usize) -> Option<&Matrix3x4> {
+        self.bones.get_bone(index)
+    }
+
+    pub fn get_origin(&self, index: usize) -> Option<Vec3> {
+        self.bones.get_origin(index)
+    }
+
+    pub fn get_head_bone(&self) -> &Matrix3x4 {
+        self.bones.get_head_bone()
+    }
+
+    pub fn get_head_origin(&self) -> Vec3 {
+        self.bones.get_head_origin()
+    }
+}
 
 pub(crate) struct GlobalRef {
     // The games libraries.
@@ -45,8 +71,8 @@ pub(crate) struct GlobalRef {
 
     // TODO: Don't use Box<>
     // Kept for no recoil / no punch.
-    aim_punch_angle: Box<Angle>,
-    view_punch_angle: Box<Angle>,
+    aim_punch_angle: Box<Vec3>,
+    view_punch_angle: Box<Vec3>,
 
     // TODO: Include ping. Fix it?? (Seems to be wrong by 10?).
     tick: AtomicU32,
@@ -61,6 +87,9 @@ pub(crate) struct GlobalRef {
     //       Don't allocate a new Box<> in frame_stage_notify::hook.
     // Reference to the local player
     local_player: Box<Option<Player>>,
+
+    // Player cache.
+    players: HashMap<i32, CachedPlayer>,
 }
 
 #[derive(Clone)]
@@ -118,8 +147,8 @@ impl Global {
 
             networked,
 
-            aim_punch_angle: Box::new(Angle::zero()),
-            view_punch_angle: Box::new(Angle::zero()),
+            aim_punch_angle: Box::new(Vec3::zero()),
+            view_punch_angle: Box::new(Vec3::zero()),
 
             tick: AtomicU32::new(0),
             last_command_has_been_predicted: AtomicBool::new(false),
@@ -128,6 +157,8 @@ impl Global {
             create_move,
             frame_stage_notify,
             draw_model_execute,
+
+            players: HashMap::new(),
 
             local_player: Box::new(None),
         }));
@@ -351,29 +382,29 @@ impl Global {
         (*self.0.local_player).as_ref()
     }
 
-    pub(crate) fn aim_punch_angle_ptr(&self) -> *mut Angle {
-        unsafe { &mut *(&*self.0.aim_punch_angle as *const Angle as *mut Angle) }
+    pub(crate) fn aim_punch_angle_ptr(&self) -> *mut Vec3 {
+        unsafe { &mut *(&*self.0.aim_punch_angle as *const Vec3 as *mut Vec3) }
     }
 
-    pub(crate) fn aim_punch_angle(&self) -> Angle {
+    pub(crate) fn aim_punch_angle(&self) -> Vec3 {
         unsafe { *self.aim_punch_angle_ptr() }
     }
 
-    pub(crate) fn set_aim_punch_angle(&self, angle: Angle) {
+    pub(crate) fn set_aim_punch_angle(&self, angle: Vec3) {
         unsafe {
             *self.aim_punch_angle_ptr() = angle;
         }
     }
 
-    pub(crate) fn view_punch_angle_ptr(&self) -> *mut Angle {
-        unsafe { &mut *(&*self.0.view_punch_angle as *const Angle as *mut Angle) }
+    pub(crate) fn view_punch_angle_ptr(&self) -> *mut Vec3 {
+        unsafe { &mut *(&*self.0.view_punch_angle as *const Vec3 as *mut Vec3) }
     }
 
-    pub(crate) fn view_punch_angle(&self) -> Angle {
+    pub(crate) fn view_punch_angle(&self) -> Vec3 {
         unsafe { *self.view_punch_angle_ptr() }
     }
 
-    pub(crate) fn set_view_punch_angle(&self, angle: Angle) {
+    pub(crate) fn set_view_punch_angle(&self, angle: Vec3) {
         unsafe {
             *self.view_punch_angle_ptr() = angle;
         }

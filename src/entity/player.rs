@@ -3,7 +3,7 @@ use crate::global::Global;
 use crate::managed::handle;
 use crate::model::Model;
 use core::cmp;
-use sdk::{Angle, AnimationLayer, AnimationState, Vector};
+use sdk::{AnimationLayer, AnimationState, Vec3};
 
 const DUCKING: i32 = 1 << 1;
 const IN_WATER: i32 = 1 << 9;
@@ -134,7 +134,7 @@ impl Player {
     }
 
     /// Get the player's velocity vector.
-    pub fn velocity(&self) -> &Vector {
+    pub fn velocity(&self) -> &Vec3 {
         unsafe { self.relative_entry(Global::handle().networked().base_player().velocity()) }
     }
 
@@ -149,19 +149,19 @@ impl Player {
         }
     }
 
-    fn view_angle_ptr(&self) -> *const Angle {
-        unsafe { self.is_dead_ptr().add(4) as *const Angle }
+    fn view_angle_ptr(&self) -> *const Vec3 {
+        unsafe { self.is_dead_ptr().add(4) as *const Vec3 }
     }
 
     /// Get the player's view angle.
-    pub fn view_angle(&self) -> Angle {
+    pub fn view_angle(&self) -> Vec3 {
         unsafe { *self.view_angle_ptr() }
     }
 
     /// Set the player's view angle.
-    pub fn set_view_angle(&self, angle: Angle) {
+    pub fn set_view_angle(&self, angle: Vec3) {
         unsafe {
-            *(self.view_angle_ptr() as *mut Angle) = angle;
+            *(self.view_angle_ptr() as *mut Vec3) = angle;
         }
     }
 
@@ -192,23 +192,23 @@ impl Player {
         unsafe { self.relative_entry(Global::handle().networked().player().is_scoped()) }
     }
 
-    pub fn eye_angle(&self) -> Angle {
+    pub fn eye_angle(&self) -> Vec3 {
         unsafe { self.relative_entry(Global::handle().networked().player().eye_angle()) }
     }
 
-    pub fn eye_origin(&self) -> Vector {
+    pub fn eye_origin(&self) -> Vec3 {
         let origin = self.origin();
         let view_offset = self.view_offset();
         let view_offset = if view_offset.z > 0.0 {
             view_offset
         } else {
-            Vector::new(0.0, 0.0, if self.is_ducking() { 46.0 } else { 64.0 })
+            Vec3::from_xyz(0.0, 0.0, if self.is_ducking() { 46.0 } else { 64.0 })
         };
 
         origin + view_offset
     }
 
-    pub fn view_offset(&self) -> Vector {
+    pub fn view_offset(&self) -> Vec3 {
         unsafe { self.relative_entry(Global::handle().networked().base_player().view_offset()) }
     }
 
@@ -220,25 +220,25 @@ impl Player {
         self.0.model()
     }
 
-    pub fn origin(&self) -> Vector {
+    pub fn origin(&self) -> Vec3 {
         self.0.origin()
     }
 
     // Returns a pointer to the aim punch angle.
-    pub(crate) fn aim_punch_angle_ptr(&self) -> *mut Angle {
+    pub(crate) fn aim_punch_angle_ptr(&self) -> *mut Vec3 {
         unsafe {
             self.relative_offset(Global::handle().networked().base_player().aim_punch_angle())
-                as *mut Angle
+                as *mut Vec3
         }
     }
 
     // Returns the real aim punch angle.
-    pub(crate) fn actual_aim_punch_angle(&self) -> Angle {
+    pub(crate) fn actual_aim_punch_angle(&self) -> Vec3 {
         unsafe { *self.aim_punch_angle_ptr() }
     }
 
     // Returns a "fixed" aim punch angle.
-    pub fn aim_punch_angle(&self) -> Angle {
+    pub fn aim_punch_angle(&self) -> Vec3 {
         let global = Global::handle();
 
         if let Some(local_player) = global.local_player() {
@@ -253,31 +253,31 @@ impl Player {
     }
 
     // Set the aim punch angle.
-    pub fn set_aim_punch_angle(&self, angle: Angle) {
+    pub fn set_aim_punch_angle(&self, angle: Vec3) {
         unsafe {
             *self.aim_punch_angle_ptr() = angle;
         }
     }
 
     // Returns a pointer to view punch angle.
-    pub(crate) fn view_punch_angle_ptr(&self) -> *mut Angle {
+    pub(crate) fn view_punch_angle_ptr(&self) -> *mut Vec3 {
         unsafe {
             self.relative_offset(
                 Global::handle()
                     .networked()
                     .base_player()
                     .view_punch_angle(),
-            ) as *mut Angle
+            ) as *mut Vec3
         }
     }
 
     // Returns the real view punch angle.
-    pub fn actual_view_punch_angle(&self) -> Angle {
+    pub fn actual_view_punch_angle(&self) -> Vec3 {
         unsafe { *self.view_punch_angle_ptr() }
     }
 
     // Returns a "fixed" view punch angle.
-    pub fn view_punch_angle(&self) -> Angle {
+    pub fn view_punch_angle(&self) -> Vec3 {
         let global = Global::handle();
 
         if let Some(local_player) = global.local_player() {
@@ -292,7 +292,7 @@ impl Player {
     }
 
     // Set the real view punch angle.
-    pub fn set_view_punch_angle(&self, angle: Angle) {
+    pub fn set_view_punch_angle(&self, angle: Vec3) {
         unsafe {
             *self.view_punch_angle_ptr() = angle;
         }

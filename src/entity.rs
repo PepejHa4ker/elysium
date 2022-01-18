@@ -3,7 +3,7 @@ use crate::managed::{handle, Managed};
 use crate::mem;
 use crate::model::Model;
 use core::cmp;
-use sdk::{Matrix3x4, Vector};
+use sdk::{Matrix3x4, Vec3};
 
 pub use id::EntityId;
 pub use list::EntityList;
@@ -117,7 +117,7 @@ impl Entity {
         type Fn = unsafe extern "C" fn(this: *const ()) -> bool;
 
         unsafe {
-            let this = (self.as_ptr() as *const u8).add(10) as *const ();
+            let this = (self.as_ptr() as *const u8).add(8) as *const ();
 
             mem::virtual_entry::<Fn>(this, 9)(this)
         }
@@ -171,13 +171,13 @@ impl Entity {
         }
     }
 
-    pub fn origin_ptr(&self) -> *mut Vector {
-        type Fn = unsafe extern "C" fn(this: *const handle::Entity) -> *mut Vector;
+    pub fn origin_ptr(&self) -> *mut Vec3 {
+        type Fn = unsafe extern "C" fn(this: *const handle::Entity) -> *mut Vec3;
 
         unsafe { self.virtual_entry::<Fn>(12)(self.as_ptr()) }
     }
 
-    pub fn origin(&self) -> Vector {
+    pub fn origin(&self) -> Vec3 {
         unsafe { *self.origin_ptr() }
     }
 

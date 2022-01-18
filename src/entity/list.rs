@@ -62,24 +62,19 @@ impl EntityList {
     }
 
     pub fn get(&self, index: i32) -> Option<Entity> {
-        unsafe {
-            let ptr = self.get_unchecked(index);
+        type Fn =
+            unsafe extern "C" fn(this: *const handle::EntityList, index: i32) -> Option<Entity>;
 
-            Entity::new(ptr)
-        }
+        unsafe { self.virtual_entry::<Fn>(3)(self.as_ptr(), index) }
     }
 
     pub fn from_handle(&self, handle: *const ()) -> Option<Entity> {
         type Fn = unsafe extern "C" fn(
             this: *const handle::EntityList,
             handle: *const (),
-        ) -> *mut handle::Entity;
+        ) -> Option<Entity>;
 
-        unsafe {
-            let ptr = self.virtual_entry::<Fn>(4)(self.as_ptr(), handle);
-
-            Entity::new(ptr)
-        }
+        unsafe { self.virtual_entry::<Fn>(4)(self.as_ptr(), handle) }
     }
 
     pub fn highest_entity_index(&self) -> i32 {

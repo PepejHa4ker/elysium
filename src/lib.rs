@@ -11,7 +11,7 @@ use crate::global::Global;
 use crate::managed::handle;
 use atomic_float::AtomicF32;
 use core::ptr;
-use sdk::Angle;
+use sdk::Vec3;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -20,15 +20,12 @@ use std::time::Duration;
 pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
-pub mod islice;
-pub mod managed;
-pub mod mem;
-pub mod networked;
-
+pub mod bones;
 pub mod client;
 pub mod command;
 pub mod console;
 pub mod consts;
+pub mod debug;
 pub mod engine;
 pub mod entity;
 pub mod error;
@@ -39,13 +36,17 @@ pub mod hit_group;
 pub mod hooks;
 pub mod input;
 pub mod interfaces;
+pub mod islice;
 pub mod item_kind;
 pub mod libraries;
 pub mod library;
+pub mod managed;
 pub mod material;
+pub mod mem;
 pub mod model;
 pub mod move_kind;
 pub mod movement;
+pub mod networked;
 pub mod pad;
 pub mod pattern;
 pub mod physics;
@@ -72,45 +73,45 @@ impl Choker {
     }
 }
 
-struct AtomicAngleInner {
-    pitch: AtomicF32,
-    yaw: AtomicF32,
+struct AtomicVec3Inner {
+    x: AtomicF32,
+    y: AtomicF32,
 }
 
 #[derive(Clone)]
-pub struct AtomicAngle(Arc<AtomicAngleInner>);
+pub struct AtomicVec3(Arc<AtomicVec3Inner>);
 
-impl AtomicAngle {
+impl AtomicVec3 {
     pub fn new() -> Self {
-        Self(Arc::new(AtomicAngleInner {
-            pitch: AtomicF32::new(0.0),
-            yaw: AtomicF32::new(0.0),
+        Self(Arc::new(AtomicVec3Inner {
+            x: AtomicF32::new(0.0),
+            y: AtomicF32::new(0.0),
         }))
     }
 
-    pub fn pitch(&self) -> f32 {
-        self.0.pitch.load(Ordering::SeqCst)
+    pub fn x(&self) -> f32 {
+        self.0.x.load(Ordering::SeqCst)
     }
 
-    pub fn yaw(&self) -> f32 {
-        self.0.yaw.load(Ordering::SeqCst)
+    pub fn y(&self) -> f32 {
+        self.0.y.load(Ordering::SeqCst)
     }
 
-    pub fn set_pitch(&self, pitch: f32) {
-        self.0.pitch.store(pitch, Ordering::SeqCst);
+    pub fn set_x(&self, x: f32) {
+        self.0.x.store(x, Ordering::SeqCst);
     }
 
-    pub fn set_yaw(&self, yaw: f32) {
-        self.0.yaw.store(yaw, Ordering::SeqCst);
+    pub fn set_y(&self, y: f32) {
+        self.0.y.store(y, Ordering::SeqCst);
     }
 
-    pub fn get(&self) -> Angle {
-        Angle::new(self.pitch(), self.yaw())
+    pub fn get(&self) -> Vec3 {
+        Vec3::from_xy(self.x(), self.y())
     }
 
-    pub fn set(&self, angle: Angle) {
-        self.set_pitch(angle.pitch);
-        self.set_yaw(angle.yaw);
+    pub fn set(&self, angle: Vec3) {
+        self.set_x(angle.x);
+        self.set_y(angle.y);
     }
 }
 
@@ -285,21 +286,20 @@ const MASK_DEADSOLID: u32 = CONTENTS_SOLID | CONTENTS_PLAYERCLIP | CONTENTS_WIND
 
 use crate::entity::Entity;
 use crate::trace::{Ray, Summary};
-use sdk::Vector;
 
 fn trace_to_exit(
-    start: Vector,
-    direction: Vector,
+    start: Vec3,
+    direction: Vec3,
     enter_summary: &Summary,
     exit_summary: &mut Summary,
-    end: &mut Vector,
+    end: &mut Vec3,
 ) -> bool {
     let global = Global::handle();
     let mut distance = 0.0;
 
     while distance <= 90.0 {
         distance += 4.0;
-        *end = start + direction * distance;
+        *end = start + direction * Vec3::splat(distance);
 
         let contents = global.ray_tracer().point_contents(
             *end,
@@ -311,7 +311,7 @@ fn trace_to_exit(
             continue;
         }
 
-        let new_end = *end - (direction * 4.0);
+        let new_end = *end - (direction * Vec3::splat(4.0));
 
         global.ray_tracer().trace_mut(
             &Ray::new(*end, new_end),
@@ -357,7 +357,7 @@ fn trace_to_exit(
         }
 
         if exit_summary.plane.normal.dot(direction) <= 1.0 {
-            *end = *end - (direction * (exit_summary.fraction * 4.0));
+            *end = *end - (direction * Vec3::splat(exit_summary.fraction * 4.0));
 
             return true;
         }
@@ -369,9 +369,9 @@ fn trace_to_exit(
 #[derive(Debug)]
 #[repr(C)]
 pub struct ShotData {
-    pub source: Vector,
+    pub source: Vec3,
     pub enter_summary: Summary,
-    pub direction: Vector,
+    pub direction: Vec3,
     pub filter: Option<Entity>,
     pub trace_length: f32,
     pub trace_length_remaining: f32,
@@ -382,9 +382,9 @@ pub struct ShotData {
 impl ShotData {
     pub fn new() -> Self {
         Self {
-            source: Vector::zero(),
+            source: Vec3::zero(),
             enter_summary: Summary::new(),
-            direction: Vector::zero(),
+            direction: Vec3::zero(),
             filter: None,
             trace_length: 0.0,
             trace_length_remaining: 0.0,
@@ -422,7 +422,7 @@ impl ShotData {
             return false;
         }
 
-        let mut end = Vector::zero();
+        let mut end = Vec3::zero();
         let mut exit_summary = Summary::new();
 
         if !trace_to_exit(
@@ -513,8 +513,8 @@ impl ShotData {
         while self.penetrate_count > 0 && self.current_damage >= 1.0 {
             self.trace_length_remaining = weapon.range() - self.trace_length;
 
-            let end = self.source + self.direction * self.trace_length_remaining;
-            let new_end = end + self.direction * 40.0;
+            let end = self.source + self.direction * Vec3::splat(self.trace_length_remaining);
+            let new_end = end + self.direction * Vec3::splat(40.0);
 
             global.ray_tracer().trace_mut(
                 &Ray::new(self.source, end),
@@ -569,7 +569,7 @@ fn main() -> Result<()> {
 
     let choked_packets = Choker::new();
 
-    let thirdperson_angle = AtomicAngle::new();
+    let thirdperson_angle = AtomicVec3::new();
     let thirdperson_angle2 = thirdperson_angle.clone();
 
     global.on_frame(move |frame| {
@@ -580,8 +580,8 @@ fn main() -> Result<()> {
                     global2.set_aim_punch_angle(local_player.actual_aim_punch_angle());
                     global2.set_view_punch_angle(local_player.actual_view_punch_angle());
 
-                    local_player.set_aim_punch_angle(Angle::zero());
-                    local_player.set_view_punch_angle(Angle::zero());
+                    local_player.set_aim_punch_angle(Vec3::zero());
+                    local_player.set_view_punch_angle(Vec3::zero());
 
                     if global2.input().thirdperson {
                         local_player.set_view_angle(thirdperson_angle.get());
@@ -606,16 +606,15 @@ fn main() -> Result<()> {
 
     global.on_move(move |mut movement| {
         let max_desync = (movement.local_player.max_desync_angle() % 58.0 + 59.0) % 58.0;
-
-        let yaw_modifier = if movement.tick_count & 1 == 0 {
+        let y_modifier = if movement.tick_count & 1 == 0 {
             45.0
         } else {
             -45.0
         };
-
-        let engine_yaw = global3.engine().view_angle().yaw;
-        let server_yaw = engine_yaw + 180.0 + yaw_modifier + max_desync;
-        let client_yaw = server_yaw - (max_desync * 2.0);
+        let engine_angle = global3.engine().view_angle();
+        let engine_y = global3.engine().view_angle().y;
+        let server_y = engine_y + 180.0 + y_modifier + max_desync;
+        let client_y = server_y - (max_desync * 2.0);
 
         movement.do_fast_duck = movement.do_duck;
 
@@ -643,38 +642,33 @@ fn main() -> Result<()> {
 
         use crate::entity::Player;
 
+        let aim_punch = movement.local_player.aim_punch_angle() * Vec3::splat(2.0);
+
         if let Some(weapon) = movement.local_player.weapon() {
             let mut closest_delta = f32::MAX;
-            let mut closest_angle = Angle::zero();
+            let mut closest_angle = Vec3::zero();
 
             for i in 1..global3.globals().max_clients {
-                let entity = unsafe { global3.entity_list().get_unchecked(i) };
-
-                if entity.is_null() {
-                    continue;
-                }
-
-                let entity = unsafe { Entity::new_unchecked(entity) };
+                let entity = match global3.entity_list().get(i) {
+                    Some(entity) => entity,
+                    None => continue,
+                };
 
                 if entity.is_dormant() {
-                    //println!("{i:?} is dormant");
                     continue;
                 }
 
                 if !entity.is_player() {
-                    println!("{i:?} is not a player");
                     continue;
                 }
 
                 let enemy = unsafe { Player::new_unchecked(entity.as_ptr() as *mut _) };
 
                 if enemy.is_dead() {
-                    println!("{i:?} is dead");
                     continue;
                 }
 
                 if enemy.is_immune() {
-                    println!("{i:?} no point in shooting immortal enemies.");
                     continue;
                 }
 
@@ -689,8 +683,9 @@ fn main() -> Result<()> {
                     continue;
                 }
 
-                let current_angle =
-                    Angle::with_angles(eye_origin, enemy_origin) - movement.view_angle;
+                /*let current_angle = Vec3::with_angles(eye_origin, enemy_origin).normalize()
+                    - engine_angle
+                    - aim_punch;
 
                 if !current_angle.is_finite() {
                     continue;
@@ -707,69 +702,44 @@ fn main() -> Result<()> {
                 }
 
                 closest_delta = current_delta;
-                closest_angle = current_angle;
+                closest_angle = current_angle;*/
             }
 
-            movement.view_angle = movement.view_angle + closest_angle;
-            movement.view_angle =
-                movement.view_angle - (movement.local_player.aim_punch_angle() * 2.0);
+            //movement.view_angle = movement.view_angle + closest_angle;
         }
 
-        /*if movement.do_attack {
-        } else if !(movement.local_player.on_ladder() || movement.local_player.is_noclip()) {
+        let max_desync = movement.local_player.max_desync_angle();
+        let eye_y_on_send = global3.engine().view_angle().y;
+        let eye_y_on_choke = eye_y_on_send + (max_desync * 2.0);
+        let real_y = eye_y_on_send + max_desync;
+        let fake_y = eye_y_on_send - max_desync;
+        let switch = if (movement.tick_count & 1) != 0 {
+            1.0
+        } else {
+            -1.0
+        };
+
+        if !(movement.do_attack
+            || movement.local_player.on_ladder()
+            || movement.local_player.is_noclip())
+        {
             if movement.send_packet {
-                movement.view_angle.yaw = server_yaw;
+                movement.view_angle.y = eye_y_on_send;
             } else {
-                movement.view_angle.yaw = client_yaw;
+                movement.view_angle.y = eye_y_on_choke;
             }
 
             if movement.side_move.abs() < 5.0 {
-                if movement.do_duck {
-                    movement.side_move = if (movement.tick_count & 1) != 0 {
-                        3.25
-                    } else {
-                        -3.25
-                    };
-                } else {
-                    movement.side_move = if (movement.tick_count & 1) != 0 {
-                        1.1
-                    } else {
-                        -1.1
-                    };
-                }
+                movement.side_move = if movement.do_duck { 3.25 } else { 1.1 } * switch;
             }
+        }
 
-            movement.view_angle.pitch = 89.0;
-        }*/
+        movement.view_angle.x = 89.0;
+        movement.view_angle.y %= 180.0;
+        movement.view_angle.y = movement.view_angle.y.clamp(-180.0, 180.0);
+        movement.view_angle.z = 0.0;
 
-        /*print!(
-                    "max_desync_angle={:.2?} ",
-                    movement.local_player.max_desync_angle()
-                );
-                print!("money={:.2?} ", movement.local_player.money());
-                print!("observer={:.2?} ", movement.local_player.observer());
-                print!("on_ground={:.2?} ", movement.local_player.on_ground());
-                print!("on_ladder={:.2?} ", movement.local_player.on_ladder());
-                print!(
-                    "partially_on_ground={:.2?} ",
-                    movement.local_player.partially_on_ground()
-                );
-                print!("speed={:.2?} ", movement.local_player.speed());
-                print!("tick_base={:.2?} ", movement.local_player.tick_base());
-                print!("velocity={:.2?} ", movement.local_player.velocity());
-                print!("view_angle={:.2?} ", movement.local_player.view_angle());
-                print!("view_offset={:.2?} ", movement.local_player.view_offset());
-        */
-
-        thirdperson_angle2.set(Angle {
-            /*yaw: if movement.do_attack {
-                movement.view_angle.yaw
-            } else {
-                fake_yaw
-            },*/
-            yaw: movement.view_angle.yaw,
-            ..movement.view_angle
-        });
+        thirdperson_angle2.set(movement.view_angle);
 
         movement
     });

@@ -2,7 +2,7 @@ use crate::global::Global;
 use crate::model::{DrawModelState, ModelRenderInfo};
 use nalgebra::{Rotation3, Unit};
 use nalgebra_glm::{Mat3x4, TVec};
-use sdk::{Matrix3x4, Vector};
+use sdk::{Matrix3x4, Vec3};
 
 pub type Signature = unsafe extern "C" fn(
     this: *const (),
@@ -22,7 +22,7 @@ impl BoneToWorld {
         self.bones.as_ptr() as *const _
     }
 
-    pub fn rotate_yaw(self, origin: Vector, yaw: f32) -> Self {
+    pub fn rotate_yaw(self, origin: Vec3, yaw: f32) -> Self {
         let mut this = self;
         let yaw = yaw.to_radians();
 
@@ -34,7 +34,7 @@ impl BoneToWorld {
         this
     }
 
-    /*pub fn translate(self, vector: Vector) -> Self {
+    /*pub fn translate(self, vector: Vec3) -> Self {
         let mut this = self;
 
         for bone in this.bones.iter_mut() {

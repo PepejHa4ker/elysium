@@ -23,6 +23,7 @@ macro_rules! impl_handle {
 impl_handle! { handle::Client }
 impl_handle! { handle::Console }
 impl_handle! { handle::ConsoleVar }
+impl_handle! { handle::Debug }
 impl_handle! { handle::Entity }
 impl_handle! { handle::EntityList }
 impl_handle! { handle::Engine }

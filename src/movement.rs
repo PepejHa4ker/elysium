@@ -1,12 +1,12 @@
 use crate::entity::Player;
-use sdk::Angle;
+use sdk::Vec3;
 
 #[derive(Debug)]
 pub struct Movement {
     pub forward_move: f32,
     pub side_move: f32,
     pub up_move: f32,
-    pub view_angle: Angle,
+    pub view_angle: Vec3,
     pub tick_count: i32,
     pub send_packet: bool,
     pub do_attack: bool,

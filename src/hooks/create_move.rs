@@ -71,16 +71,16 @@ pub unsafe extern "C" fn hook(
         *send_packet = movement.send_packet;
     }
 
-    let f1 = if original_angle.yaw < 0.0 {
-        360.0 + original_angle.yaw
+    let f1 = if original_angle.y < 0.0 {
+        360.0 + original_angle.y
     } else {
-        original_angle.yaw
+        original_angle.y
     };
 
-    let f2 = if command.view_angle.yaw < 0.0 {
-        360.0 + command.view_angle.yaw
+    let f2 = if command.view_angle.y < 0.0 {
+        360.0 + command.view_angle.y
     } else {
-        command.view_angle.yaw
+        command.view_angle.y
     };
 
     let mut delta_view_angle = if f2 < f1 {

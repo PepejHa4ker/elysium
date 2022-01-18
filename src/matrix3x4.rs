@@ -1,4 +1,4 @@
-use crate::vector::Vector;
+use crate::vector::Vec3;
 use core::ops::{Add, Mul, Sub};
 use vek::vec::repr_simd::{Vec2, Vec3, Vec4};
 
@@ -8,7 +8,7 @@ pub struct Matrix3x4(pub [[f32; 4]; 3]);
 
 impl Matrix3x4 {
     /// create a new Matrix3x4
-    pub const fn new(x: Vector, y: Vector, z: Vector, origin: Vector) -> Self {
+    pub const fn new(x: Vec3, y: Vec3, z: Vec3, origin: Vec3) -> Self {
         let data = [
             [x.x, y.x, z.x, origin.x], // x axis
             [x.y, y.y, z.y, origin.y], // y axis
@@ -20,12 +20,7 @@ impl Matrix3x4 {
 
     /// zero... lol
     pub const fn zero() -> Self {
-        Self::new(
-            Vector::zero(),
-            Vector::zero(),
-            Vector::zero(),
-            Vector::zero(),
-        )
+        Self::new(Vec3::zero(), Vec3::zero(), Vec3::zero(), Vec3::zero())
     }
 }
 

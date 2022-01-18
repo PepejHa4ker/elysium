@@ -7,6 +7,7 @@
 pub use self::animation_layer::AnimationLayer;
 pub use self::animation_state::AnimationState;
 pub use self::pad::Pad;
+pub use sdk_math::{Vec2, Vec3, Vec4Aligned};
 pub use sdk_primitives::*;
 
 mod animation_layer;
