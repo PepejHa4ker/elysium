@@ -34,6 +34,35 @@ impl Vec3 {
         Vec3 { x, y, z }
     }
 
+    pub fn from_angle(angle: Vec3) -> Vec3 {
+        let meth::Vec2 { x, y } = angle.to_vec2().to_radians();
+
+        let (x_sin, x_cos) = x.sin_cos();
+        let (y_sin, y_cos) = y.sin_cos();
+
+        Vec3::from_xyz(x_cos * y_cos, x_cos * y_sin, -x_sin)
+    }
+
+    pub fn to_angle(self) -> Vec3 {
+        let Vec3 { x, y, z } = self;
+
+        Vec3::from_xyz((-z).atan2(x.hypot(y)), y.atan2(x), 0.0)
+    }
+
+    pub fn normalize_angle(self) -> Vec3 {
+        let Vec3 { x, y, z } = self;
+
+        let x = if x.is_finite() { x % 360.0 } else { 0.0 };
+        let y = if y.is_finite() { y % 360.0 } else { 0.0 };
+        let z = 0.0;
+
+        Vec3 { x, y, z }
+    }
+
+    pub fn normalize_angle_mut(&mut self) {
+        *self = (*self).normalize_angle();
+    }
+
     pub const fn splat(value: f32) -> Vec3 {
         Vec3 {
             x: value,
@@ -109,12 +138,6 @@ impl Vec3 {
 
         meth::Vec3::from_array([x, y, z])
     }
-
-    /*fn from_vec2(vec: meth::Vec2<f32>) -> Vec3 {
-        let meth::Vec2 { x, y } = vec;
-
-        Vec3::from_xy(x, y)
-    }*/
 
     fn to_vec2(self) -> meth::Vec2<f32> {
         let Vec3 { x, y, .. } = self;

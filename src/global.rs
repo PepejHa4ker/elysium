@@ -275,6 +275,10 @@ impl Global {
         &self.0.interfaces.cheats
     }
 
+    pub fn draw_model_stats_overlay(&self) -> &Var<i32> {
+        &self.0.interfaces.draw_model_stats_overlay
+    }
+
     pub fn ffa(&self) -> &Var<i32> {
         &self.0.interfaces.ffa
     }

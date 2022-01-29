@@ -24,11 +24,10 @@ pub unsafe extern "C" fn hook(
     }
 
     let rbp: *mut *mut bool;
+
     core::arch::asm!("mov {}, rbp", out(reg) rbp, options(nostack));
+
     let send_packet = &mut *(*rbp).sub(24);
-    let original_angle = command.view_angle;
-    let original_forward = command.forward_move;
-    let original_side = command.side_move;
 
     if let Some(local_player) = global.local_player() {
         if global.last_command_has_been_predicted() {
@@ -44,14 +43,21 @@ pub unsafe extern "C" fn hook(
             forward_move: command.forward_move,
             side_move: command.side_move,
             up_move: command.up_move,
+
             view_angle: command.view_angle,
+
             send_packet: *send_packet,
+
             tick_count: command.tick_count,
+            command_number: command.command_number,
+
             do_attack: command.in_attack(),
             do_jump: command.in_jump(),
             do_duck: command.in_duck(),
             do_fast_duck: command.in_fast_duck(),
+
             local_player: (local_player as *const Player).read(),
+
             client_time: global.client_time(),
             prediction_time: local_player.tick_base() as f32 * global.interval_per_tick(),
             server_time: global.tick() as f32 * global.interval_per_tick(),
@@ -65,40 +71,14 @@ pub unsafe extern "C" fn hook(
         command.forward_move = movement.forward_move;
         command.side_move = movement.side_move;
         command.up_move = movement.up_move;
+
         command.view_angle = movement.view_angle;
+
+        command.command_number = movement.command_number;
         command.tick_count = movement.tick_count;
 
         *send_packet = movement.send_packet;
     }
-
-    let f1 = if original_angle.y < 0.0 {
-        360.0 + original_angle.y
-    } else {
-        original_angle.y
-    };
-
-    let f2 = if command.view_angle.y < 0.0 {
-        360.0 + command.view_angle.y
-    } else {
-        command.view_angle.y
-    };
-
-    let mut delta_view_angle = if f2 < f1 {
-        (f2 - f1).abs()
-    } else {
-        360.0 - (f2 - f1).abs()
-    };
-
-    delta_view_angle = 360.0 - delta_view_angle;
-
-    let delta_radian = delta_view_angle.to_radians();
-    let delta_radian_90 = (delta_view_angle + 90.0).to_radians();
-
-    command.forward_move =
-        delta_radian.cos() * original_forward + delta_radian_90.cos() * original_side;
-
-    command.side_move =
-        delta_radian.sin() * original_forward + delta_radian_90.sin() * original_side;
 
     return false;
 }

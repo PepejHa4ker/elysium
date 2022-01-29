@@ -372,7 +372,7 @@ impl ModelRender {
     }
 
     pub fn reset_material(&self) {
-        unsafe { self.material_override_unchecked(ptr::null::<()>() as *const handle::Material) }
+        unsafe { self.material_override_unchecked(0 as *const handle::Material) }
     }
 
     pub unsafe fn material_override_unchecked(&self, material: *const handle::Material) {

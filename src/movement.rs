@@ -7,6 +7,7 @@ pub struct Movement {
     pub side_move: f32,
     pub up_move: f32,
     pub view_angle: Vec3,
+    pub command_number: i32,
     pub tick_count: i32,
     pub send_packet: bool,
     pub do_attack: bool,

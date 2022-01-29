@@ -59,6 +59,7 @@ pub mod var {
     pub type Var = &'static CStr;
 
     pub const CHEATS: Var = var!("sv_cheats");
+    pub const DRAW_MODEL_STATS_OVERLAY: Var = var!("r_drawmodelstatsoverlay");
     pub const FFA: Var = var!("mp_teammates_are_enemies");
     pub const GRAVITY: Var = var!("sv_gravity");
     pub const INFINITE_AMMO: Var = var!("sv_infinite_ammo");

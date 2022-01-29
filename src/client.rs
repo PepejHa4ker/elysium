@@ -133,13 +133,13 @@ impl Client {
     pub fn input_ptr(&self) -> *const () {
         unsafe {
             // Locate the signed offset address.
-            let signed_offset_address = self.activate_mouse_ptr();
+            let signed_offset_address = (self.activate_mouse_ptr() as *const u8).add(3);
 
             // Determine where the signed offset address points to!
-            let globals = mem::to_absolute_with_offset(signed_offset_address, 3, 7);
+            let input = mem::to_absolute(signed_offset_address as *const ());
 
-            // Dereference the two pointers pointing to the pointer to input.
-            **(globals as *const *const *const ())
+            // Dereference the pointer pointing to the pointer to globals.
+            **(input as *const *const *const ())
         }
     }
 }

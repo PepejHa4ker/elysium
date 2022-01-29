@@ -35,43 +35,19 @@ pub struct Interfaces {
     pub prediction: *mut (),
     pub events: *mut (),
 
-    /// offset for animation layers
     pub animation_layers: u32,
-
-    /// offset for animation state
     pub animation_state: u32,
-
-    /// enable variables locked behing cheats (`sv_cheats`)
     pub cheats: Var<i32>,
-
-    /// are teammates enenmies?
+    pub draw_model_stats_overlay: Var<i32>,
     pub ffa: Var<i32>,
-
-    /// server gravity
     pub gravity: Var<f32>,
-
-    /// server ammo
     pub infinite_ammo: Var<i32>,
-
-    /// sleep when the game loses focus
     pub lost_focus_sleep: Var<i32>,
-
-    /// used for chaming ragdolls and other world props/entities
     pub model_stats_overlay: Var<i32>,
-
-    /// panorama ui's blur
     pub panorama_blur: Var<i32>,
-
-    /// speed of physics entities
     pub physics_timescale: Var<f32>,
-
-    /// control whether to appply post processing effects
     pub post_processing: Var<i32>,
-
-    /// gravity applied to ragdolls
     pub ragdoll_gravity: Var<f32>,
-
-    /// show bullet impacts
     pub show_impacts: Var<i32>,
 
     pub flat: Material,
@@ -158,6 +134,7 @@ impl Interfaces {
         };
 
         let cheats = console.var(var::CHEATS).unwrap();
+        let draw_model_stats_overlay = console.var(var::DRAW_MODEL_STATS_OVERLAY).unwrap();
         let ffa = console.var(var::FFA).unwrap();
         let gravity = console.var(var::GRAVITY).unwrap();
         let infinite_ammo = console.var(var::INFINITE_AMMO).unwrap();
@@ -202,6 +179,7 @@ impl Interfaces {
             animation_state,
 
             cheats,
+            draw_model_stats_overlay,
             ffa,
             gravity,
             infinite_ammo,

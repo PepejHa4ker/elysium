@@ -1,4 +1,4 @@
-use sdk::{Pad, Vector};
+use sdk::{Pad, Vec3};
 
 pub use self::button::Button;
 pub use self::joystick::Joystick;
@@ -13,15 +13,12 @@ mod state;
 #[derive(Debug)]
 #[repr(C)]
 pub struct Input {
-    _pad0: Pad<201>,
+    _pad0: Pad<16>,
+    pub is_track_ir_available: bool,
+    pub is_mouse_initialized: bool,
+    pub is_mouse_active: bool,
+    _pad1: Pad<162>,
     pub thirdperson: bool,
-    _pad1: Pad<1>,
-    pub offset: Vector,
-    _pad2: Pad<18>,
-}
-
-impl Input {
-    pub unsafe fn from_raw(ptr: *const ()) -> &'static Self {
-        &*(ptr as *const Self)
-    }
+    pub camera_moving_with_mouse: bool,
+    pub offset: Vec3,
 }

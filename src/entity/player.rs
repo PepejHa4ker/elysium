@@ -134,7 +134,7 @@ impl Player {
     }
 
     /// Get the player's velocity vector.
-    pub fn velocity(&self) -> &Vec3 {
+    pub fn velocity(&self) -> Vec3 {
         unsafe { self.relative_entry(Global::handle().networked().base_player().velocity()) }
     }
 

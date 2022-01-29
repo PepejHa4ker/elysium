@@ -1,7 +1,9 @@
 use crate::global::Global;
+use crate::material::Material;
 use crate::model::{DrawModelState, ModelRenderInfo};
 use nalgebra::{Rotation3, Unit};
 use nalgebra_glm::{Mat3x4, TVec};
+use palette::{FromColor, Hsl, Hue, Lch, Pixel, Srgb};
 use sdk::{Matrix3x4, Vec3};
 
 pub type Signature = unsafe extern "C" fn(
@@ -12,37 +14,41 @@ pub type Signature = unsafe extern "C" fn(
     bone_to_world: *const Matrix3x4,
 );
 
-#[derive(Clone, Copy)]
-pub struct BoneToWorld {
-    bones: [Mat3x4; 128],
-}
+pub unsafe extern "C" fn do_cham(
+    this: *const (),
+    context: *const (),
+    state: *const DrawModelState,
+    info: *const ModelRenderInfo,
+    bone_to_world: *const Matrix3x4,
+    global: &Global,
+    material: &Material,
+) {
+    material.set_rgba8(0x12, 0x12, 0x12, 0xFF);
 
-impl BoneToWorld {
-    pub fn as_ptr(&self) -> *const Matrix3x4 {
-        self.bones.as_ptr() as *const _
-    }
+    global.model_render().set_material(&material);
+    global.draw_model_execute_original(this, context, state, info, bone_to_world);
 
-    pub fn rotate_yaw(self, origin: Vec3, yaw: f32) -> Self {
-        let mut this = self;
-        let yaw = yaw.to_radians();
+    // rainbow, also aids code
+    let srgb: [u8; 3] = [0xFF, 0x00, 0x00];
+    let srgb: Srgb<u8> = *Srgb::from_raw(&srgb);
+    let srgb: Srgb<f32> = srgb.into_format();
 
-        for bone in this.bones.iter_mut() {
-            *bone = *bone
-                * Rotation3::from_axis_angle(&Unit::new_normalize(TVec::z()), yaw).to_homogeneous();
-        }
+    let hsl = Hsl::from_color(srgb);
+    let hsl = hsl.shift_hue(global.globals().current_time * 50.0);
 
-        this
-    }
+    let srgb: Srgb<f32> = Srgb::from_color(hsl);
+    let srgb: Srgb<u8> = srgb.into_format();
+    let srgb: [u8; 3] = srgb.into_raw();
 
-    /*pub fn translate(self, vector: Vec3) -> Self {
-        let mut this = self;
+    material.set_rgba8(srgb[0], srgb[1], srgb[2], 0xFF);
+    material.set_wireframe(true);
 
-        for bone in this.bones.iter_mut() {
-            *bone = bone.with_w(bone.w() + vector);
-        }
+    global.model_render().set_material(&material);
+    global.draw_model_execute_original(this, context, state, info, bone_to_world);
+    global.model_render().reset_material();
 
-        this
-    }*/
+    // reset for flat chams above next call
+    material.set_wireframe(false);
 }
 
 pub unsafe extern "C" fn hook(
@@ -68,27 +74,41 @@ pub unsafe extern "C" fn hook(
     let global = Global::handle();
     let name = global.model_info().name_of(&*(*info).model);
     let name = name.as_str();
+    let material = global.flat_material();
 
-    if !name.contains("contactshadow") {
-        if name.starts_with("models/player") {
-            let material = global.flat_material();
-
-            material.set_rgba8(0x67, 0xC8, 0x95, 0x90);
-            material.set_ignore_z(true);
-
-            global.model_render().set_material(&material);
-            global.draw_model_execute_original(this, context, state, info, bone_to_world);
-            global.model_render().reset_material();
-            global.draw_model_execute_original(this, context, state, info, bone_to_world);
-
-            let bone_to_world = *(bone_to_world as *const BoneToWorld);
-            let bone_to_world = bone_to_world.rotate_yaw((*info).origin, 90.0);
-
-            /*global.model_render().material_override(&material);
-            global.draw_model_execute_original(this, context, state, info, bone_to_world.as_ptr());
-            global
-                .model_render()
-                .material_override_unchecked(core::ptr::null::<()>() as *const _);*/
+    if name.starts_with("models/player") {
+        if !name.contains("contactshadow") {
+            do_cham(
+                this,
+                context,
+                state,
+                info,
+                bone_to_world,
+                &global,
+                &material,
+            );
         }
+    } else if name.starts_with("models/weapons/v_") {
+        do_cham(
+            this,
+            context,
+            state,
+            info,
+            bone_to_world,
+            &global,
+            &material,
+        );
+    } else if name.starts_with("weapons") {
+        do_cham(
+            this,
+            context,
+            state,
+            info,
+            bone_to_world,
+            &global,
+            &material,
+        );
+    } else {
+        global.draw_model_execute_original(this, context, state, info, bone_to_world);
     }
 }

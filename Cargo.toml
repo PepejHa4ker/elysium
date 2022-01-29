@@ -6,11 +6,38 @@ edition = "2021"
 [workspace]
 members = ["crates/*"]
 
+[dependencies.palette]
+version = "0.6"
+
 [dependencies.atomic_float]
 path = "crates/atomic_float"
 
 [dependencies.ctor]
 version = "0.1"
+
+[dependencies.iced_glutin]
+default-features = false
+features = ["debug"]
+git = "https://github.com/iced-rs/iced.git"
+
+[dependencies.iced_glow]
+default-features = false
+features = ["default_system_font"]
+git = "https://github.com/iced-rs/iced.git"
+
+[dependencies.iced_winit]
+default-features = false
+features = ["debug"]
+git = "https://github.com/iced-rs/iced.git"
+
+[dependencies.glium]
+default-features = false
+version = "0.30"
+features = ["glutin"]
+
+[dependencies.glow]
+default-features = false
+version = "0.6"
 
 [dependencies.daisy_chain]
 path = "crates/daisy_chain"
