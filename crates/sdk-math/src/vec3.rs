@@ -43,24 +43,68 @@ impl Vec3 {
         Vec3::from_xyz(x_cos * y_cos, x_cos * y_sin, -x_sin)
     }
 
+    /// Vector to angle.
     pub fn to_angle(self) -> Vec3 {
         let Vec3 { x, y, z } = self;
 
         Vec3::from_xyz((-z).atan2(x.hypot(y)), y.atan2(x), 0.0)
     }
 
-    pub fn normalize_angle(self) -> Vec3 {
-        let Vec3 { x, y, z } = self;
+    /// Angle to trusted angle.
+    pub fn to_trusted(self) -> Vec3 {
+        let mut angle = self;
 
-        let x = if x.is_finite() { x % 360.0 } else { 0.0 };
-        let y = if y.is_finite() { y % 360.0 } else { 0.0 };
-        let z = 0.0;
+        // pitch
+        angle.x = angle.x.clamp(-89.0, 89.0);
 
-        Vec3 { x, y, z }
+        // yaw
+        angle.y = {
+            let mut yaw = angle.y % 360.0;
+
+            if yaw > 180.0 {
+                yaw -= 360.0;
+            }
+
+            if yaw < -180.0 {
+                yaw += 360.0;
+            }
+
+            yaw
+        };
+
+        // roll
+        angle.z = 0.0;
+
+        angle
     }
 
-    pub fn normalize_angle_mut(&mut self) {
-        *self = (*self).normalize_angle();
+    /// Make an angle trusted, in-place.
+    pub fn make_trusted(&mut self) {
+        *self = (*self).to_trusted();
+    }
+
+    pub fn angle_vector(&self) -> (Vec3, Vec3, Vec3) {
+        let (sin_pitch, cos_pitch) = self.x.to_radians().sin_cos();
+        let (sin_yaw, cos_yaw) = self.y.to_radians().sin_cos();
+        let (sin_roll, cos_roll) = self.z.to_radians().sin_cos();
+
+        let mut forward = Vec3::zero();
+        let mut right = Vec3::zero();
+        let mut up = Vec3::zero();
+
+        forward.x = cos_pitch * cos_yaw;
+        forward.y = cos_pitch * sin_yaw;
+        forward.z = -sin_pitch;
+
+        right.x = -sin_roll * sin_pitch * cos_yaw + cos_roll * sin_yaw;
+        right.y = -sin_roll * sin_pitch * sin_yaw - cos_roll * cos_yaw;
+        right.z = -sin_roll * cos_pitch;
+
+        up.x = cos_roll * sin_pitch * cos_yaw + sin_roll * sin_yaw;
+        up.y = cos_roll * sin_pitch * sin_yaw - sin_roll * cos_yaw;
+        up.z = cos_roll * cos_pitch;
+
+        (forward, right, up)
     }
 
     pub const fn splat(value: f32) -> Vec3 {

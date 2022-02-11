@@ -17,10 +17,10 @@ pub unsafe extern "C" fn hook(
     command: &mut Command,
 ) -> bool {
     let global = Global::handle();
-    let _result = global.create_move_original(this, input_sample_time, command);
+    let original_result = global.create_move_original(this, input_sample_time, command);
 
-    if command.tick_count == 0 {
-        return true;
+    if command.command_number == 0 || command.tick_count == 0 {
+        return original_result;
     }
 
     let rbp: *mut *mut bool;
@@ -78,6 +78,8 @@ pub unsafe extern "C" fn hook(
         command.tick_count = movement.tick_count;
 
         *send_packet = movement.send_packet;
+    } else {
+        println!("create_move called while local_player is null");
     }
 
     return false;

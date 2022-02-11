@@ -1,5 +1,4 @@
 use crate::pad::Pad;
-use crate::{Vector, Vector2D};
 use core::fmt;
 
 #[repr(C)]

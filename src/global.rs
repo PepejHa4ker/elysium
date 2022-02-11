@@ -38,7 +38,7 @@ pub struct CachedPlayer {
 }
 
 impl CachedPlayer {
-    pub fn get_bone(&self, index: usize) -> Option<&Matrix3x4> {
+    pub fn get_bone(&self, index: usize) -> Option<Matrix3x4> {
         self.bones.get_bone(index)
     }
 
@@ -46,7 +46,7 @@ impl CachedPlayer {
         self.bones.get_origin(index)
     }
 
-    pub fn get_head_bone(&self) -> &Matrix3x4 {
+    pub fn get_head_bone(&self) -> Matrix3x4 {
         self.bones.get_head_bone()
     }
 

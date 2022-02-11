@@ -199,7 +199,7 @@ impl Entity {
     pub fn is_player(&self) -> bool {
         type Fn = unsafe extern "C" fn(this: *const handle::Entity) -> bool;
 
-        unsafe { self.virtual_entry::<Fn>(157)(self.as_ptr()) }
+        unsafe { self.virtual_entry::<Fn>(210)(self.as_ptr()) }
     }
 }
 

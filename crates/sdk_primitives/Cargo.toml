@@ -1,9 +1,0 @@
-[package]
-edition = "2021"
-name    = "sdk_primitives"
-version = "0.0.0"
-
-[dependencies]
-meth = { git = "https://github.com/mov-rax-rax/meth.git" }
-nalgebra = "0.29"
-vek = { features = ["repr_simd"], version = "0.15" }

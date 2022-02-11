@@ -10,7 +10,7 @@ members = ["crates/*"]
 version = "0.6"
 
 [dependencies.atomic_float]
-path = "crates/atomic_float"
+version = "0.1"
 
 [dependencies.ctor]
 version = "0.1"

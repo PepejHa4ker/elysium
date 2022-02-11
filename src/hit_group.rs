@@ -13,9 +13,9 @@ pub enum HitGroup {
 }
 
 impl HitGroup {
-    /// The multipler applied to this hit group.
-    pub const fn damage_multiplier(&self) -> f32 {
-        use HitGroup::*;
+    /// Damage multipler for this hit group.
+    pub const fn damage_mul(&self) -> f32 {
+        use HitGroup::{Head, LeftLeg, RightLeg, Stomach};
 
         match self {
             Head => 4.0,
@@ -25,6 +25,7 @@ impl HitGroup {
         }
     }
 
+    /// Actually hits?
     pub const fn is_hit(&self) -> bool {
         use HitGroup::*;
 

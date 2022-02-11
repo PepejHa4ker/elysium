@@ -23,6 +23,7 @@ pub unsafe extern "C" fn do_cham(
     global: &Global,
     material: &Material,
 ) {
+    //material.set_ignore_z(true);
     material.set_rgba8(0x12, 0x12, 0x12, 0xFF);
 
     global.model_render().set_material(&material);
@@ -48,7 +49,22 @@ pub unsafe extern "C" fn do_cham(
     global.model_render().reset_material();
 
     // reset for flat chams above next call
+    //material.set_ignore_z(false);
     material.set_wireframe(false);
+}
+
+pub unsafe extern "C" fn do_cham2(
+    this: *const (),
+    context: *const (),
+    state: *const DrawModelState,
+    info: *const ModelRenderInfo,
+    bone_to_world: *const Matrix3x4,
+    global: &Global,
+    material: &Material,
+) {
+    material.set_ignore_z(true);
+    do_cham(this, context, state, info, bone_to_world, global, material);
+    material.set_ignore_z(false);
 }
 
 pub unsafe extern "C" fn hook(
@@ -76,9 +92,13 @@ pub unsafe extern "C" fn hook(
     let name = name.as_str();
     let material = global.flat_material();
 
+    global.draw_model_execute_original(this, context, state, info, bone_to_world);
+
+    return;
+
     if name.starts_with("models/player") {
         if !name.contains("contactshadow") {
-            do_cham(
+            do_cham2(
                 this,
                 context,
                 state,
@@ -109,6 +129,5 @@ pub unsafe extern "C" fn hook(
             &material,
         );
     } else {
-        global.draw_model_execute_original(this, context, state, info, bone_to_world);
     }
 }

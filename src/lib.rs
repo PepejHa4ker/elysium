@@ -12,7 +12,7 @@ use crate::managed::handle;
 use atomic_float::AtomicF32;
 use core::ptr;
 use sdk::Vec3;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
@@ -438,6 +438,10 @@ fn main() -> Result<()> {
     let thirdperson_angle = AtomicVec3::new();
     let thirdperson_angle2 = thirdperson_angle.clone();
 
+    let p100 = Arc::new(AtomicBool::new(false));
+    let tick_count = AtomicI32::new(0);
+    let tick_charge = AtomicI32::new(0);
+
     global.on_frame(move |frame| {
         if let Some(local_player) = global2.local_player() {
             match frame {
@@ -445,7 +449,7 @@ fn main() -> Result<()> {
                     //global2.draw_model_stats_overlay().set(0);
                     global2.lost_focus_sleep().set(1);
                     global2.physics_timescale().set(0.5);
-                    global2.ragdoll_gravity().set(-800.0);
+                    //global2.ragdoll_gravity().set(-800.0);
 
                     // No recoil / no punch.
                     global2.set_aim_punch_angle(local_player.actual_aim_punch_angle());
@@ -458,9 +462,6 @@ fn main() -> Result<()> {
                         original_angle.set(local_player.view_angle());
                         local_player.set_view_angle(thirdperson_angle.get());
                     }
-
-                    println!("{:?}", global2.globals());
-                    println!("{:?}", global2.input());
                 }
                 Frame::RENDER_END => {
                     // Restore aim and view punch to not break things.
@@ -475,7 +476,7 @@ fn main() -> Result<()> {
                     //global2.draw_model_stats_overlay().set(0);
                     global2.lost_focus_sleep().set(0);
                     global2.physics_timescale().set(1.0);
-                    global2.ragdoll_gravity().set(800.0);
+                    //global2.ragdoll_gravity().set(800.0);
                 }
                 _ => {}
             }
@@ -487,16 +488,36 @@ fn main() -> Result<()> {
     });
 
     global.on_move(move |mut movement| {
+        let pure_view_angle = global3.engine().view_angle().to_trusted();
+        let pure_forward_move = movement.forward_move;
+        let pure_side_move = movement.side_move;
+
+        let aim_punch = movement.local_player.aim_punch_angle() * Vec3::splat(2.0);
+        let local_eye_origin = movement.local_player.origin();
+
+        let mut closest_angle = Vec3::zero();
+        let mut closest_angle_magnitude = f32::MAX;
+
         let on_ground = movement.local_player.on_ground();
         let on_ladder = movement.local_player.on_ladder();
 
         let air_move = !on_ground && !on_ladder;
         let ladder_move = on_ladder;
 
-        if air_move {
-            let velocity = movement.local_player.velocity();
-            let speed = velocity.magnitude();
+        let velocity = movement.local_player.velocity();
+        let speed = velocity.magnitude();
 
+        if movement.local_player.is_dead() {
+            movement.view_angle = pure_view_angle;
+            movement.forward_move = 0.0;
+            movement.side_move = 0.0;
+
+            thirdperson_angle2.set(movement.view_angle);
+
+            return movement;
+        }
+
+        if air_move {
             movement.forward_move = 10000.0 / speed;
             movement.side_move = if movement.command_number % 2 == 0 {
                 -450.0
@@ -507,52 +528,189 @@ fn main() -> Result<()> {
             movement.do_jump = false;
         }
 
-        if choked_packets.count() > 9 {
+        if choked_packets.count() > (rand::random::<f32>() * 23.0) as usize {
             movement.send_packet = true;
             choked_packets.reset();
         } else {
             movement.send_packet = false;
             choked_packets.increment();
         }
-
-        let view_angle = global3.engine().view_angle();
+        movement.send_packet = true;
 
         movement.view_angle.x = 89.0;
-        movement.view_angle.y = view_angle.y + 180.0;
+        movement.view_angle.y =
+            pure_view_angle.y + 180.0 + ((rand::random::<f32>() * 104.0) - 52.0);
 
-        if movement.do_attack {
-            movement.view_angle = view_angle;
+        let mut fucked = false;
+        if p100.load(Ordering::Relaxed) {
+            let tick_count = tick_count.load(Ordering::Relaxed);
+            let tick_delta = movement.tick_count - tick_count;
+
+            println!("\x1b[H\x1b[2J\x1b[3Jtick_count = {tick_count} tick_delta = {tick_delta}");
+
+            use std::borrow::Cow;
+            use std::ffi::CStr;
+
+            let cmd = unsafe {
+                const CMD: &str = "play buttons/arena_switch_press_02\0";
+
+                CStr::from_ptr(CMD.as_ptr() as *const i8)
+            };
+
+            global3.engine().command_unrestricted(Cow::Borrowed(cmd));
+
+            movement.do_attack = true;
+            movement.view_angle = pure_view_angle;
+            //movement.tick_count = i32::MAX;
+            //movement.command_number = i32::MAX;
+            p100.store(false, Ordering::Relaxed);
+            //fucked = true;
+        } else {
+            tick_charge.fetch_add(1, Ordering::Relaxed);
+
+            if tick_charge.load(Ordering::Relaxed) >= 14 {
+                // past
+                movement.tick_count -= 14;
+
+                if movement.do_attack {
+                    tick_charge.store(0, Ordering::Relaxed);
+                    movement.view_angle = pure_view_angle;
+                    tick_count.store(movement.tick_count, Ordering::Relaxed);
+                    p100.store(true, Ordering::Relaxed);
+                }
+            } else {
+                movement.tick_count = i32::MAX;
+                movement.command_number = i32::MAX;
+                movement.do_attack = false;
+            }
         }
 
-        if ladder_move {
-            movement.view_angle.x = -89.0;
+        fn relative_angle(src: Vec3, dst: Vec3) -> Vec3 {
+            let delta = src - dst;
+            let hypot = (delta.x * delta.x + delta.y * delta.y).sqrt();
+
+            let mut angle = Vec3 {
+                x: (delta.z / hypot).asin().to_degrees(),
+                y: (delta.y / delta.x).atan().to_degrees(),
+                z: 0.0,
+            };
+
+            if angle.x >= 0.0 {
+                angle.y += 180.0;
+            }
+
+            angle
         }
 
-        movement.view_angle -= movement.local_player.aim_punch_angle() * Vec3::splat(2.0);
+        for i in 1..=64 {
+            if let Some(entity) = global3.entity_list().get(i) {
+                use crate::entity::Player;
 
-        thirdperson_angle2.set(movement.view_angle);
+                let is_dormant = entity.is_dormant();
 
-        let original_forward_move = movement.forward_move;
-        let original_side_move = movement.side_move;
+                if is_dormant {
+                    continue;
+                }
 
-        let yaw_delta = view_angle.y - movement.view_angle.y;
-        let yaw_delta_90 = yaw_delta + 90.0;
-        let yaw_delta = yaw_delta.to_radians();
-        let yaw_delta_90 = yaw_delta_90.to_radians();
+                let is_player = entity.is_player();
 
-        let (sin, cos) = yaw_delta.sin_cos();
-        let (sin_90, cos_90) = yaw_delta_90.sin_cos();
+                if !is_player {
+                    continue;
+                }
 
-        movement.forward_move = cos * original_forward_move + cos_90 * original_side_move;
-        movement.side_move = sin * original_forward_move + sin_90 * original_side_move;
+                let player = unsafe { Player::new_unchecked(entity.as_ptr() as *mut _) };
 
-        movement.view_angle.z = movement.view_angle.z.clamp(-89.0, 89.0);
-        movement.view_angle.y %= 360.0;
-        movement.view_angle.z = 0.0;
+                let is_dead = player.is_dead();
+
+                if is_dead {
+                    continue;
+                }
+
+                let other_eye_origin = player.origin();
+                let target_angle = relative_angle(local_eye_origin, other_eye_origin);
+                let angle_delta = (target_angle - pure_view_angle).to_trusted();
+                let yaw_delta = angle_delta.y.abs();
+
+                //println!("{:?}", yaw_delta);
+
+                //movement.view_angle.y = target_angle.y;
+            }
+        }
+
+        movement.view_angle -= aim_punch;
+        movement.view_angle.make_trusted();
+
+        if movement.send_packet {
+            thirdperson_angle2.set(movement.view_angle);
+        }
+
+        if !air_move {
+            let (mut pure_forward, mut pure_right, pure_up) = pure_view_angle.angle_vector();
+            let (mut current_forward, mut current_right, current_up) =
+                movement.view_angle.angle_vector();
+
+            pure_forward.z = 0.0;
+            pure_right.z = 0.0;
+            current_forward.z = 0.0;
+            current_right.z = 0.0;
+
+            fn normalize_vector(vec: &mut Vec3) {
+                let radius = (vec.x * vec.x + vec.y * vec.y + vec.z * vec.z).sqrt();
+                let iradius = 1.0 / (radius + f32::EPSILON);
+
+                vec.x *= iradius;
+                vec.y *= iradius;
+                vec.z *= iradius;
+            }
+
+            normalize_vector(&mut pure_forward);
+            normalize_vector(&mut pure_right);
+            normalize_vector(&mut current_forward);
+            normalize_vector(&mut current_right);
+
+            let mut pure_wish_dir = Vec3::zero();
+
+            pure_wish_dir.x =
+                pure_forward.x * movement.forward_move + pure_right.x * movement.side_move;
+
+            pure_wish_dir.y =
+                pure_forward.y * movement.forward_move + pure_right.y * movement.side_move;
+
+            let mut current_wish_dir = Vec3::zero();
+
+            current_wish_dir.x =
+                current_forward.x * movement.forward_move + current_right.x * movement.side_move;
+
+            current_wish_dir.y =
+                current_forward.y * movement.forward_move + current_right.y * movement.side_move;
+
+            if pure_wish_dir.x != current_wish_dir.x
+                && pure_wish_dir.y != current_wish_dir.y
+                && pure_wish_dir.z != current_wish_dir.z
+            {
+                let denominator =
+                    current_right.y * current_forward.x - current_right.x * current_forward.y;
+
+                movement.forward_move = (pure_wish_dir.x * current_right.y
+                    - pure_wish_dir.y * current_right.x)
+                    / denominator;
+
+                movement.side_move = (pure_wish_dir.y * current_forward.x
+                    - pure_wish_dir.x * current_forward.y)
+                    / denominator;
+            }
+
+            movement.forward_move = -movement.forward_move;
+            movement.side_move = -movement.side_move;
+        }
+
+        if fucked {
+            movement.forward_move = -movement.forward_move;
+            movement.side_move = -movement.side_move;
+        }
 
         movement.forward_move = movement.forward_move.clamp(-450.0, 450.0);
         movement.side_move = movement.side_move.clamp(-450.0, 450.0);
-
         movement
     });
 
