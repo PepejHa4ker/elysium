@@ -1,5 +1,5 @@
-use core::ptr;
-use sdk::{Matrix3x4, Pad, Vec3, Vec4Aligned};
+use providence_math::{Vec3, Vec4Aligned};
+use sdk::Pad;
 
 /// Ray to be traced.
 #[derive(Debug)]

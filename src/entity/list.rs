@@ -1,5 +1,4 @@
 use crate::entity::Entity;
-use crate::global::Global;
 use crate::managed::{handle, Managed};
 
 /// Entity list interface.

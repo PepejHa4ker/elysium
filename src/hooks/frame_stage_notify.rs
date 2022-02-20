@@ -1,7 +1,6 @@
 use crate::entity::Player;
 use crate::frame::Frame;
 use crate::global::Global;
-use crate::managed::handle;
 
 pub type Signature = unsafe extern "C" fn(this: *const (), frame: Frame);
 

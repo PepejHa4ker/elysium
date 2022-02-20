@@ -1,5 +1,6 @@
 use core::ops::{Add, Div, Mul, Rem, Sub};
 use core::ops::{AddAssign, DivAssign, MulAssign, RemAssign, SubAssign};
+use core::ptr;
 
 #[derive(Copy, Clone, Default, Debug)]
 #[repr(C)]
@@ -10,6 +11,14 @@ pub struct Vec3 {
 }
 
 impl Vec3 {
+    pub fn as_ptr(&self) -> *const f32 {
+        ptr::addr_of!(self.x)
+    }
+
+    pub fn as_mut_ptr(&mut self) -> *mut f32 {
+        ptr::addr_of_mut!(self.x)
+    }
+
     /// Create a new `Vec3` from x, y coordinates.
     pub const fn from_xy(x: f32, y: f32) -> Vec3 {
         Vec3 { x, y, z: 0.0 }

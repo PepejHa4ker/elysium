@@ -2,6 +2,3 @@
 name    = "sdk"
 version = "0.0.0"
 edition = "2021"
-
-[dependencies.sdk-math]
-path = "../sdk-math"

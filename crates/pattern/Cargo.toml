@@ -1,0 +1,13 @@
+[package]
+edition = "2021"
+name = "providence-pattern"
+version = "0.0.0"
+
+[dependencies.findshlibs]
+default-features = false
+version = "0.10"
+
+[dependencies.regex]
+default-features = false
+features = ["perf", "std"]
+version = "1"

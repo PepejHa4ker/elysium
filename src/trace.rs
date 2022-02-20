@@ -2,7 +2,7 @@ use super::entity::Entity;
 use crate::managed::{handle, Managed};
 use core::mem::MaybeUninit;
 use core::ptr;
-use sdk::Vec3;
+use providence_math::Vec3;
 
 pub use filter::Filter;
 pub use plane::Plane;

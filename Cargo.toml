@@ -15,29 +15,29 @@ version = "0.1"
 [dependencies.ctor]
 version = "0.1"
 
-[dependencies.iced_glutin]
-default-features = false
-features = ["debug"]
-git = "https://github.com/iced-rs/iced.git"
+#[dependencies.iced_glutin]
+#default-features = false
+#features = ["debug"]
+#git = "https://github.com/iced-rs/iced.git"
 
-[dependencies.iced_glow]
-default-features = false
-features = ["default_system_font"]
-git = "https://github.com/iced-rs/iced.git"
+#[dependencies.iced_glow]
+#default-features = false
+#features = ["default_system_font"]
+#git = "https://github.com/iced-rs/iced.git"
 
-[dependencies.iced_winit]
-default-features = false
-features = ["debug"]
-git = "https://github.com/iced-rs/iced.git"
+#[dependencies.iced_winit]
+#default-features = false
+#features = ["debug"]
+#git = "https://github.com/iced-rs/iced.git"
 
-[dependencies.glium]
-default-features = false
-version = "0.30"
-features = ["glutin"]
+#[dependencies.glium]
+#default-features = false
+#version = "0.30"
+#features = ["glutin"]
 
-[dependencies.glow]
-default-features = false
-version = "0.6"
+#[dependencies.glow]
+#default-features = false
+#version = "0.6"
 
 [dependencies.daisy_chain]
 path = "crates/daisy_chain"
@@ -63,6 +63,15 @@ version = "0.11"
 [dependencies.phf]
 features = ["macros"]
 version = "0.10"
+
+[dependencies.providence-math]
+path = "crates/math"
+
+[dependencies.providence-model]
+path = "crates/model"
+
+[dependencies.providence-pattern]
+path = "crates/pattern"
 
 [dependencies.rand]
 version = "0.8"

@@ -1,8 +1,7 @@
 use super::{Plane, Surface};
-use crate::entity::Entity;
 use crate::hit_group::HitGroup;
 use crate::managed::handle;
-use sdk::{Pad, Vec3};
+use providence_math::Vec3;
 
 /// Ray trace summary.
 #[derive(Debug)]

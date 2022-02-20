@@ -118,6 +118,13 @@ impl Interfaces {
         let globals = unsafe { &*(client.globals_ptr() as *const Globals) };
         let input = unsafe { &*(client.input_ptr() as *const Input) };
 
+        println!(
+            "Searching for pattern {:?} (animation_layers) in `client_client.so'",
+            pattern::ANIMATION_LAYERS
+        );
+
+        println!("Regex: {:?}", pattern::ANIMATION_LAYERS.regex());
+
         let patterns = pattern::Libraries::new();
         let animation_layers = unsafe {
             *(patterns
@@ -125,6 +132,13 @@ impl Interfaces {
                 .unwrap_or(ptr::null())
                 .add(35) as *const u32)
         };
+
+        println!(
+            "Searching for pattern {:?} (animation_state) in `client_client.so'",
+            pattern::ANIMATION_STATE
+        );
+
+        println!("Regex: {:?}", pattern::ANIMATION_STATE.regex());
 
         let animation_state = unsafe {
             *(patterns

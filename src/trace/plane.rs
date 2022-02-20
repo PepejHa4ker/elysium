@@ -1,4 +1,5 @@
-use sdk::{Pad, Vec3};
+use providence_math::Vec3;
+use sdk::Pad;
 
 #[derive(Debug)]
 #[non_exhaustive]

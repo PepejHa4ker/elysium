@@ -3,7 +3,7 @@ use crate::managed::{handle, Managed};
 use crate::mem;
 use crate::model::Model;
 use core::cmp;
-use sdk::{Matrix3x4, Vec3};
+use providence_math::{Matrix3x4, Vec3};
 
 pub use id::EntityId;
 pub use list::EntityList;

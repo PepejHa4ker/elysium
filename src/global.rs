@@ -1,4 +1,3 @@
-use crate::bones::Bones;
 use crate::client::Client;
 use crate::command::Command;
 use crate::console::{Console, Var};
@@ -19,8 +18,8 @@ use crate::physics::Physics;
 use crate::trace::RayTracer;
 use crate::Result;
 use core::ptr;
-use sdk::Matrix3x4;
-use sdk::Vec3;
+use providence_math::{Matrix3x4, Vec3};
+use providence_model::Bones;
 use std::lazy::SyncOnceCell;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
@@ -37,7 +36,7 @@ pub struct CachedPlayer {
     bones: Bones,
 }
 
-impl CachedPlayer {
+/*impl CachedPlayer {
     pub fn get_bone(&self, index: usize) -> Option<Matrix3x4> {
         self.bones.get_bone(index)
     }
@@ -53,7 +52,7 @@ impl CachedPlayer {
     pub fn get_head_origin(&self) -> Vec3 {
         self.bones.get_head_origin()
     }
-}
+}*/
 
 pub(crate) struct GlobalRef {
     // The games libraries.

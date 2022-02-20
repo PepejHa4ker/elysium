@@ -1,5 +1,5 @@
 use crate::managed::{handle, Managed};
-use sdk::Vec3;
+use providence_math::Vec3;
 use std::borrow::Cow;
 use std::ffi::CStr;
 

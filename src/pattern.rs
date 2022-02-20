@@ -1,67 +1,57 @@
 use core::ptr;
 use findshlibs::{Segment, SharedLibrary, TargetSharedLibrary};
 use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use providence_pattern::Pattern;
 use regex::bytes::Regex;
 use std::collections::HashMap;
 use std::lazy::SyncLazy;
 use std::path::Path;
 use std::sync::Arc;
 
-pub type Pattern = SyncLazy<Regex>;
+/*pub const ITEM_SYSTEM: Pattern<5> = Pattern::new("E8 ?? ?? ?? ?? 4D 63 EC");
 
-macro_rules! pattern {
-    ($pattern:expr) => {
-        SyncLazy::new(move || Regex::new(concat!("(?msx-u)", $pattern)).unwrap())
-    };
-}
+pub const WEAPON_SYSTEM: Pattern<5> = Pattern::new("48 8B 58 10 48 8B 07 FF 10");
 
-pub const ITEM_SYSTEM: Pattern = pattern!(r"\xe8....\x4d\x63\xec");
+pub const SEND_CLANTAG: Pattern<5> = Pattern::new("55 48 89 E5 41 55 49 89 FD 41 54 BF");
 
-pub const WEAPON_SYSTEM: Pattern = pattern!(r"\x48\x8b\x58\x10\x48\x8b\x07\xff\x10");
+pub const SET_PLAYER_READY: Pattern<5> =
+    Pattern::new("55 48 89 F7 48 8D 35 ?? ?? ?? ?? 48 89 E5 E8 ?? ?? ?? ?? 85 C0");
 
-pub const SEND_CLANTAG: Pattern = pattern!(r"\x55\x48\x89\xe5\x41\x55\x49\x89\xfd\x41\x54\xbf");
+pub const RADAR_IS_HLTV_CHECK: Pattern<5> = Pattern::new("84 C0 74 50 31 F6");
 
-pub const SET_PLAYER_READY: Pattern =
-    pattern!(r"\x55\x48\x89\xf7\x48\x8d\x35....\x48\x89\xe5\xe8....\x85\xc0");
+pub const INIT_KEY_VALUES: Pattern<5> = Pattern::new("81 27 00 00 00 ff 55 31 c0 48 89 e5 5d");
 
-pub const RADAR_IS_HLTV_CHECK: Pattern = pattern!(r"\x84\xc0\x74\x50\x31\xf6");
+pub const LOAD_FROM_BUFFER: Pattern<5> =
+    Pattern::new("55 48 89 E5 41 57 41 56 41 55 41 54 49 89 D4 53 48 81 EC ?? ?? ?? ?? 48 85");
 
-pub const INIT_KEY_VALUES: Pattern =
-    pattern!(r"\x81\x27\x00\x00\x00\xff\x55\x31\xc0\x48\x89\xe5\x5d");
+pub const SET_NAMED_SKYBOX: Pattern<5> = Pattern::new("55 4C 8D 05 ?? ?? ?? ?? 48 89 E5 41");
 
-pub const LOAD_FROM_BUFFER: Pattern = pattern!(
-    r"\x55\x48\x89\xe5\x41\x57\x41\x56\x41\x55\x41\x54\x49\x89\xd4\x53\x48\x81\xec....\x48\x85"
-);
+pub const LINE_GOES_THROUGH_SMOKE: Pattern<5> =
+    Pattern::new("55 48 89 E5 41 56 41 55 41 54 53 48 83 EC 30 66 0F D6 45 D0");
 
-pub const SET_NAMED_SKYBOX: Pattern = pattern!(r"\x55\x4c\x8d\x05....\x48\x89\xe5\x41");
+pub const MOVE_DATA: Pattern<5> = Pattern::new("48 8b 0d ?? ?? ?? ?? 4c 89 ea");
 
-pub const LINE_GOES_THROUGH_SMOKE: Pattern =
-    pattern!(r"\x55\x48\x89\xe5\x41\x56\x41\x55\x41\x54\x53\x48\x83\xec\x30\x66\x0f\xd6\x45\xd0");
+pub const MOVE_HELPER: Pattern<5> = Pattern::new("00 48 89 3d ?? ?? ?? ?? c3");
 
-pub const MOVE_DATA: Pattern = pattern!(r"\x48\x8b\x0d....\x4c\x89\xea");
+pub const PREDICTION_SEED: Pattern<5> =
+    Pattern::new("48 8B 05 ?? ?? ?? ?? 8B 38 E8 ?? ?? ?? ?? 89 C7");*/
 
-pub const MOVE_HELPER: Pattern = pattern!(r"\x00\x48\x89\x3d....\xc3");
+pub const ANIMATION_LAYERS: Pattern<80> =
+    Pattern::new("55 48 89 E5 41 56 41 55 41 89 F5 41 54 53 48 89 FB 8B");
 
-pub const PREDICTION_SEED: Pattern = pattern!(r"\x48\x8b\x05....\x8b\x38\xe8....\x89\xc7");
+pub const ANIMATION_STATE: Pattern<84> =
+    Pattern::new("55 48 89 E5 53 48 89 FB 48 83 EC 28 48 8B 05 ?? ?? ?? ?? 48 8B 00");
 
-pub const ANIMATION_LAYERS: Pattern =
-    pattern!(r"\x55\x48\x89\xe5\x41\x56\x41\x55\x41\x89\xf5\x41\x54\x53\x48\x89\xfb\x8b");
+pub const SAVE_DATA: Pattern<108> =
+    Pattern::new("55 48 89 E5 41 57 41 89 CF 41 56 41 55 41 89 D5 41 54 53 48 89 FB 48 81 EC");
 
-pub const ANIMATION_STATE: Pattern =
-    pattern!(r"\x55\x48\x89\xe5\x53\x48\x89\xfb\x48\x83\xec\x28\x48\x8b\x05....\x48\x8b\x00");
+pub const RESTORE_DATA: Pattern<36> = Pattern::new("E9 ?? ?? ?? ?? 90 55 48 63 F6");
 
-pub const SAVE_DATA: Pattern = pattern!(
-    r"\x55\x48\x89\xe5\x41\x57\x41\x89\xcf\x41\x56\x41\x55\x41\x89\xd5\x41\x54\x53\x48\x89\xfb\x48\x81\xec"
-);
+pub const ON_POST_RESTORE_DATA: Pattern<60> =
+    Pattern::new("55 BE ?? ?? ?? ?? 48 89 E5 41 54 53 48 89 FB E8");
 
-pub const RESTORE_DATA: Pattern = pattern!(r"\xe9....\x90\x55\x48\x63\xf6");
-
-pub const ON_POST_RESTORE_DATA: Pattern =
-    pattern!(r"\x55\xbe....\x48\x89\xe5\x41\x54\x53\x48\x89\xfb\xe8");
-
-pub const RESTORE_ENTITY_TO_PREDICTED_FRAME: Pattern = pattern!(
-    r"\x55\x48\x89\xe5\x41\x57\x41\x89\xd7\x41\x56\x41\x55\x41\x89\xf5\x41\x54\x53\x48\x83\xec\x18"
-);
+/*pub const RESTORE_ENTITY_TO_PREDICTED_FRAME: Pattern<4> =
+Pattern::new("55 48 89 E5 41 57 41 89 D7 41 56 41 55 41 89 F5 41 54 53 48 83 EC 18");*/
 
 /// non-owning range over some memory
 #[derive(Clone, Copy, Debug)]
@@ -79,14 +69,14 @@ impl Range {
         &*ptr::from_raw_parts(self.base_address as *const (), self.len)
     }
 
-    pub unsafe fn offset_of(&self, pattern: &Pattern) -> Option<usize> {
-        match pattern.find(self.as_slice()) {
+    pub unsafe fn offset_of<const N: usize>(&self, pattern: &Pattern<N>) -> Option<usize> {
+        match pattern.regex().find(self.as_slice()) {
             Some(r#match) => Some(r#match.start()),
             None => None,
         }
     }
 
-    pub unsafe fn address_of(&self, pattern: &Pattern) -> Option<*const u8> {
+    pub unsafe fn address_of<const N: usize>(&self, pattern: &Pattern<N>) -> Option<*const u8> {
         match self.offset_of(pattern) {
             Some(offset) => Some(self.base_address.add(offset)),
             None => None,
@@ -118,14 +108,22 @@ impl Ranges {
         }
     }
 
-    pub unsafe fn offset_of(&self, library_name: &str, pattern: &Pattern) -> Option<usize> {
+    pub unsafe fn offset_of<const N: usize>(
+        &self,
+        library_name: &str,
+        pattern: &Pattern<N>,
+    ) -> Option<usize> {
         match self.get(library_name) {
             Some(range) => range.offset_of(pattern),
             None => None,
         }
     }
 
-    pub unsafe fn address_of(&self, library_name: &str, pattern: &Pattern) -> Option<*const u8> {
+    pub unsafe fn address_of<const N: usize>(
+        &self,
+        library_name: &str,
+        pattern: &Pattern<N>,
+    ) -> Option<*const u8> {
         match self.get(library_name) {
             Some(range) => range.address_of(pattern),
             None => None,
@@ -191,11 +189,19 @@ impl Libraries {
         self.read().get(library_name)
     }*/
 
-    pub unsafe fn offset_of(&self, library_name: &str, pattern: &Pattern) -> Option<usize> {
+    pub unsafe fn offset_of<const N: usize>(
+        &self,
+        library_name: &str,
+        pattern: &Pattern<N>,
+    ) -> Option<usize> {
         self.read().offset_of(library_name, pattern)
     }
 
-    pub unsafe fn address_of(&self, library_name: &str, pattern: &Pattern) -> Option<*const u8> {
+    pub unsafe fn address_of<const N: usize>(
+        &self,
+        library_name: &str,
+        pattern: &Pattern<N>,
+    ) -> Option<*const u8> {
         self.read().address_of(library_name, pattern)
     }
 }

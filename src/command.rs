@@ -1,4 +1,4 @@
-use sdk::Vec3;
+use providence_math::Vec3;
 
 pub const IN_ATTACK: i32 = 1 << 0;
 pub const IN_JUMP: i32 = 1 << 1;
@@ -54,7 +54,7 @@ impl Command {
     }
 
     pub const fn in_fast_duck(&self) -> bool {
-        self.has(IN_DUCK | IN_BULLRUSH)
+        self.has(IN_BULLRUSH)
     }
 
     pub const fn attack(&mut self, value: bool) {
@@ -70,6 +70,6 @@ impl Command {
     }
 
     pub const fn fast_duck(&mut self, value: bool) {
-        self.set(IN_DUCK | IN_BULLRUSH, value);
+        self.set(IN_BULLRUSH, value);
     }
 }
