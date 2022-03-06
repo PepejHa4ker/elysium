@@ -40,11 +40,8 @@ pub unsafe extern "C" fn hook(
 
         let on_move = &*global.on_move_ptr();
         let movement = on_move(Movement {
-            forward_move: command.forward_move,
-            side_move: command.side_move,
-            up_move: command.up_move,
-
-            view_angle: command.view_angle,
+            vectors: command.vectors,
+            view: command.view,
 
             send_packet: *send_packet,
 
@@ -55,6 +52,8 @@ pub unsafe extern "C" fn hook(
             do_jump: command.in_jump(),
             do_duck: command.in_duck(),
             do_fast_duck: command.in_fast_duck(),
+            do_left: command.in_left(),
+            do_right: command.in_right(),
 
             local_player: (local_player as *const Player).read(),
 
@@ -68,11 +67,8 @@ pub unsafe extern "C" fn hook(
         command.duck(movement.do_duck);
         command.fast_duck(movement.do_fast_duck);
 
-        command.forward_move = movement.forward_move;
-        command.side_move = movement.side_move;
-        command.up_move = movement.up_move;
-
-        command.view_angle = movement.view_angle;
+        command.vectors = movement.vectors;
+        command.view = movement.view;
 
         command.command_number = movement.command_number;
         command.tick_count = movement.tick_count;

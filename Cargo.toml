@@ -51,12 +51,6 @@ version = "0.2"
 [dependencies.libloading]
 version = "0.7"
 
-[dependencies.nalgebra]
-version = "0.29"
-
-[dependencies.nalgebra-glm]
-version = "0.15"
-
 [dependencies.parking_lot]
 version = "0.11"
 
@@ -73,6 +67,12 @@ path = "crates/model"
 [dependencies.providence-pattern]
 path = "crates/pattern"
 
+[dependencies.providence-state]
+path = "crates/state"
+
+[dependencies.providence-util]
+path = "crates/util"
+
 [dependencies.rand]
 version = "0.8"
 
@@ -88,6 +88,16 @@ path = "crates/spirit"
 [dependencies.vek]
 features = ["repr_simd"]
 version = "0.15"
+
+[dependencies.tracing]
+default-features = false
+features = ["std", "attributes"]
+version = "0.1"
+
+[dependencies.tracing-subscriber]
+default-features = false
+features = ["ansi", "fmt", "env-filter", "std"]
+version = "0.3"
 
 [lib]
 crate-type = ["cdylib"]

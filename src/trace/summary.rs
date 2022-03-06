@@ -1,4 +1,5 @@
 use super::{Plane, Surface};
+use crate::contents::Contents;
 use crate::hit_group::HitGroup;
 use crate::managed::handle;
 use providence_math::Vec3;
@@ -15,7 +16,7 @@ pub struct Summary {
 
     pub fraction: f32,
 
-    pub contents: i32,
+    pub contents: Contents,
     pub disp_flags: u32,
 
     pub all_solid: bool,
@@ -42,7 +43,7 @@ impl Summary {
             end: Vec3::zero(),
             plane: Plane::new(),
             fraction: 0.0,
-            contents: 0,
+            contents: Contents::new(),
             disp_flags: 0,
             all_solid: false,
             start_solid: false,

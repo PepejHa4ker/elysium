@@ -30,10 +30,6 @@ impl Player {
         self.0.as_ptr()
     }
 
-    pub fn as_entity(&self) -> Entity {
-        unsafe { Entity::new_unchecked(self.as_ptr() as *mut handle::Entity) }
-    }
-
     /// Returns a pointer to the first element within the virtual table.
     pub unsafe fn virtual_table(&self) -> *const () {
         self.0.virtual_table()
@@ -63,6 +59,10 @@ impl Player {
         U: Sized,
     {
         self.0.relative_entry(offset)
+    }
+
+    pub fn as_entity(&self) -> &Entity {
+        &self.0
     }
 
     /// Returns the player's flags.
@@ -198,15 +198,9 @@ impl Player {
     }
 
     pub fn eye_origin(&self) -> Vec3 {
-        let origin = self.origin();
-        let view_offset = self.view_offset();
-        let view_offset = if view_offset.z > 0.0 {
-            view_offset
-        } else {
-            Vec3::from_xyz(0.0, 0.0, if self.is_ducking() { 46.0 } else { 64.0 })
-        };
+        type Fn = unsafe extern "C" fn(this: *const handle::Entity) -> Vec3;
 
-        origin + view_offset
+        unsafe { self.virtual_entry::<Fn>(348)(self.as_ptr()) }
     }
 
     pub fn view_offset(&self) -> Vec3 {

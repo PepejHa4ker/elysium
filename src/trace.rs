@@ -1,4 +1,5 @@
 use super::entity::Entity;
+use crate::contents::Contents;
 use crate::managed::{handle, Managed};
 use core::mem::MaybeUninit;
 use core::ptr;
@@ -65,57 +66,66 @@ impl RayTracer {
         self.0.relative_entry(offset)
     }
 
-    pub fn point_contents(&self, position: Vec3, mask: i32, entities: *const *const Entity) -> i32 {
+    pub fn point_contents(
+        &self,
+        position: Vec3,
+        contents: Contents,
+        entities: *const *const Entity,
+    ) -> Contents {
         type Fn = unsafe extern "C" fn(
             this: *const handle::RayTracer,
             position: *const Vec3,
-            mask: i32,
+            contents: u32,
             entities: *const *const Entity,
-        ) -> i32;
+        ) -> Contents;
 
-        unsafe { self.virtual_entry::<Fn>(0)(self.as_ptr(), &position, mask, entities) }
+        unsafe {
+            self.virtual_entry::<Fn>(0)(self.as_ptr(), &position, contents.to_u32(), entities)
+        }
     }
 
     pub fn clip_to_entity(
         &self,
         ray: &Ray,
-        mask: u32,
+        contents: Contents,
         filter: *const Filter,
         entities: *const Entity,
     ) {
         type Fn = unsafe extern "C" fn(
             this: *const handle::RayTracer,
             ray: *const Ray,
-            mask: u32,
+            contents: u32,
             filter: *const Filter,
             entities: *const Entity,
         );
 
-        unsafe { self.virtual_entry::<Fn>(4)(self.as_ptr(), ray, mask, filter, entities) }
+        unsafe {
+            self.virtual_entry::<Fn>(4)(self.as_ptr(), ray, contents.to_u32(), filter, entities)
+        }
     }
 
     pub fn raw_trace(
         &self,
         ray: *const Ray,
-        mask: u32,
+        contents: Contents,
         filter: *const Filter,
         summary: *mut Summary,
     ) {
         type Fn = unsafe extern "C" fn(
             this: *const handle::RayTracer,
             ray: *const Ray,
-            mask: u32,
+            contents: u32,
             filter: *const Filter,
             summary: *mut Summary,
         );
 
         unsafe {
-            self.virtual_entry::<Fn>(5)(self.as_ptr(), ray, mask, filter, summary);
+            self.virtual_entry::<Fn>(5)(self.as_ptr(), ray, contents.to_u32(), filter, summary);
         }
     }
 
     /// Trace a ray, returning a summary of the trace.
-    pub fn trace(&self, ray: &Ray, mask: u32, skip_entity: Option<&Entity>) -> Summary {
+    pub fn trace(&self, ray: &Ray, contents: Contents, skip_entity: Option<&Entity>) -> Summary {
         let filter = match skip_entity {
             Some(skip_entity) => Box::into_raw(Box::new(Filter::new(skip_entity.as_ptr()))),
             None => ptr::null(),
@@ -123,7 +133,7 @@ impl RayTracer {
 
         let mut summary = MaybeUninit::<Summary>::uninit();
 
-        self.raw_trace(ray, mask, filter, summary.as_mut_ptr());
+        self.raw_trace(ray, contents, filter, summary.as_mut_ptr());
 
         if !filter.is_null() {
             unsafe { Box::from_raw(filter as *mut Filter) };
@@ -136,16 +146,18 @@ impl RayTracer {
     pub fn trace_mut(
         &self,
         ray: &Ray,
-        mask: u32,
+        contents: Contents,
         skip_entity: Option<&Entity>,
         summary: &mut Summary,
     ) {
+        tracing::trace!("{ray:?} {contents:?} {skip_entity:?}");
+
         let filter = match skip_entity {
             Some(skip_entity) => Box::into_raw(Box::new(Filter::new(skip_entity.as_ptr()))),
             None => ptr::null(),
         };
 
-        self.raw_trace(ray, mask, filter, summary);
+        self.raw_trace(ray, contents, filter, summary);
 
         if !filter.is_null() {
             unsafe { Box::from_raw(filter as *mut Filter) };

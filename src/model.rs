@@ -1,7 +1,7 @@
 use crate::managed::{handle, Managed};
 use crate::material::Material;
 use core::marker::PhantomData;
-use core::ptr;
+use core::{fmt, ptr};
 use providence_math::{Matrix3x4, Vec3};
 use sdk::Pad;
 use spirit::Str;
@@ -258,18 +258,14 @@ impl ModelInfo {
         unsafe { self.virtual_entry::<Fn>(3)(self.as_ptr(), filename) }
     }
 
-    pub fn name_of<'a>(&'a self, model: &Model) -> &'a Str {
+    pub fn name_of<'a>(&'a self, model: *const Model) -> *const u8 {
         type Fn =
             unsafe extern "C" fn(this: *const handle::ModelInfo, model: *const Model) -> *const u8;
 
-        unsafe {
-            let ptr = self.virtual_entry::<Fn>(4)(self.as_ptr(), model);
-
-            Str::new(ptr)
-        }
+        unsafe { self.virtual_entry::<Fn>(4)(self.as_ptr(), model) }
     }
 
-    pub fn studio_model_of(&self, model: &Model) -> *const Hdr {
+    pub fn studio_model_of(&self, model: *const Model) -> *const Hdr {
         type Fn =
             unsafe extern "C" fn(this: *const handle::ModelInfo, model: *const Model) -> *const Hdr;
 
@@ -277,7 +273,6 @@ impl ModelInfo {
     }
 }
 
-#[derive(Debug)]
 #[non_exhaustive]
 #[repr(C)]
 pub struct DrawModelState {
@@ -290,14 +285,36 @@ pub struct DrawModelState {
     pub lod: i32,
 }
 
+impl fmt::Debug for DrawModelState {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("DrawModelState")
+            .field("studio", &self.studio)
+            .field("hardware_data", &self.hardware_data)
+            .field("renderable", &self.renderable)
+            .field("model_to_world", &self.model_to_world)
+            .field("decals", &self.decals)
+            .field("draw_flags", &self.draw_flags)
+            .field("lod", &self.lod)
+            .finish()
+    }
+}
+
 #[derive(Debug)]
 #[non_exhaustive]
 #[repr(C)]
 pub struct Model {
     pub name: [u8; 255],
+    pub needload: i32,
+    pub kind: i32,
+    pub flags: i32,
+    pub mins: Vec3,
+    pub maxs: Vec3,
+    pub radius: f32,
+    pub extradatasize: i32,
+    pub cache: i32,
+    pub data: *const (),
 }
 
-#[derive(Debug)]
 #[non_exhaustive]
 #[repr(C)]
 pub struct ModelRenderInfo {
@@ -315,6 +332,26 @@ pub struct ModelRenderInfo {
     pub body: i32,
     pub hitboxset: i32,
     pub instance: *const (),
+}
+
+impl fmt::Debug for ModelRenderInfo {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("ModelRenderInfo")
+            .field("origin", &self.origin)
+            .field("angles", &self.angles)
+            .field("renderable", &self.renderable)
+            .field("model", &self.model)
+            .field("model_to_world", &self.model_to_world)
+            .field("lighting_offset", &self.lighting_offset)
+            .field("lighting_origin", &self.lighting_origin)
+            .field("flags", &self.flags)
+            .field("entity_index", &self.entity_index)
+            .field("skin", &self.skin)
+            .field("body", &self.body)
+            .field("hitboxset", &self.hitboxset)
+            .field("instance", &self.instance)
+            .finish()
+    }
 }
 
 /// Model renderer interface.
@@ -373,7 +410,7 @@ impl ModelRender {
     }
 
     pub fn reset_material(&self) {
-        unsafe { self.material_override_unchecked(0 as *const handle::Material) }
+        unsafe { self.material_override_unchecked(ptr::null::<()>() as *const handle::Material) }
     }
 
     pub unsafe fn material_override_unchecked(&self, material: *const handle::Material) {

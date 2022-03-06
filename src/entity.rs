@@ -116,11 +116,7 @@ impl Entity {
     pub fn is_dormant(&self) -> bool {
         type Fn = unsafe extern "C" fn(this: *const ()) -> bool;
 
-        unsafe {
-            let this = (self.as_ptr() as *const u8).add(8) as *const ();
-
-            mem::virtual_entry::<Fn>(this, 9)(this)
-        }
+        unsafe { self.networkable_virtual_entry::<Fn>(9)(self.networkable()) }
     }
 
     /// Index of this entity in the engine
@@ -135,7 +131,7 @@ impl Entity {
         type Fn = unsafe extern "C" fn(this: *const ()) -> *const Model;
 
         unsafe {
-            let ptr = self.renderable_virtual_entry::<Fn>(8 * 8)(self.renderable());
+            let ptr = self.renderable_virtual_entry::<Fn>(8)(self.renderable());
 
             if ptr.is_null() {
                 None
@@ -161,7 +157,7 @@ impl Entity {
         ) -> bool;
 
         unsafe {
-            self.renderable_virtual_entry::<Fn>(13 * 8)(
+            self.renderable_virtual_entry::<Fn>(13)(
                 self.renderable(),
                 bone_matrix,
                 max_bones,

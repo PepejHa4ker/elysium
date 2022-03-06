@@ -1,7 +1,5 @@
 use crate::global::Global;
-use crate::material::Material;
 use crate::model::{DrawModelState, ModelRenderInfo};
-use palette::{FromColor, Hsl, Hue, Pixel, Srgb};
 use providence_math::Matrix3x4;
 
 pub type Signature = unsafe extern "C" fn(
@@ -12,101 +10,77 @@ pub type Signature = unsafe extern "C" fn(
     bone_to_world: *const Matrix3x4,
 );
 
-pub unsafe extern "C" fn do_cham(
+pub unsafe extern "C" fn hook<'a>(
     this: *const (),
     context: *const (),
-    state: *const DrawModelState,
-    info: *const ModelRenderInfo,
-    bone_to_world: *const Matrix3x4,
-    global: &Global,
-    material: &Material,
-) {
-    material.set_rgba8(0x12, 0x12, 0x12, 0xFF);
-
-    global.model_render().set_material(&material);
-    global.draw_model_execute_original(this, context, state, info, bone_to_world);
-
-    // rainbow, also aids code
-    let srgb: [u8; 3] = [0xFF, 0x00, 0x00];
-    let srgb: Srgb<u8> = *Srgb::from_raw(&srgb);
-    let srgb: Srgb<f32> = srgb.into_format();
-
-    let hsl = Hsl::from_color(srgb);
-    let hsl = hsl.shift_hue(global.globals().current_time * 50.0);
-
-    let srgb: Srgb<f32> = Srgb::from_color(hsl);
-    let srgb: Srgb<u8> = srgb.into_format();
-    let srgb: [u8; 3] = srgb.into_raw();
-
-    material.set_rgba8(srgb[0], srgb[1], srgb[2], 0xFF);
-    material.set_wireframe(true);
-
-    global.model_render().set_material(&material);
-    global.draw_model_execute_original(this, context, state, info, bone_to_world);
-    global.model_render().reset_material();
-
-    // reset for flat chams above next call
-    material.set_wireframe(false);
-}
-
-pub unsafe extern "C" fn hook(
-    this: *const (),
-    context: *const (),
-    state: *const DrawModelState,
-    info: *const ModelRenderInfo,
+    state: &'a DrawModelState,
+    info: &'a ModelRenderInfo,
     bone_to_world: *const Matrix3x4,
 ) {
-    if this.is_null()
-        || context.is_null()
-        || state.is_null()
-        || info.is_null()
-        || bone_to_world.is_null()
-    {
-        return;
-    }
+    //let entity_index = info.entity_index;
 
-    if (*info).model.is_null() {
-        return;
-    }
+    // dont render non-players
+    //if !matches!(entity_index, 1..=64) {
+    //println!("Skip rendering entity {entity_index}: Not witnin 1..=64.");
+
+    //return;
+    //}
 
     let global = Global::handle();
-    let name = global.model_info().name_of(&*(*info).model);
-    let name = name.as_str();
-    let material = global.flat_material();
+    let flat_material = global.flat_material();
 
-    if name.starts_with("models/player") {
-        if !name.contains("contactshadow") {
-            do_cham(
-                this,
-                context,
-                state,
-                info,
-                bone_to_world,
-                &global,
-                &material,
-            );
-        }
-    } else if name.starts_with("models/weapons/v_") {
-        do_cham(
-            this,
-            context,
-            state,
-            info,
-            bone_to_world,
-            &global,
-            &material,
-        );
-    } else if name.starts_with("weapons") {
-        do_cham(
-            this,
-            context,
-            state,
-            info,
-            bone_to_world,
-            &global,
-            &material,
-        );
-    } else {
-        global.draw_model_execute_original(this, context, state, info, bone_to_world);
+    //flat_material.set_ignore_z(false);
+    //flat_material.set_wireframe(false);
+
+    /*if let Some(entity) = global.entity_list().get(entity_index) {
+        println!("{entity_index} -> {entity:?}");
     }
+
+    // obtain local player index
+    let local_player_index = global
+        .local_player()
+        .map(|player| player.index())
+        .unwrap_or(-1);
+
+    // skip local player
+    if entity_index == local_player_index {
+        println!("Skip rendering entity {entity_index}: Is the local player.");
+
+        //global.draw_model_execute_original(this, context, state, info, bone_to_world);
+
+        //return;
+    }
+
+    println!("{entity_index} -> {info:?}");*/
+
+    /*let ptr = global.model_info().name_of(info.model);
+    let mut i = 0;
+    let i = loop {
+        if ptr.add(i).read() == 0 {
+            break i;
+        }
+
+        i += 1;
+    };
+
+    let slice = std::slice::from_raw_parts(ptr, i);
+    let name = std::str::from_utf8_unchecked(slice);*/
+
+    /* if name.starts_with("models/player") {
+        if name.contains("shadow") {
+            return;
+        }
+
+        println!("Rendering entity {entity_index} with model `{name}`.");
+
+        // finally render
+        //flat_material.set_wireframe(true);
+        //global.model_render().set_material(&flat_material);
+        global.draw_model_execute_original(this, context, state, info, bone_to_world);
+    } else {
+        //global.model_render().reset_material();
+        global.draw_model_execute_original(this, context, state, info, bone_to_world);
+    }*/
+
+    global.draw_model_execute_original(this, context, state, info, bone_to_world);
 }

@@ -2,7 +2,7 @@ use core::ops::{Add, Div, Mul, Rem, Sub};
 use core::ops::{AddAssign, DivAssign, MulAssign, RemAssign, SubAssign};
 use core::ptr;
 
-#[derive(Copy, Clone, Default, Debug)]
+#[derive(Copy, Clone, Default, Debug, PartialEq)]
 #[repr(C)]
 pub struct Vec3 {
     pub x: f32,
@@ -56,40 +56,68 @@ impl Vec3 {
     pub fn to_angle(self) -> Vec3 {
         let Vec3 { x, y, z } = self;
 
-        Vec3::from_xyz((-z).atan2(x.hypot(y)), y.atan2(x), 0.0)
+        let x = (-z).atan2(x.hypot(y));
+        let y = y.atan2(x);
+        let z = 0.0;
+
+        Vec3::from_xyz(x, y, z)
     }
 
-    /// Angle to trusted angle.
-    pub fn to_trusted(self) -> Vec3 {
-        let mut angle = self;
-
-        // pitch
-        angle.x = angle.x.clamp(-89.0, 89.0);
-
-        // yaw
-        angle.y = {
-            let mut yaw = angle.y % 360.0;
-
-            if yaw > 180.0 {
-                yaw -= 360.0;
-            }
-
-            if yaw < -180.0 {
-                yaw += 360.0;
-            }
-
-            yaw
-        };
-
-        // roll
-        angle.z = 0.0;
-
-        angle
+    pub fn with_normalized_pitch(mut self) -> Vec3 {
+        self.x = self.x.clamp(-89.0, 89.0);
+        self
     }
 
-    /// Make an angle trusted, in-place.
-    pub fn make_trusted(&mut self) {
-        *self = (*self).to_trusted();
+    pub fn with_normalized_yaw(mut self) -> Vec3 {
+        while self.y > 180.0 {
+            self.y -= 360.0;
+        }
+
+        while self.y < -180.0 {
+            self.y += 360.0;
+        }
+
+        self
+    }
+
+    pub fn with_normalized_roll(mut self) -> Vec3 {
+        self.z = 0.0;
+        self
+    }
+
+    pub fn normalize(self) -> Vec3 {
+        self.with_normalized_pitch()
+            .with_normalized_yaw()
+            .with_normalized_roll()
+    }
+
+    pub fn with_clamped_pitch(mut self) -> Vec3 {
+        self.x = self.x.clamp(-89.0, 89.0);
+        self
+    }
+
+    pub fn with_clamped_yaw(mut self) -> Vec3 {
+        self.y = self.y.clamp(-180.0, 180.0);
+        self
+    }
+
+    pub fn with_clamped_roll(mut self) -> Vec3 {
+        self.z = 0.0;
+        self
+    }
+
+    pub fn clamp(self) -> Vec3 {
+        self.with_clamped_pitch()
+            .with_clamped_yaw()
+            .with_clamped_roll()
+    }
+
+    pub fn normalize_in_place(&mut self) {
+        *self = self.normalize();
+    }
+
+    pub fn clamp_in_place(&mut self) {
+        *self = self.clamp();
     }
 
     pub fn angle_vector(&self) -> (Vec3, Vec3, Vec3) {
@@ -222,3 +250,52 @@ impl_op! { Vec3, Div, DivAssign, div, div_assign, / }
 impl_op! { Vec3, Mul, MulAssign, mul, mul_assign, * }
 impl_op! { Vec3, Rem, RemAssign, rem, rem_assign, % }
 impl_op! { Vec3, Sub, SubAssign, sub, sub_assign, - }
+
+#[cfg(test)]
+pub mod test {
+    use super::Vec3;
+
+    #[test]
+    fn vec3_from_xyz() {
+        assert_eq!(
+            Vec3::from_xyz(1.0, 2.0, 3.0),
+            Vec3 {
+                x: 1.0,
+                y: 2.0,
+                z: 3.0,
+            }
+        );
+    }
+
+    #[test]
+    fn vec3_add() {
+        assert_eq!(
+            Vec3::from_xyz(1.0, 2.0, 3.0) + Vec3::from_xyz(1.0, 2.0, 3.0),
+            Vec3::from_xyz(2.0, 4.0, 6.0),
+        );
+    }
+
+    #[test]
+    fn vec3_to_angle() {
+        assert_eq!(
+            Vec3::from_xyz(89.0, 360.0, 0.0).to_angle(),
+            Vec3::from_xyz(0.0, 1.5707964, 0.0),
+        );
+    }
+
+    #[test]
+    fn vec3_to_trusted() {
+        assert_eq!(
+            Vec3::from_xyz(89.0, 360.0, 0.0).to_trusted(),
+            Vec3::from_xyz(89.0, 0.0, 0.0),
+        );
+    }
+
+    #[test]
+    fn vec3_angle_vector() {
+        assert_eq!(
+            Vec3::from_xyz(89.0, 360.0, 0.0).angle_vector(),
+            (Vec3::zero(), Vec3::zero(), Vec3::zero()),
+        );
+    }
+}

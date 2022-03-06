@@ -56,6 +56,9 @@ const LADDER: u32 = 0x20000000;
 // use accurate hitboxes on trace
 const HITBOX: u32 = 0x40000000;
 
+const MASK_SHOT: u32 = SOLID | MOVEABLE | MONSTER | WINDOW | DEBRIS | HITBOX;
+const MASK_SHOT_HULL: u32 = SOLID | MOVEABLE | MONSTER | WINDOW | DEBRIS | GRATE;
+
 macro_rules! flag {
     { $flag:ident, $set:ident, $has:ident } => {
         pub const fn $set(self) -> Self {
@@ -68,7 +71,7 @@ macro_rules! flag {
     }
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(transparent)]
 pub struct Contents(u32);
 
@@ -97,6 +100,8 @@ impl Contents {
     flag! { DEBRIS, debris, has_debris }
     flag! { GRATE, grate, has_grate }
     flag! { HITBOX, hitbox, has_hitbox }
+    flag! { MASK_SHOT, mask_shot, has_mask_shot }
+    flag! { MASK_SHOT_HULL, mask_shot_hull, has_mask_shot_hull }
     flag! { MONSTER, monster, has_monster }
     flag! { MOVEABLE, moveable, has_moveable }
     flag! { SOLID, solid, has_solid }

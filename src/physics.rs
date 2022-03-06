@@ -13,18 +13,54 @@ pub struct SurfacePhysics {
 
 #[derive(Debug)]
 #[repr(C)]
+pub struct SurfaceAudio {
+    pub audio_reflectivity: f32,
+    pub audio_hardness_factor: f32,
+    pub audio_roughness_factor: f32,
+    pub scrape_rough_threshold: f32,
+    pub impact_hard_threshold: f32,
+    pub audio_hard_min_velocity: f32,
+    pub high_pitch_occlusion: f32,
+    pub mid_pitch_occlusion: f32,
+    pub low_pitch_occlusion: f32,
+}
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct SurfaceSounds {
+    pub walk_left: i16,
+    pub walk_right: i16,
+    pub run_left: i16,
+    pub run_right: i16,
+    pub impact_soft: i16,
+    pub impact_hard: i16,
+    pub scrape_smooth: i16,
+    pub scrape_rough: i16,
+    pub bullet_impact: i16,
+    pub rolling: i16,
+    pub break_sound: i16,
+    pub strain: i16,
+}
+
+#[derive(Debug)]
+#[repr(C)]
 pub struct SurfaceProperties {
+    pub max_speed_factor: f32,
+    pub jump_jactor: f32,
     pub penetration_modifier: f32,
     pub damage_modifier: f32,
     pub material: u16,
+    pub climbable: u8,
 }
 
 #[derive(Debug)]
 #[repr(C)]
 pub struct Surface {
     pub physics: SurfacePhysics,
-    _pad0: Pad<68>,
+    pub audio: SurfaceAudio,
+    pub sounds: SurfaceSounds,
     pub properties: SurfaceProperties,
+    pub pad: Pad<48>,
 }
 
 /// Physics.
@@ -80,7 +116,7 @@ impl Physics {
         type Fn = unsafe extern "C" fn(this: *const handle::Physics, index: i32) -> *const Surface;
 
         unsafe {
-            let ptr = self.virtual_entry::<Fn>(4)(self.as_ptr(), index);
+            let ptr = self.virtual_entry::<Fn>(6)(self.as_ptr(), index);
 
             if ptr.is_null() {
                 None

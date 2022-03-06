@@ -6,16 +6,22 @@ pub const MAX_BONES: usize = 256;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Bones {
-    len: u8,
     bones: [MaybeUninit<Matrix3x4>; MAX_BONES],
 }
 
 impl Bones {
-    pub unsafe fn from_raw_parts(data_address: *mut Matrix3x4, len: usize) -> Bones {
-        let bones = *(data_address as *mut [MaybeUninit<Matrix3x4>; MAX_BONES]);
-        let len = len as u8;
+    const ZERO: MaybeUninit<Matrix3x4> = MaybeUninit::new(Matrix3x4::zero());
 
-        Self { len, bones }
+    pub const fn zero() -> Bones {
+        let bones = [Self::ZERO; MAX_BONES];
+
+        Self { bones }
+    }
+
+    pub unsafe fn from_raw_parts(data_address: *mut Matrix3x4) -> Bones {
+        let bones = *(data_address as *mut [MaybeUninit<Matrix3x4>; MAX_BONES]);
+
+        Self { bones }
     }
 
     pub fn as_ptr(&self) -> *const Matrix3x4 {
@@ -26,12 +32,8 @@ impl Bones {
         self.bones.as_mut_ptr() as *mut Matrix3x4
     }
 
-    pub fn len(&self) -> usize {
-        self.len as usize
-    }
-
     pub fn get(&self, index: usize) -> Option<&Matrix3x4> {
-        if index >= self.len() {
+        if index >= MAX_BONES {
             None
         } else {
             Some(unsafe { self.get_unchecked(index) })

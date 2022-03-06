@@ -4,6 +4,8 @@ pub const IN_ATTACK: i32 = 1 << 0;
 pub const IN_JUMP: i32 = 1 << 1;
 pub const IN_DUCK: i32 = 1 << 2;
 pub const IN_BULLRUSH: i32 = 1 << 22;
+pub const IN_LEFT: i32 = 1 << 9;
+pub const IN_RIGHT: i32 = 1 << 10;
 
 #[derive(Debug)]
 #[repr(C)]
@@ -11,11 +13,9 @@ pub struct Command {
     vtable: *const (),
     pub command_number: i32,
     pub tick_count: i32,
-    pub view_angle: Vec3,
+    pub view: Vec3,
     pub aim_direction: Vec3,
-    pub forward_move: f32,
-    pub side_move: f32,
-    pub up_move: f32,
+    pub vectors: Vec3,
     pub state: i32,
     pub impulse: u8,
     pub weapon_select: i32,
@@ -39,6 +39,14 @@ impl Command {
         } else {
             self.state &= !flag;
         }
+    }
+
+    pub const fn in_left(&self) -> bool {
+        self.has(IN_LEFT)
+    }
+
+    pub const fn in_right(&self) -> bool {
+        self.has(IN_RIGHT)
     }
 
     pub const fn in_attack(&self) -> bool {
