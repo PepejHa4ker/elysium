@@ -28,6 +28,10 @@ impl Filter {
             skip_entity: entity,
         }
     }
+
+    pub fn as_mut_ptr(&mut self) -> *mut Filter {
+        self
+    }
 }
 
 impl Drop for Filter {

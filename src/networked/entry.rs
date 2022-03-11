@@ -62,6 +62,9 @@ pub enum Entry {
     /// `m_flPostponeFireReadyTime`
     RevolverCockTime,
 
+    /// `m_iTeamNum`
+    Team,
+
     /// `m_nTickBase`
     TickBase,
 
@@ -99,6 +102,7 @@ static ENTRIES: phf::Map<&'static str, Entry> = phf::phf_map! {
     "m_hObserverTarget" => Entry::ObserverTarget,
     "m_nRenderMode" => Entry::RenderMode,
     "m_flPostponeFireReadyTime" => Entry::RevolverCockTime,
+    "m_iTeamNum" => Entry::Team,
     "m_nTickBase" => Entry::TickBase,
     "m_vecVelocity[0]" => Entry::Velocity,
     "m_vecViewOffset[0]" => Entry::ViewOffset,
@@ -135,6 +139,7 @@ impl Entry {
             Entry::ObserverTarget => "m_hObserverTarget",
             Entry::RenderMode => "m_nRenderMode",
             Entry::RevolverCockTime => "m_flPostponeFireReadyTime",
+            Entry::Team => "m_iTeamNum",
             Entry::TickBase => "m_nTickBase",
             Entry::Velocity => "m_vecVelocity[0]",
             Entry::ViewOffset => "m_vecViewOffset[0]",

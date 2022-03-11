@@ -1,3 +1,4 @@
+use crate::client::Class;
 use crate::global::Global;
 use crate::managed::{handle, Managed};
 use crate::mem;
@@ -5,12 +6,14 @@ use crate::model::Model;
 use core::cmp;
 use providence_math::{Matrix3x4, Vec3};
 
+pub use fog::Fog;
 pub use id::EntityId;
 pub use list::EntityList;
 pub use player::Player;
 pub use weapon::Weapon;
 pub use weapon_info::WeaponInfo;
 
+mod fog;
 mod id;
 mod list;
 mod player;
@@ -113,6 +116,13 @@ impl Entity {
     }
 
     /// Is this entity dormant.
+    pub fn class(&self) -> *const Class {
+        type Fn = unsafe extern "C" fn(this: *const ()) -> *const Class;
+
+        unsafe { self.networkable_virtual_entry::<Fn>(2)(self.networkable()) }
+    }
+
+    /// Is this entity dormant.
     pub fn is_dormant(&self) -> bool {
         type Fn = unsafe extern "C" fn(this: *const ()) -> bool;
 
@@ -179,7 +189,13 @@ impl Entity {
 
     /// Entity's movement kind.
     pub fn move_kind(&self) -> i32 {
-        unsafe { self.relative_entry(Global::handle().networked().base_entity().render_mode() + 1) }
+        unsafe { self.relative_entry(Global::handle().networked().base_entity.render_mode + 1) }
+    }
+
+    pub fn team(&self) -> &mut i32 {
+        unsafe {
+            &mut *(self.relative_offset(Global::handle().networked().base_entity.team) as *mut i32)
+        }
     }
 
     /// If this entity is on a ladder.

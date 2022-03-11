@@ -1,146 +1,106 @@
-/// Networked variable name.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[non_exhaustive]
-pub enum Entry {
-    /// `m_aimPunchAngle`
-    AimPunchAngle,
+macro_rules! entries {
+    ($($name:ident => $string:literal),*) => {
+        /// Networked variable name.
+        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+        #[non_exhaustive]
+        pub enum Entry {
+            $(
+                $name,
+            )*
+        }
 
-    /// `m_iClip1`
-    Ammo,
+        static ENTRIES: phf::Map<&'static str, Entry> = phf::phf_map! {
+            $(
+                $string => Entry::$name,
+            )*
+        };
 
-    /// `m_ArmorValue`
-    Armor,
+        impl Entry {
+            /// Map a string into an entry we're interested in.
+            pub fn from_str(entry: &str) -> Option<Self> {
+                ENTRIES.get(entry).cloned()
+            }
 
-    /// `m_bClientSideAnimation`
-    ClientSideAnimation,
-
-    /// `m_angEyeAngles[0]`
-    EyeAngle,
-
-    /// `m_fFlags`
-    Flags,
-
-    /// `m_bHasDefuser`
-    HasDefuseKit,
-
-    /// `m_bHasHelmet`
-    HasHelmet,
-
-    /// `m_iHealth`
-    Health,
-
-    /// `m_iItemDefinitionIndex`
-    Index,
-
-    /// `m_bInReload`
-    InReload,
-
-    /// `deadflag`
-    IsDead,
-
-    /// `m_bGunGameImmunity`
-    IsImmune,
-
-    /// `m_bIsScoped`
-    IsScoped,
-
-    /// `m_iAccount`
-    Money,
-
-    /// `m_flNextPrimaryAttack`
-    NextAttackAvailableAfter,
-
-    /// `m_flLowerBodyYawTarget`
-    LowerBodyYawTarget,
-
-    /// `m_hObserverTarget`
-    ObserverTarget,
-
-    /// `m_nRenderMode`
-    RenderMode,
-
-    /// `m_flPostponeFireReadyTime`
-    RevolverCockTime,
-
-    /// `m_nTickBase`
-    TickBase,
-
-    /// `m_vecVelocity[0]`
-    Velocity,
-
-    /// `m_vecViewOffset[0]`
-    ViewOffset,
-
-    /// `m_viewPunchAngle`
-    ViewPunchAngle,
-
-    /// `m_hActiveWeapon`
-    Weapon,
+            /// Returns the value this entry maps to.
+            pub fn as_str(&self) -> &'static str {
+                match self {
+                    $(
+                        Entry::$name => $string,
+                    )*
+                }
+            }
+        }
+    };
 }
 
-static ENTRIES: phf::Map<&'static str, Entry> = phf::phf_map! {
-    "m_aimPunchAngle" => Entry::AimPunchAngle,
-    "m_ArmorValue" => Entry::Armor,
-    "m_iClip1" => Entry::Ammo,
-    "m_bClientSideAnimation" => Entry::ClientSideAnimation,
-    "m_angEyeAngles[0]" => Entry::EyeAngle,
-    "m_fFlags" => Entry::Flags,
-    "m_bHasDefuser" => Entry::HasDefuseKit,
-    "m_iHealth" => Entry::Health,
-    "m_iItemDefinitionIndex" => Entry::Index,
-    "m_bInReload" => Entry::InReload,
-    "deadflag" => Entry::IsDead,
-    "m_bHasHelmet" => Entry::HasHelmet,
-    "m_bGunGameImmunity" => Entry::IsImmune,
-    "m_bIsScoped" => Entry::IsScoped,
-    "m_iAccount" => Entry::Money,
-    "m_flNextPrimaryAttack" => Entry::NextAttackAvailableAfter,
-    "m_flLowerBodyYawTarget" => Entry::LowerBodyYawTarget,
-    "m_hObserverTarget" => Entry::ObserverTarget,
-    "m_nRenderMode" => Entry::RenderMode,
-    "m_flPostponeFireReadyTime" => Entry::RevolverCockTime,
-    "m_nTickBase" => Entry::TickBase,
-    "m_vecVelocity[0]" => Entry::Velocity,
-    "m_vecViewOffset[0]" => Entry::ViewOffset,
-    "m_viewPunchAngle" => Entry::ViewPunchAngle,
-    "m_hActiveWeapon" => Entry::Weapon,
-};
+entries! {
+    AccuracyPenalty => "m_fAccuracyPenalty",
+    AimPunchAngle => "m_aimPunchAngle",
+    AnimationTime => "m_flAnimTime",
+    Armor => "m_ArmorValue",
 
-impl Entry {
-    /// Map a string into an entry we're interested in.
-    pub fn from_str(entry: &str) -> Option<Self> {
-        ENTRIES.get(entry).cloned()
-    }
+    BloomScale => "m_flCustomBloomScale",
 
-    /// Returns the value this entry maps to.
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Entry::AimPunchAngle => "m_aimPunchAngle",
-            Entry::Armor => "m_ArmorValue",
-            Entry::Ammo => "m_iClip1",
-            Entry::ClientSideAnimation => "m_bClientSideAnimation",
-            Entry::EyeAngle => "m_angEyeAngles[0]",
-            Entry::Flags => "m_fFlags",
-            Entry::HasDefuseKit => "m_bHasDefuser",
-            Entry::HasHelmet => "m_bHasHelmet",
-            Entry::Health => "m_iHealth",
-            Entry::Index => "m_iItemDefinitionIndex",
-            Entry::InReload => "m_bInReload",
-            Entry::IsDead => "deadflag",
-            Entry::IsImmune => "m_bGunGameImmunity",
-            Entry::IsScoped => "m_bIsScoped",
-            Entry::Money => "m_iAccount",
-            Entry::NextAttackAvailableAfter => "m_flNextPrimaryAttack",
-            Entry::LowerBodyYawTarget => "m_flLowerBodyYawTarget",
-            Entry::ObserverTarget => "m_hObserverTarget",
-            Entry::RenderMode => "m_nRenderMode",
-            Entry::RevolverCockTime => "m_flPostponeFireReadyTime",
-            Entry::TickBase => "m_nTickBase",
-            Entry::Velocity => "m_vecVelocity[0]",
-            Entry::ViewOffset => "m_vecViewOffset[0]",
-            Entry::ViewPunchAngle => "m_viewPunchAngle",
-            Entry::Weapon => "m_hActiveWeapon",
-            _ => "(none)",
-        }
-    }
+    ClientSideAnimation => "m_bClientSideAnimation",
+    Collision => "m_Collision",
+    Cycle => "m_flCycle",
+
+    EnableBloomScale => "m_bUseCustomBloomScale",
+    EnableExposureMax => "m_bUseCustomAutoExposureMax",
+    EnableExposureMin => "m_bUseCustomAutoExposureMin",
+    ExposureMax => "m_flCustomAutoExposureMax",
+    ExposureMin => "m_flCustomAutoExposureMin",
+    EyeAngle => "m_angEyeAngles[0]",
+
+    Flags => "m_fFlags",
+    FogColorPrimary => "m_fog.colorPrimary",
+    FogColorSecondary => "m_fog.colorSecondary",
+    FogDensity => "m_fog.maxdensity",
+    FogEnd => "m_fog.end",
+    FogFarZ => "m_fog.farz",
+    FogIsEnabled => "m_fog.enable",
+    FogHDRScale => "m_fog.HDRColorScale",
+    FogStart => "m_fog.start",
+    Frozen => "m_flFrozen",
+
+    HasDefuseKit => "m_bHasDefuser",
+    HasHelmet => "m_bHasHelmet",
+    Health => "m_iHealth",
+
+    InReload => "m_bInReload",
+    IsDead => "deadflag",
+    IsDefused => "m_mBombDefused",
+    IsImmune => "m_bGunGameImmunity",
+    IsScoped => "m_bIsScoped",
+    ItemIndex => "m_iItemDefinitionIndex",
+
+    LowerBodyYaw => "m_flLowerBodyYawTarget",
+
+    Magazine => "m_iClip1",
+    MaxFlashAlpha => "m_flFlashMaxAlpha",
+    Money => "m_iAccount",
+
+    NextAttackAvailableAfter => "m_flNextPrimaryAttack",
+
+    Observer => "m_hObserverTarget",
+
+    PoseParameter => "m_flPoseParameter",
+    RenderMode => "m_nRenderMode",
+
+    RevolverCockTime => "m_flPostponeFireReadyTime",
+
+    Sequence => "m_nSequence",
+    SimulationTime => "m_flSimulationTime",
+    Skin => "m_nSkin",
+    SurvivalTeam => "m_nSurvivalTeam",
+
+    Team => "m_iTeamNum",
+    TickBase => "m_nTickBase",
+    TimeRemaining => "m_flC4Blow",
+
+    Velocity => "m_vecVelocity[0]",
+    ViewOffset => "m_vecViewOffset[0]",
+    ViewPunchAngle => "m_viewPunchAngle",
+
+    Weapon => "m_hActiveWeapon"
 }

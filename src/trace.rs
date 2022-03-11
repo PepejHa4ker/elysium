@@ -104,7 +104,7 @@ impl RayTracer {
         }
     }
 
-    pub fn raw_trace(
+    pub unsafe fn trace_unchecked(
         &self,
         ray: *const Ray,
         contents: Contents,
@@ -119,27 +119,35 @@ impl RayTracer {
             summary: *mut Summary,
         );
 
-        unsafe {
-            self.virtual_entry::<Fn>(5)(self.as_ptr(), ray, contents.to_u32(), filter, summary);
-        }
+        self.virtual_entry::<Fn>(5)(self.as_ptr(), ray, contents.to_u32(), filter, summary);
+    }
+
+    pub unsafe fn trace_filtered_unchecked(
+        &self,
+        ray: *const Ray,
+        contents: Contents,
+        filter: *const handle::Entity,
+        summary: *mut Summary,
+    ) {
+        let mut filter = Filter::new(filter);
+
+        self.trace_unchecked(ray, contents, filter.as_mut_ptr(), summary);
     }
 
     /// Trace a ray, returning a summary of the trace.
-    pub fn trace(&self, ray: &Ray, contents: Contents, skip_entity: Option<&Entity>) -> Summary {
-        let filter = match skip_entity {
-            Some(skip_entity) => Box::into_raw(Box::new(Filter::new(skip_entity.as_ptr()))),
-            None => ptr::null(),
+    pub fn trace(&self, ray: &Ray, contents: Contents, filter: Option<&Entity>) -> Summary {
+        let filter = match filter {
+            Some(filter) => filter.as_ptr(),
+            None => ptr::null::<()>() as *const handle::Entity,
         };
 
-        let mut summary = MaybeUninit::<Summary>::uninit();
+        unsafe {
+            let mut summary = MaybeUninit::<Summary>::uninit();
 
-        self.raw_trace(ray, contents, filter, summary.as_mut_ptr());
+            self.trace_filtered_unchecked(ray, contents, filter, summary.as_mut_ptr());
 
-        if !filter.is_null() {
-            unsafe { Box::from_raw(filter as *mut Filter) };
+            unsafe { summary.assume_init() }
         }
-
-        unsafe { summary.assume_init() }
     }
 
     /// Trace a ray, mutating the `summary` parameter rather than returning it.
@@ -147,20 +155,16 @@ impl RayTracer {
         &self,
         ray: &Ray,
         contents: Contents,
-        skip_entity: Option<&Entity>,
+        filter: Option<&Entity>,
         summary: &mut Summary,
     ) {
-        tracing::trace!("{ray:?} {contents:?} {skip_entity:?}");
-
-        let filter = match skip_entity {
-            Some(skip_entity) => Box::into_raw(Box::new(Filter::new(skip_entity.as_ptr()))),
-            None => ptr::null(),
+        let filter = match filter {
+            Some(filter) => filter.as_ptr(),
+            None => ptr::null::<()>() as *const handle::Entity,
         };
 
-        self.raw_trace(ray, contents, filter, summary);
-
-        if !filter.is_null() {
-            unsafe { Box::from_raw(filter as *mut Filter) };
+        unsafe {
+            self.trace_filtered_unchecked(ray, contents, filter, summary);
         }
     }
 }

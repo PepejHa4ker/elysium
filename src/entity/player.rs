@@ -67,7 +67,7 @@ impl Player {
 
     /// Returns the player's flags.
     fn flags(&self) -> i32 {
-        unsafe { self.relative_entry(Global::handle().networked().player().flags()) }
+        unsafe { self.relative_entry(Global::handle().networked().player.flags) }
     }
 
     /// If the player's flags has `flag` set.
@@ -126,7 +126,7 @@ impl Player {
     }
 
     pub fn observer(&self) -> *mut Entity {
-        unsafe { self.relative_entry(Global::handle().networked().player().observer_target()) }
+        unsafe { self.relative_entry(Global::handle().networked().player.observer) }
     }
 
     /// Is this player spectating another.
@@ -136,7 +136,7 @@ impl Player {
 
     /// Get the player's velocity vector.
     pub fn velocity(&self) -> Vec3 {
-        unsafe { self.relative_entry(Global::handle().networked().base_player().velocity()) }
+        unsafe { self.relative_entry(Global::handle().networked().base_player.velocity) }
     }
 
     /// Get the player's speed (magnitude of velocity vector).
@@ -146,7 +146,7 @@ impl Player {
 
     fn is_dead_ptr(&self) -> *const u8 {
         unsafe {
-            self.relative_offset(Global::handle().networked().base_player().is_dead()) as *const u8
+            self.relative_offset(Global::handle().networked().base_player.is_dead) as *const u8
         }
     }
 
@@ -167,22 +167,15 @@ impl Player {
     }
 
     pub fn has_helmet(&self) -> bool {
-        unsafe { self.relative_entry(Global::handle().networked().player().has_helmet()) }
+        unsafe { self.relative_entry(Global::handle().networked().player.has_helmet) }
     }
 
     pub fn is_immune(&self) -> bool {
-        unsafe { self.relative_entry(Global::handle().networked().player().is_immune()) }
+        unsafe { self.relative_entry(Global::handle().networked().player.is_immune) }
     }
 
     pub fn lower_body_yaw(&self) -> f32 {
-        unsafe {
-            self.relative_entry(
-                Global::handle()
-                    .networked()
-                    .player()
-                    .lower_body_yaw_target(),
-            )
-        }
+        unsafe { self.relative_entry(Global::handle().networked().player.lower_body_yaw) }
     }
 
     pub fn is_dead(&self) -> bool {
@@ -190,11 +183,11 @@ impl Player {
     }
 
     pub fn is_scoped(&self) -> bool {
-        unsafe { self.relative_entry(Global::handle().networked().player().is_scoped()) }
+        unsafe { self.relative_entry(Global::handle().networked().player.is_scoped) }
     }
 
     pub fn eye_angle(&self) -> Vec3 {
-        unsafe { self.relative_entry(Global::handle().networked().player().eye_angle()) }
+        unsafe { self.relative_entry(Global::handle().networked().player.eye_angle) }
     }
 
     pub fn eye_origin(&self) -> Vec3 {
@@ -204,11 +197,11 @@ impl Player {
     }
 
     pub fn view_offset(&self) -> Vec3 {
-        unsafe { self.relative_entry(Global::handle().networked().base_player().view_offset()) }
+        unsafe { self.relative_entry(Global::handle().networked().base_player.view_offset) }
     }
 
     pub fn has_defuse_kit(&self) -> bool {
-        unsafe { self.relative_entry(Global::handle().networked().player().has_defuse_kit()) }
+        unsafe { self.relative_entry(Global::handle().networked().player.has_defuse_kit) }
     }
 
     pub fn model(&self) -> Option<&Model> {
@@ -222,7 +215,7 @@ impl Player {
     // Returns a pointer to the aim punch angle.
     pub(crate) fn aim_punch_angle_ptr(&self) -> *mut Vec3 {
         unsafe {
-            self.relative_offset(Global::handle().networked().base_player().aim_punch_angle())
+            self.relative_offset(Global::handle().networked().base_player.aim_punch_angle)
                 as *mut Vec3
         }
     }
@@ -257,12 +250,8 @@ impl Player {
     // Returns a pointer to view punch angle.
     pub(crate) fn view_punch_angle_ptr(&self) -> *mut Vec3 {
         unsafe {
-            self.relative_offset(
-                Global::handle()
-                    .networked()
-                    .base_player()
-                    .view_punch_angle(),
-            ) as *mut Vec3
+            self.relative_offset(Global::handle().networked().base_player.view_punch_angle)
+                as *mut Vec3
         }
     }
 
@@ -294,19 +283,19 @@ impl Player {
     }
 
     pub fn health(&self) -> i32 {
-        unsafe { self.relative_entry(Global::handle().networked().base_player().health()) }
+        unsafe { self.relative_entry(Global::handle().networked().base_player.health) }
     }
 
     pub fn money(&self) -> i32 {
-        unsafe { self.relative_entry(Global::handle().networked().player().money()) }
+        unsafe { self.relative_entry(Global::handle().networked().player.money) }
     }
 
     pub fn tick_base(&self) -> u32 {
-        unsafe { self.relative_entry(Global::handle().networked().base_player().tick_base()) }
+        unsafe { self.relative_entry(Global::handle().networked().base_player.tick_base) }
     }
 
     fn raw_weapon(&self) -> usize {
-        unsafe { self.relative_entry(Global::handle().networked().player().weapon()) }
+        unsafe { self.relative_entry(Global::handle().networked().player.weapon) }
     }
 
     pub fn weapon(&self) -> Option<Weapon> {
@@ -327,8 +316,8 @@ impl Player {
             self.relative_offset(
                 Global::handle()
                     .networked()
-                    .base_animating()
-                    .client_side_animation(),
+                    .base_animating
+                    .client_side_animation,
             ) as *const bool
         }
     }

@@ -52,15 +52,15 @@ impl Weapon {
     }
 
     /// Gets the amount of ammo remaining in this weapon.
-    pub fn ammo(&self) -> Option<u32> {
-        let ammo = unsafe {
-            self.relative_entry::<i32>(Global::handle().networked().base_weapon().ammo())
+    pub fn magazine(&self) -> Option<u32> {
+        let magazine = unsafe {
+            self.relative_entry::<i32>(Global::handle().networked().base_weapon.magazine)
         };
 
-        if ammo < 0 {
+        if magazine < 0 {
             None
         } else {
-            Some(ammo as u32)
+            Some(magazine as u32)
         }
     }
 
@@ -70,17 +70,16 @@ impl Weapon {
             self.relative_entry(
                 Global::handle()
                     .networked()
-                    .base_weapon()
-                    .next_attack_available_after(),
+                    .base_weapon
+                    .next_attack_available_after,
             )
         }
     }
 
     /// Gets the revolver cock time.
     pub fn revolver_cock_time(&self) -> Option<f32> {
-        let time = unsafe {
-            self.relative_entry(Global::handle().networked().weapon().revolver_cock_time())
-        };
+        let time =
+            unsafe { self.relative_entry(Global::handle().networked().weapon.revolver_cock_time) };
 
         if time >= 3.4028235e+38 {
             None
@@ -104,7 +103,7 @@ impl Weapon {
     /// Gets the item index of this weapon.
     pub fn item_index(&self) -> i32 {
         unsafe {
-            let index: i32 = self.relative_entry(Global::handle().networked().item().index());
+            let index: i32 = self.relative_entry(Global::handle().networked().item.index);
 
             // Strip skin bits, etc.
             index & 0xFFF

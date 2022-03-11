@@ -120,6 +120,38 @@ fn main() -> Result<()> {
                                 *bones = providence_model::Bones::zero();
                             }
                         }
+
+                        let highest_entity_index = entity_list.highest_entity_index();
+
+                        for index in 1..highest_entity_index {
+                            let entity = match entity_list.get(index) {
+                                Some(entity) => entity,
+                                None => continue,
+                            };
+
+                            let class = entity.class();
+
+                            if class.is_null() {
+                                continue;
+                            }
+
+                            let class = &*class;
+
+                            use crate::entity::{EntityId, Fog};
+
+                            if class.entity_id == EntityId::CFogController {
+                                println!("found fog!");
+
+                                let fog = Fog::new_unchecked(entity.as_ptr() as *mut _);
+
+                                *fog.is_enabled() = true;
+                                *fog.start() = 1.0;
+                                *fog.end() = 10000.0;
+                                *fog.far_z() = 10000.0;
+                                *fog.density() = 1.0;
+                                *fog.color_primary() = 0x00FF00FF;
+                            }
+                        }
                     }
                 }
                 Frame::RENDER_END => {
@@ -153,32 +185,14 @@ fn main() -> Result<()> {
         let vectors = movement.vectors;
         let punch = movement.local_player.aim_punch_angle() * Vec3::splat(2.0);
         let original_vectors = movement.vectors;
-
-        //movement.vectors = Vec3::zero();
-
-        let side = if movement.tick_count % 2 == 0 {
-            1.0
-        } else {
-            -1.0
-        };
-
-        //movement.view -= punch;
-
-        movement.view.y += if movement.do_left {
-            -270.0
-        } else if movement.do_right {
-            260.0
-        } else {
-            180.0
-        };
+        let side = (movement.tick_count * 2 - 1) as f32;
 
         movement.view.x = 89.0;
-
-        /*movement.view.y += if movement.tick_count % 2 == 0 {
+        movement.view.y += if movement.tick_count % 3 == 0 {
             180.0
         } else {
-            0.0
-        };*/
+            -180.0
+        };
 
         if movement.do_attack {
             movement.send_packet = true;
@@ -212,13 +226,15 @@ fn main() -> Result<()> {
 
                         let player = Player::new_unchecked(entity.as_ptr() as *mut _);
 
-                        if player.health() == 0 {
+                        if player.is_dead() {
                             continue;
                         }
 
-                        /*if player.is_immune() {
+                        println!("{index}'s team is {}", player.as_entity().team());
+
+                        if player.as_entity().team() == movement.local_player.as_entity().team() {
                             continue;
-                        }*/
+                        }
 
                         let bone_origin = bones.get_origin(8).unwrap_unchecked();
 
@@ -297,7 +313,6 @@ fn main() -> Result<()> {
 
         movement.vectors.x = cos * original_vectors.x + cos90 * original_vectors.y;
         movement.vectors.y = sin * original_vectors.x + sin90 * original_vectors.y;
-
         movement
     });
 
@@ -339,7 +354,8 @@ fn trace_to_exit(
     exit_summary: &mut Summary,
     end: &mut Vec3,
 ) -> bool {
-    tracing::trace!("{start:?} {direction:?} {enter_summary:?} {exit_summary:?} {end:?}");
+    println!("{start:?} {direction:?} {enter_summary:?} {exit_summary:?} {end:?}");
+
     let global = Global::handle();
     let mut distance = 0.0;
 
@@ -368,19 +384,14 @@ fn trace_to_exit(
         );
 
         if exit_summary.start_solid && (exit_summary.surface.flags & SURF_HITBOX as u16) != 0 {
-            let skip_entity = match unsafe { exit_summary.entity_hit.as_ref() } {
-                Some(entity) => {
-                    Some(unsafe { Entity::new_unchecked(entity as *const _ as *mut _) })
-                }
-                None => None,
-            };
-
-            global.ray_tracer().trace_mut(
-                &Ray::new(*end, start),
-                Contents::new().mask_shot_hull().hitbox(),
-                skip_entity.as_ref(),
-                exit_summary,
-            );
+            unsafe {
+                global.ray_tracer().trace_filtered_unchecked(
+                    &Ray::new(*end, start),
+                    Contents::new().mask_shot_hull().hitbox(),
+                    exit_summary.entity_hit,
+                    exit_summary,
+                );
+            }
 
             if (exit_summary.fraction <= 1.0 || exit_summary.all_solid) && !exit_summary.start_solid
             {
@@ -406,7 +417,9 @@ fn trace_to_exit(
         }
 
         if exit_summary.plane.normal.dot(direction) <= 1.0 {
-            *end = *end - (direction * Vec3::splat(exit_summary.fraction * 4.0));
+            let fraction = exit_summary.fraction * 4.0;
+
+            *end = *end - (direction * Vec3::splat(fraction));
 
             return true;
         }
@@ -536,16 +549,22 @@ impl ShotData {
     pub fn simulate_shot(&mut self, local_player: &Player, weapon: &Weapon) -> bool {
         let global = Global::handle();
 
+        let weapon_damage = weapon.damage();
+        let weapon_range = weapon.range();
+        let weapon_range_modifier = weapon.range_modifier();
+        //let weapon_armor_ratio = weapon.armor_ratio();
+
         self.penetrate_count = 4;
         self.trace_length = 0.0;
-        self.current_damage = weapon.damage();
+        self.current_damage = weapon_damage;
 
         while self.penetrate_count > 0 && self.current_damage >= 1.0 {
-            //println!("shot_data = {self:?}");
-            self.trace_length_remaining = weapon.range() - self.trace_length;
+            println!("current_damage = {}", self.current_damage);
+
+            self.trace_length_remaining = weapon_range - self.trace_length;
 
             let end = self.source + self.direction * Vec3::splat(self.trace_length_remaining);
-            let new_end = end + self.direction * Vec3::splat(40.0);
+            let new_end = end + self.direction * Vec3::splat(4.0);
 
             global.ray_tracer().trace_mut(
                 &Ray::new(self.source, end),
@@ -581,9 +600,9 @@ impl ShotData {
                 return true;
             }
 
-            if !self.handle_bullet_penetration(weapon) {
-                break;
-            }
+            //if !self.handle_bullet_penetration(weapon) {
+            break;
+            //}
         }
 
         false
