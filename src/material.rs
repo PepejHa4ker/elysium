@@ -1,4 +1,5 @@
 use crate::managed::{handle, Managed};
+use core::mem::MaybeUninit;
 
 pub use materials::Materials;
 pub use var::MaterialVar;
@@ -55,70 +56,32 @@ impl Material {
         self.0.relative_entry(offset)
     }
 
-    pub fn var(&self, name: *const i8) -> Option<MaterialVar> {
-        let mut found = false;
-        let ptr = unsafe { self.var_unchecked(name, &mut found, true) };
-
-        if found {
-            MaterialVar::new(ptr)
-        } else {
-            None
-        }
-    }
-
     pub unsafe fn var_unchecked(
         &self,
-        name: *const i8,
+        name: *const u8,
         found: &mut bool,
         complain: bool,
-    ) -> *mut handle::MaterialVar {
+    ) -> Option<MaterialVar> {
         type Fn = unsafe extern "C" fn(
             this: *const handle::Material,
-            name: *const i8,
+            name: *const u8,
             found: *mut bool,
             complain: bool,
-        ) -> *mut handle::MaterialVar;
+        ) -> Option<MaterialVar>;
 
         self.virtual_entry::<Fn>(11)(self.as_ptr(), name, found, complain)
     }
 
-    pub fn set_alpha(&self, a: f32) {
-        type Fn = unsafe extern "C" fn(this: *const handle::Material, a: f32);
-
+    pub fn var(&self, name: *const u8) -> Option<MaterialVar> {
         unsafe {
-            self.virtual_entry::<Fn>(27)(self.as_ptr(), a);
+            let mut exists = false;
+            let var = self.var_unchecked(name, &mut exists, true);
+
+            exists.then(|| var).flatten()
         }
     }
 
-    pub fn set_rgb(&self, r: f32, g: f32, b: f32) {
-        type Fn = unsafe extern "C" fn(this: *const handle::Material, r: f32, g: f32, b: f32);
-
-        unsafe {
-            self.virtual_entry::<Fn>(28)(self.as_ptr(), r, g, b);
-        }
-    }
-
-    pub fn set_rgba(&self, r: f32, g: f32, b: f32, a: f32) {
-        self.set_rgb(r, g, b);
-        self.set_alpha(a);
-    }
-
-    pub fn set_rgba8(&self, r: u8, g: u8, b: u8, a: u8) {
-        self.set_rgb(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0);
-        self.set_alpha(a as f32 / 255.0);
-    }
-
-    pub fn set_tint(&self, r: f32, g: f32, b: f32) {
-        if let Some(var) = self.var("$envmaptint\0".as_ptr() as _) {
-            var.set_tint(r, g, b);
-        }
-    }
-
-    pub fn set_tint8(&self, r: u8, g: u8, b: u8) {
-        self.set_tint(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0);
-    }
-
-    pub fn set_flag(&self, flag: i32, enabled: bool) {
+    fn flag(&self, flag: i32, enabled: bool) {
         type Fn = unsafe extern "C" fn(this: *const handle::Material, flag: i32, enabled: bool);
 
         unsafe {
@@ -126,52 +89,63 @@ impl Material {
         }
     }
 
-    pub fn set_ignore_z(&self, enabled: bool) {
-        self.set_flag(1 << 15, enabled);
+    pub fn no_draw(&self, enabled: bool) {
+        self.flag(MATERIAL_VAR_NO_DRAW, enabled);
     }
 
-    pub fn set_wireframe(&self, enabled: bool) {
-        self.set_flag(1 << 28, enabled);
+    pub fn ignore_z(&self, enabled: bool) {
+        self.flag(MATERIAL_VAR_IGNOREZ, enabled);
     }
 
-    pub fn get_alpha(&self) -> f32 {
-        type Fn = unsafe extern "C" fn(this: *const handle::Material, alpha: *mut f32);
+    pub fn wireframe(&self, enabled: bool) {
+        self.flag(MATERIAL_VAR_WIREFRAME, enabled);
+    }
 
-        let mut alpha = 0.0;
+    pub fn color(&self, rgba: [f32; 4]) {
+        type AlphaFn = unsafe extern "C" fn(this: *const handle::Material, alpha: f32);
+        type RgbFn = unsafe extern "C" fn(this: *const handle::Material, r: f32, g: f32, b: f32);
 
         unsafe {
-            self.virtual_entry::<Fn>(44)(self.as_ptr(), &mut alpha);
-        }
+            let [r, g, b, a] = rgba;
 
-        alpha
+            self.virtual_entry::<RgbFn>(28)(self.as_ptr(), r, g, b);
+            self.virtual_entry::<AlphaFn>(27)(self.as_ptr(), a);
+
+            if let Some(var) = self.var(ENV_TINT_MAP.as_ptr()) {
+                var.set_tint(r, g, b);
+            }
+        }
     }
 
-    pub fn get_rgb(&self) -> [f32; 3] {
-        type Fn = unsafe extern "C" fn(
+    pub fn get_color(&self) -> [f32; 4] {
+        type AlphaFn = unsafe extern "C" fn(this: *const handle::Material) -> f32;
+        type RgbFn = unsafe extern "C" fn(
             this: *const handle::Material,
             r: *mut f32,
             g: *mut f32,
             b: *mut f32,
         );
 
-        let mut rgb = [0.0; 3];
-
         unsafe {
-            self.virtual_entry::<Fn>(45)(
+            let mut color: [MaybeUninit<f32>; 4] = MaybeUninit::uninit_array();
+
+            self.virtual_entry::<RgbFn>(45)(
                 self.as_ptr(),
-                rgb.get_unchecked_mut(0),
-                rgb.get_unchecked_mut(1),
-                rgb.get_unchecked_mut(2),
+                color[0].as_mut_ptr(),
+                color[1].as_mut_ptr(),
+                color[2].as_mut_ptr(),
             );
+
+            color[3].write(self.virtual_entry::<AlphaFn>(44)(self.as_ptr()));
+
+            MaybeUninit::array_assume_init(color)
         }
-
-        rgb
-    }
-
-    pub fn get_rgba(&self) -> [f32; 4] {
-        let [r, g, b] = self.get_rgb();
-        let a = self.get_alpha();
-
-        [r, g, b, a]
     }
 }
+
+pub const ENV_TINT_MAP: &str = "$envmaptint\0";
+
+// https://developer.valvesoftware.com/wiki/Material_Flags
+pub const MATERIAL_VAR_NO_DRAW: i32 = 0x0004;
+pub const MATERIAL_VAR_IGNOREZ: i32 = 0x8000;
+pub const MATERIAL_VAR_WIREFRAME: i32 = 0x10000000;

@@ -3,6 +3,8 @@
 #![feature(const_trait_impl)]
 #![feature(extern_types)]
 #![feature(once_cell)]
+#![feature(maybe_uninit_array_assume_init)]
+#![feature(maybe_uninit_uninit_array)]
 #![feature(ptr_metadata)]
 
 use crate::contents::Contents;
