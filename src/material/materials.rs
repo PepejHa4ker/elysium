@@ -1,5 +1,6 @@
 use super::Material;
 use crate::managed::{handle, Managed};
+use providence_material::MaterialKind;
 
 /// Materials interface.
 #[derive(Debug)]
@@ -50,10 +51,10 @@ impl Materials {
         self.0.relative_entry(offset)
     }
 
-    pub fn create(&self, name: *const i8, settings: *const ()) {
+    pub fn create(&self, name: *const u8, settings: *const ()) {
         type Fn = unsafe extern "C" fn(
             this: *const handle::Materials,
-            name: *const i8,
+            name: *const u8,
             settings: *const (),
         );
 
@@ -64,23 +65,23 @@ impl Materials {
 
     pub fn find(
         &self,
-        name: *const i8,
-        texture_group_name: *const i8,
+        kind: MaterialKind,
+        texture_group_name: *const u8,
         complain: bool,
-        complain_prefix: *const i8,
+        complain_prefix: *const u8,
     ) -> Option<Material> {
         type Fn = unsafe extern "C" fn(
             this: *const handle::Materials,
-            name: *const i8,
-            texture_group_name: *const i8,
+            name: *const u8,
+            texture_group_name: *const u8,
             complain: bool,
-            complain_prefix: *const i8,
+            complain_prefix: *const u8,
         ) -> *mut handle::Material;
 
         unsafe {
             let ptr = self.virtual_entry::<Fn>(84)(
                 self.as_ptr(),
-                name,
+                kind.as_ptr(),
                 texture_group_name,
                 complain,
                 complain_prefix,

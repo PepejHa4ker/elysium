@@ -1,4 +1,5 @@
 use crate::global::Global;
+use crate::material::Material;
 use crate::model::{DrawModelState, ModelRenderInfo};
 use providence_math::Matrix3x4;
 
@@ -19,7 +20,10 @@ pub unsafe extern "C" fn hook<'a>(
 ) {
     let entity_index = info.entity_index;
     let global = Global::handle();
-    let flat_material = global.flat_material();
+    let flat_material =
+        Material::new_unchecked(providence_state::material::flat().as_ptr() as *mut _);
+    let plastic_material =
+        Material::new_unchecked(providence_state::material::plastic().as_ptr() as *mut _);
 
     // obtain local player index
     let local_player_index = global
@@ -48,6 +52,8 @@ pub unsafe extern "C" fn hook<'a>(
     global.model_render().reset_material();
     flat_material.ignore_z(false);
 
+    global.draw_model_execute_original(this, context, state, info, bone_to_world);
+
     if name.starts_with("models/player") && !name.contains("shadow") {
         println!("Rendering entity {entity_index} with model `{name}`.");
 
@@ -58,17 +64,21 @@ pub unsafe extern "C" fn hook<'a>(
             flat_material.ignore_z(true);
         }
 
-        global.model_render().set_material(&flat_material);
-    }
+        plastic_material.color([0.0, 1.0, 1.0, 1.0]);
+        global.model_render().set_material(&plastic_material);
+        global.draw_model_execute_original(this, context, state, info, bone_to_world);
 
-    global.draw_model_execute_original(this, context, state, info, bone_to_world);
+        //plastic_material.color([1.0, 0.0, 1.0, 1.0]);
+        //global.model_render().set_material(&plastic_material);
+        //global.draw_model_execute_original(this, context, state, info, bone_to_world);
+    }
 }
 
 const COLORS: [[f32; 4]; 6] = [
-    [1.0, 0.0, 0.0, 0.5],
-    [1.0, 1.0, 0.0, 0.5],
-    [0.0, 1.0, 0.0, 0.5],
-    [0.0, 1.0, 1.0, 0.5],
-    [0.0, 0.0, 1.0, 0.5],
-    [1.0, 0.0, 1.0, 0.5],
+    [1.0, 0.0, 0.0, 1.0],
+    [1.0, 1.0, 0.0, 1.0],
+    [0.0, 1.0, 0.0, 1.0],
+    [0.0, 1.0, 1.0, 1.0],
+    [0.0, 0.0, 1.0, 1.0],
+    [1.0, 0.0, 1.0, 1.0],
 ];

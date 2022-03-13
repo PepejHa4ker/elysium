@@ -432,8 +432,4 @@ impl Global {
             ptr::write(self.on_move_ptr(), Box::new(f));
         }
     }
-
-    pub fn flat_material(&self) -> &Material {
-        &self.0.interfaces.flat
-    }
 }

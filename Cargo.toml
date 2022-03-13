@@ -64,6 +64,9 @@ path = "crates/math"
 [dependencies.providence-model]
 path = "crates/model"
 
+[dependencies.providence-material]
+path = "crates/material"
+
 [dependencies.providence-networked]
 path = "crates/networked"
 

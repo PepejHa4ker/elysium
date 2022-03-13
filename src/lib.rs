@@ -208,6 +208,7 @@ fn main() -> Result<()> {
                     let local_player_eye_origin = movement.local_player.eye_origin();
 
                     let mut best_fov = 30.0;
+                    let mut view_angle = movement.view;
                     //let mut best_target = None;
 
                     for index in 1..64 {
@@ -240,15 +241,16 @@ fn main() -> Result<()> {
 
                         let bone_origin = bones.get_origin(8).unwrap_unchecked();
 
-                        let mut angle = calculate_angle(local_player_eye_origin, bone_origin);
+                        view_angle = calculate_angle(local_player_eye_origin, bone_origin) - punch;
+                        view_angle.normalize_in_place();
 
-                        angle.normalize_in_place();
+                        let damage = get_damage(&movement.local_player, &weapon, view_angle);
+                    }
 
-                        movement.view = angle;
-
-                        if let Some(weapon) = movement.local_player.weapon() {
-                            let damage = get_damage(&movement.local_player, &weapon, angle);
-                        }
+                    if view_angle == movement.view {
+                        movement.view -= punch;
+                    } else {
+                        movement.view = view_angle;
                     }
                 }
             }

@@ -49,8 +49,6 @@ pub struct Interfaces {
     pub post_processing: Var<i32>,
     pub ragdoll_gravity: Var<f32>,
     pub show_impacts: Var<i32>,
-
-    pub flat: Material,
 }
 
 impl Interfaces {
@@ -160,14 +158,24 @@ impl Interfaces {
         let ragdoll_gravity = console.var(var::RAGDOLL_GRAVITY).unwrap();
         let show_impacts = console.var(var::SHOW_IMPACTS).unwrap();
 
-        let flat = materials
-            .find(
-                "debug/debugdrawflat\0".as_ptr() as _,
-                core::ptr::null(),
-                true,
-                core::ptr::null(),
-            )
-            .unwrap();
+        unsafe {
+            use core::ptr::NonNull;
+            use providence_material::MaterialKind;
+
+            *providence_state::material::flat() = NonNull::new_unchecked(
+                materials
+                    .find(MaterialKind::Flat, ptr::null(), true, ptr::null())
+                    .expect("Flat material")
+                    .as_ptr() as *mut _,
+            );
+
+            *providence_state::material::plastic() = NonNull::new_unchecked(
+                materials
+                    .find(MaterialKind::Plastic, ptr::null(), true, ptr::null())
+                    .expect("Plastic material")
+                    .as_ptr() as *mut _,
+            );
+        }
 
         Self {
             console,
@@ -204,8 +212,6 @@ impl Interfaces {
             post_processing,
             ragdoll_gravity,
             show_impacts,
-
-            flat,
         }
     }
 }

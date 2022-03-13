@@ -1,12 +1,16 @@
 pub use cached_player::CachedPlayer;
 use core::mem::MaybeUninit;
 use core::ptr;
+use core::ptr::NonNull;
+use material::Materials;
 use providence_math::Vec3;
 use providence_model::Bones;
 use shared::Shared;
 
 mod cached_player;
 mod shared;
+
+pub mod material;
 
 pub type CreateMove =
     unsafe extern "C" fn(this: *const (), sample_time: f32, command: *const ()) -> bool;
@@ -26,8 +30,8 @@ impl CachedPlayers {
 }
 
 struct State {
-    player: *mut (),
-    weapon: *mut (),
+    player: NonNull<usize>,
+    weapon: NonNull<usize>,
     magazine_ammo: i32,
     total_ammo: i32,
     health: i32,
@@ -40,11 +44,13 @@ struct State {
     tick_count: i32,
     view_angle: Vec3,
     original_view_angle: Vec3,
+
+    materials: Materials,
 }
 
 static STATE: Shared<State> = Shared::new(State {
-    player: ptr::null_mut(),
-    weapon: ptr::null_mut(),
+    player: NonNull::dangling(),
+    weapon: NonNull::dangling(),
     magazine_ammo: 0,
     total_ammo: 0,
     health: 0,
@@ -57,10 +63,12 @@ static STATE: Shared<State> = Shared::new(State {
     send_packet: ptr::null_mut(),
     tick_count: 0,
     view_angle: Vec3::splat(0.0),
+
+    materials: Materials::new(),
 });
 
 #[inline]
-pub unsafe fn cached_players() -> *mut CachedPlayers {
+pub unsafe fn cached_players() -> &'static mut CachedPlayers {
     &mut STATE.as_mut().cached_players
 }
 
@@ -75,31 +83,31 @@ pub unsafe fn set_create_move(create_move: CreateMove) {
 }
 
 #[inline]
-pub unsafe fn local_player_bones() -> *mut Bones {
+pub unsafe fn local_player_bones() -> &'static mut Bones {
     &mut STATE.as_mut().local_player_bones
 }
 
 #[inline]
-pub unsafe fn original_view_angle() -> *mut Vec3 {
+pub unsafe fn original_view_angle() -> &'static mut Vec3 {
     &mut STATE.as_mut().original_view_angle
 }
 
 #[inline]
-pub unsafe fn prediction_time() -> *mut f32 {
+pub unsafe fn prediction_time() -> &'static mut f32 {
     &mut STATE.as_mut().prediction_time
 }
 
 #[inline]
-pub unsafe fn send_packet() -> *mut *mut bool {
+pub unsafe fn send_packet() -> &'static mut *mut bool {
     &mut STATE.as_mut().send_packet
 }
 
 #[inline]
-pub unsafe fn tick_count() -> *mut i32 {
+pub unsafe fn tick_count() -> &'static mut i32 {
     &mut STATE.as_mut().tick_count
 }
 
 #[inline]
-pub unsafe fn view_angle() -> *mut Vec3 {
+pub unsafe fn view_angle() -> &'static mut Vec3 {
     &mut STATE.as_mut().view_angle
 }
