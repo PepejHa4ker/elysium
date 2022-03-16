@@ -47,7 +47,6 @@ pub mod libraries;
 pub mod library;
 pub mod managed;
 pub mod material;
-pub mod mem;
 pub mod model;
 pub mod move_kind;
 pub mod movement;
@@ -202,6 +201,8 @@ fn main() -> Result<()> {
 
             unsafe {
                 if let Some(weapon) = movement.local_player.weapon() {
+                    *weapon.next_attack_available_after() = global3.globals().current_time;
+
                     let entity_list = global3.entity_list();
                     let cached_players = &mut *providence_state::cached_players();
                     let local_player_index = movement.local_player.index();

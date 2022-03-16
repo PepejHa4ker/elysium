@@ -1,3 +1,7 @@
+pub use traits::Signature;
+
+mod traits;
+
 pub unsafe fn virtual_table(address: *const ()) -> *const () {
     *(address as *const *const ())
 }
@@ -11,6 +15,69 @@ where
     T: Sized,
 {
     (virtual_offset(address, offset) as *const T).read()
+}
+
+pub unsafe fn virtual_call<T>(
+    address: *const (),
+    offset: usize,
+    args: <T as Signature>::Args,
+) -> <T as Signature>::Output
+where
+    T: Sized,
+    T: Signature,
+{
+    <T as Signature>::call(virtual_entry(address, offset), args)
+}
+
+#[macro_export]
+macro_rules! virtual_table {
+    () => {};
+    (
+        fn $ident:ident[$offset:literal]($($arg:ident: $argty:ty),*) -> $output:ty;
+        $($tail:tt)*
+    ) => {
+        #[inline]
+        unsafe fn $ident(
+            &self,
+            $($arg: $argty),*
+        ) -> $output {
+            type Fn = unsafe extern "C" fn(
+                this: *const (),
+                $($arg: $argty),*
+            ) -> $output;
+
+            $crate::virtual_call::<Fn>(
+                self.as_ptr() as *const (),
+                $offset,
+                (self.as_ptr() as *const (), $($arg),*),
+            )
+        }
+
+        virtual_table! { $($tail)* }
+    };
+    (
+        pub fn $ident:ident[$offset:literal]($($arg:ident: $argty:ty),*) -> $output:ty;
+        $($tail:tt)*
+    ) => {
+        #[inline]
+        pub unsafe fn $ident(
+            &self,
+            $($arg: $argty),*
+        ) -> $output {
+            type Fn = unsafe extern "C" fn(
+                this: *const (),
+                $($arg: $argty),*
+            ) -> $output;
+
+            $crate::virtual_call::<Fn>(
+                self.as_ptr() as *const (),
+                $offset,
+                (self.as_ptr() as *const (), $($arg),*),
+            )
+        }
+
+        virtual_table! { $($tail)* }
+    };
 }
 
 pub unsafe fn relative_offset(address: *const (), offset: usize) -> *const () {

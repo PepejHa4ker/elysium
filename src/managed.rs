@@ -1,4 +1,3 @@
-use crate::mem;
 use core::fmt;
 use core::ptr::NonNull;
 
@@ -53,12 +52,12 @@ impl<T: Handle + ?Sized> Managed<T> {
 
     /// Returns a pointer to the first element within the virtual table.
     pub unsafe fn virtual_table(&self) -> *const () {
-        mem::virtual_table(self.as_ptr() as *const ())
+        providence_util::virtual_table(self.as_ptr() as *const ())
     }
 
     /// Returns a pointer to the object at `offset` in the virtual table.
     pub unsafe fn virtual_offset(&self, offset: usize) -> *const () {
-        mem::virtual_offset(self.as_ptr() as *const (), offset)
+        providence_util::virtual_offset(self.as_ptr() as *const (), offset)
     }
 
     /// Returns the object at `offset` as a function signature.
@@ -66,12 +65,12 @@ impl<T: Handle + ?Sized> Managed<T> {
     where
         U: Sized,
     {
-        mem::virtual_entry(self.as_ptr() as *const (), offset)
+        providence_util::virtual_entry(self.as_ptr() as *const (), offset)
     }
 
     /// Returns a pointer to the object at `offset` (in bytes).
     pub unsafe fn relative_offset(&self, offset: usize) -> *const () {
-        mem::relative_offset(self.as_ptr() as *const (), offset)
+        providence_util::relative_offset(self.as_ptr() as *const (), offset)
     }
 
     /// Returns an object at `offset` (in bytes).
@@ -79,7 +78,7 @@ impl<T: Handle + ?Sized> Managed<T> {
     where
         U: Sized,
     {
-        mem::relative_entry(self.as_ptr() as *const (), offset)
+        providence_util::relative_entry(self.as_ptr() as *const (), offset)
     }
 }
 

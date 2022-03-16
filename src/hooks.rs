@@ -1,4 +1,3 @@
-use crate::mem;
 use core::ptr;
 
 pub mod create_move;
@@ -44,7 +43,7 @@ impl Hook {
             if !self.is_replaced() {
                 let protection = if self.protected {
                     // Remove protection and store it.
-                    mem::unprotect(address as *const ())
+                    providence_util::unprotect(address as *const ())
                 } else {
                     0
                 };
@@ -54,7 +53,7 @@ impl Hook {
 
                 if self.protected {
                     // Reapply protection.
-                    mem::protect(address as *const (), protection);
+                    providence_util::protect(address as *const (), protection);
                 }
 
                 // Store the original value.
@@ -72,7 +71,7 @@ impl Hook {
             if self.is_replaced() {
                 let protection = if self.protected {
                     // Remove protection and store it.
-                    mem::unprotect(address as *const ())
+                    providence_util::unprotect(address as *const ())
                 } else {
                     0
                 };
@@ -81,7 +80,7 @@ impl Hook {
 
                 if self.protected {
                     // Reapply protection.
-                    mem::protect(address as *const (), protection);
+                    providence_util::protect(address as *const (), protection);
                 }
             }
         }

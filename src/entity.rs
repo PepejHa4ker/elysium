@@ -1,7 +1,6 @@
 use crate::client::Class;
 use crate::global::Global;
 use crate::managed::{handle, Managed};
-use crate::mem;
 use crate::model::Model;
 use core::cmp;
 use providence_math::{Matrix3x4, Vec3};
@@ -76,12 +75,12 @@ impl Entity {
 
     /// Returns a pointer to the first element in the entity's networkable virtual table.
     pub unsafe fn networkable_virtual_table(&self) -> *const () {
-        mem::virtual_table(self.networkable())
+        providence_util::virtual_table(self.networkable())
     }
 
     /// Returns a pointer to the object at `offset` in the entity's networkable virtual table.
     pub unsafe fn networkable_virtual_offset(&self, offset: usize) -> *const () {
-        mem::virtual_offset(self.networkable(), offset)
+        providence_util::virtual_offset(self.networkable(), offset)
     }
 
     /// Returns an object at `offset` in the entity's networkable virtual table.
@@ -89,7 +88,7 @@ impl Entity {
     where
         U: Sized,
     {
-        mem::virtual_entry(self.networkable(), offset)
+        providence_util::virtual_entry(self.networkable(), offset)
     }
 
     /// Returns a pointer to the entity's renderable.
@@ -99,12 +98,12 @@ impl Entity {
 
     /// Returns a pointer to the entity's renderable virtual table.
     pub unsafe fn renderable_virtual_table(&self) -> *const () {
-        mem::virtual_table(self.renderable())
+        providence_util::virtual_table(self.renderable())
     }
 
     /// Returns a pointer to the object at `offset` in the entity's renderable virtual table.
     pub unsafe fn renderable_virtual_offset(&self, offset: usize) -> *const () {
-        mem::virtual_offset(self.renderable(), offset)
+        providence_util::virtual_offset(self.renderable(), offset)
     }
 
     /// Returns an object at `offset` in the entity's renderable virtual table.
@@ -112,7 +111,7 @@ impl Entity {
     where
         U: Sized,
     {
-        mem::virtual_entry(self.renderable(), offset)
+        providence_util::virtual_entry(self.renderable(), offset)
     }
 
     /// Is this entity dormant.

@@ -65,14 +65,14 @@ impl Weapon {
     }
 
     /// Gets the time that this weapon can shoot again in.
-    pub fn next_attack_available_after(&self) -> f32 {
+    pub fn next_attack_available_after(&self) -> *mut f32 {
         unsafe {
-            self.relative_entry(
+            &mut *(self.relative_offset(
                 Global::handle()
                     .networked()
                     .base_weapon
                     .next_attack_available_after,
-            )
+            ) as *mut f32)
         }
     }
 

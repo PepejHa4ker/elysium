@@ -1,4 +1,5 @@
 use crate::managed::{handle, Managed};
+use providence_util::virtual_table;
 use sdk::Pad;
 
 #[derive(Debug)]
@@ -81,42 +82,13 @@ impl Physics {
         self.0.as_ptr()
     }
 
-    /// Returns a pointer to the first element within the virtual table.
-    pub unsafe fn virtual_table(&self) -> *const () {
-        self.0.virtual_table()
-    }
-
-    /// Returns a pointer to the object at `offset` in the virtual table.
-    pub unsafe fn virtual_offset(&self, offset: usize) -> *const () {
-        self.0.virtual_offset(offset)
-    }
-
-    /// Returns the object at `offset` as a function signature.
-    pub unsafe fn virtual_entry<U>(&self, offset: usize) -> U
-    where
-        U: Sized,
-    {
-        self.0.virtual_entry(offset)
-    }
-
-    /// Returns a pointer to the object at `offset` (in bytes).
-    pub unsafe fn relative_offset(&self, offset: usize) -> *const () {
-        self.0.relative_offset(offset)
-    }
-
-    /// Returns an object at `offset` (in bytes).
-    pub unsafe fn relative_entry<U>(&self, offset: usize) -> U
-    where
-        U: Sized,
-    {
-        self.0.relative_entry(offset)
+    virtual_table! {
+        fn query_unchecked[6](index: i32) -> *const Surface;
     }
 
     pub fn query(&self, index: i32) -> Option<Surface> {
-        type Fn = unsafe extern "C" fn(this: *const handle::Physics, index: i32) -> *const Surface;
-
         unsafe {
-            let ptr = self.virtual_entry::<Fn>(6)(self.as_ptr(), index);
+            let ptr = self.query_unchecked(index);
 
             if ptr.is_null() {
                 None

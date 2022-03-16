@@ -118,7 +118,7 @@ impl Global {
         let mut draw_model_execute = Hook::new(
             // TODO: Move this to ModelRender.
             unsafe {
-                crate::mem::virtual_offset(interfaces.model_render.as_ptr() as *const (), 21)
+                providence_util::virtual_offset(interfaces.model_render.as_ptr() as *const (), 21)
             },
             hooks::draw_model_execute::hook as *const (),
             true,

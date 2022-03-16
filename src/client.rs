@@ -1,5 +1,5 @@
 use crate::managed::{handle, Managed};
-use crate::mem;
+use core::mem;
 
 pub use class::Class;
 pub use classes::Classes;
@@ -86,10 +86,10 @@ impl Client {
 
             // Determine where the signed offset address points to!
             let get_client_mode =
-                mem::to_absolute_with_offset(signed_offset_address as *const (), 1, 5);
+                providence_util::to_absolute_with_offset(signed_offset_address as *const (), 1, 5);
 
             // Honestly kind of sad you have to do this.
-            let get_client_mode: Fn = core::mem::transmute(get_client_mode);
+            let get_client_mode: Fn = mem::transmute(get_client_mode);
 
             get_client_mode()
         }
@@ -97,7 +97,7 @@ impl Client {
 
     /// Returns a pointer to create_move.
     pub fn create_move_ptr(&self) -> *const () {
-        unsafe { mem::virtual_offset(self.client_mode_ptr(), 25) }
+        unsafe { providence_util::virtual_offset(self.client_mode_ptr(), 25) }
     }
 
     /// Returns a pointer to frame_stage_notify.
@@ -112,7 +112,8 @@ impl Client {
             let signed_offset_address = (self.hud_update_ptr() as *const u8).add(13);
 
             // Determine where the signed offset address points to!
-            let globals = mem::to_absolute_with_offset(signed_offset_address as *const (), 3, 7);
+            let globals =
+                providence_util::to_absolute_with_offset(signed_offset_address as *const (), 3, 7);
 
             // Dereference the pointer pointing to the pointer to globals.
             *(globals as *const *const ())
@@ -136,7 +137,7 @@ impl Client {
             let signed_offset_address = (self.activate_mouse_ptr() as *const u8).add(3);
 
             // Determine where the signed offset address points to!
-            let input = mem::to_absolute(signed_offset_address as *const ());
+            let input = providence_util::to_absolute(signed_offset_address as *const ());
 
             // Dereference the pointer pointing to the pointer to globals.
             **(input as *const *const *const ())

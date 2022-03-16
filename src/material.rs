@@ -1,5 +1,6 @@
 use crate::managed::{handle, Managed};
 use core::mem::MaybeUninit;
+use providence_util::virtual_table;
 
 pub use materials::Materials;
 pub use var::MaterialVar;
@@ -25,51 +26,13 @@ impl Material {
         self.0.as_ptr()
     }
 
-    /// Returns a pointer to the first element within the virtual table.
-    pub unsafe fn virtual_table(&self) -> *const () {
-        self.0.virtual_table()
-    }
-
-    /// Returns a pointer to the object at `offset` in the virtual table.
-    pub unsafe fn virtual_offset(&self, offset: usize) -> *const () {
-        self.0.virtual_offset(offset)
-    }
-
-    /// Returns the object at `offset` as a function signature.
-    pub unsafe fn virtual_entry<U>(&self, offset: usize) -> U
-    where
-        U: Sized,
-    {
-        self.0.virtual_entry(offset)
-    }
-
-    /// Returns a pointer to the object at `offset` (in bytes).
-    pub unsafe fn relative_offset(&self, offset: usize) -> *const () {
-        self.0.relative_offset(offset)
-    }
-
-    /// Returns an object at `offset` (in bytes).
-    pub unsafe fn relative_entry<U>(&self, offset: usize) -> U
-    where
-        U: Sized,
-    {
-        self.0.relative_entry(offset)
-    }
-
-    pub unsafe fn var_unchecked(
-        &self,
-        name: *const u8,
-        found: &mut bool,
-        complain: bool,
-    ) -> Option<MaterialVar> {
-        type Fn = unsafe extern "C" fn(
-            this: *const handle::Material,
-            name: *const u8,
-            found: *mut bool,
-            complain: bool,
-        ) -> Option<MaterialVar>;
-
-        self.virtual_entry::<Fn>(11)(self.as_ptr(), name, found, complain)
+    virtual_table! {
+        fn var_unchecked[11](name: *const u8, found: *mut bool, complain: bool) -> Option<MaterialVar>;
+        fn alpha_unchecked[27](a: f32) -> ();
+        fn rgb_unchecked[28](r: f32, g: f32, b: f32) -> ();
+        fn flag_unchecked[29](flag: i32, enabled: bool) -> ();
+        fn get_alpha_unchecked[44]() -> f32;
+        fn get_rgb_unchecked[45](r: *mut f32, g: *mut f32, b: *mut f32) -> ();
     }
 
     pub fn var(&self, name: *const u8) -> Option<MaterialVar> {
@@ -82,10 +45,8 @@ impl Material {
     }
 
     fn flag(&self, flag: i32, enabled: bool) {
-        type Fn = unsafe extern "C" fn(this: *const handle::Material, flag: i32, enabled: bool);
-
         unsafe {
-            self.virtual_entry::<Fn>(29)(self.as_ptr(), flag, enabled);
+            self.flag_unchecked(flag, enabled);
         }
     }
 
@@ -102,41 +63,29 @@ impl Material {
     }
 
     pub fn color(&self, rgba: [f32; 4]) {
-        type AlphaFn = unsafe extern "C" fn(this: *const handle::Material, alpha: f32);
-        type RgbFn = unsafe extern "C" fn(this: *const handle::Material, r: f32, g: f32, b: f32);
+        let [r, g, b, a] = rgba;
 
         unsafe {
-            let [r, g, b, a] = rgba;
+            self.alpha_unchecked(a);
+            self.rgb_unchecked(r, g, b);
+        }
 
-            self.virtual_entry::<RgbFn>(28)(self.as_ptr(), r, g, b);
-            self.virtual_entry::<AlphaFn>(27)(self.as_ptr(), a);
-
-            if let Some(var) = self.var(ENV_TINT_MAP.as_ptr()) {
-                var.set_tint(r, g, b);
-            }
+        if let Some(var) = self.var(ENV_TINT_MAP.as_ptr()) {
+            var.set_tint(r, g, b);
         }
     }
 
     pub fn get_color(&self) -> [f32; 4] {
-        type AlphaFn = unsafe extern "C" fn(this: *const handle::Material) -> f32;
-        type RgbFn = unsafe extern "C" fn(
-            this: *const handle::Material,
-            r: *mut f32,
-            g: *mut f32,
-            b: *mut f32,
-        );
-
         unsafe {
             let mut color: [MaybeUninit<f32>; 4] = MaybeUninit::uninit_array();
 
-            self.virtual_entry::<RgbFn>(45)(
-                self.as_ptr(),
+            self.get_rgb_unchecked(
                 color[0].as_mut_ptr(),
                 color[1].as_mut_ptr(),
                 color[2].as_mut_ptr(),
             );
 
-            color[3].write(self.virtual_entry::<AlphaFn>(44)(self.as_ptr()));
+            color[3].write(self.get_alpha_unchecked());
 
             MaybeUninit::array_assume_init(color)
         }
