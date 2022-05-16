@@ -1,5 +1,6 @@
 #![allow(incomplete_features)]
 #![feature(const_transmute_copy)]
+#![feature(const_maybe_uninit_uninit_array)]
 #![feature(const_refs_to_cell)]
 #![feature(generic_const_exprs)]
 #![feature(maybe_uninit_uninit_array)]

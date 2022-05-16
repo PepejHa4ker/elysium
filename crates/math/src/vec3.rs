@@ -1,6 +1,7 @@
 use core::ops::{Add, Div, Mul, Rem, Sub};
 use core::ops::{AddAssign, DivAssign, MulAssign, RemAssign, SubAssign};
 use core::ptr;
+use meth::Real;
 
 #[derive(Copy, Clone, Default, Debug, PartialEq)]
 #[repr(C)]
@@ -11,11 +12,11 @@ pub struct Vec3 {
 }
 
 impl Vec3 {
-    pub fn as_ptr(&self) -> *const f32 {
+    pub const fn as_ptr(&self) -> *const f32 {
         ptr::addr_of!(self.x)
     }
 
-    pub fn as_mut_ptr(&mut self) -> *mut f32 {
+    pub const fn as_mut_ptr(&mut self) -> *mut f32 {
         ptr::addr_of_mut!(self.x)
     }
 
@@ -63,12 +64,12 @@ impl Vec3 {
         Vec3::from_xyz(x, y, z)
     }
 
-    pub fn with_normalized_pitch(mut self) -> Vec3 {
-        self.x = self.x.clamp(-89.0, 89.0);
+    pub const fn with_normalized_pitch(mut self) -> Vec3 {
+        self.x = Real::clamp(self.x, 89.0, 89.0);
         self
     }
 
-    pub fn with_normalized_yaw(mut self) -> Vec3 {
+    pub const fn with_normalized_yaw(mut self) -> Vec3 {
         while self.y > 180.0 {
             self.y -= 360.0;
         }
@@ -80,50 +81,51 @@ impl Vec3 {
         self
     }
 
-    pub fn with_normalized_roll(mut self) -> Vec3 {
+    pub const fn with_normalized_roll(mut self) -> Vec3 {
         self.z = 0.0;
         self
     }
 
-    pub fn normalize(self) -> Vec3 {
+    pub const fn normalize(self) -> Vec3 {
         self.with_normalized_pitch()
             .with_normalized_yaw()
             .with_normalized_roll()
     }
 
-    pub fn with_clamped_pitch(mut self) -> Vec3 {
-        self.x = self.x.clamp(-89.0, 89.0);
+    pub const fn with_clamped_pitch(mut self) -> Vec3 {
+        self.x = Real::clamp(self.x, -89.0, 89.0);
         self
     }
 
-    pub fn with_clamped_yaw(mut self) -> Vec3 {
-        self.y = self.y.clamp(-180.0, 180.0);
+    pub const fn with_clamped_yaw(mut self) -> Vec3 {
+        self.y = Real::clamp(self.y, -180.0, 180.0);
         self
     }
 
-    pub fn with_clamped_roll(mut self) -> Vec3 {
+    pub const fn with_clamped_roll(mut self) -> Vec3 {
         self.z = 0.0;
         self
     }
 
-    pub fn clamp(self) -> Vec3 {
+    pub const fn clamp(self) -> Vec3 {
         self.with_clamped_pitch()
             .with_clamped_yaw()
             .with_clamped_roll()
     }
 
-    pub fn normalize_in_place(&mut self) {
+    pub const fn normalize_in_place(&mut self) {
         *self = self.normalize();
     }
 
-    pub fn clamp_in_place(&mut self) {
+    pub const fn clamp_in_place(&mut self) {
         *self = self.clamp();
     }
 
     pub fn angle_vector(&self) -> (Vec3, Vec3, Vec3) {
-        let (sin_pitch, cos_pitch) = self.x.to_radians().sin_cos();
-        let (sin_yaw, cos_yaw) = self.y.to_radians().sin_cos();
-        let (sin_roll, cos_roll) = self.z.to_radians().sin_cos();
+        let angle = self.to_vec().to_radians();
+        let (sin_pitch, cos_pitch) = angle.x.sin_cos();
+        let (sin_yaw, cos_yaw) = angle.y.sin_cos();
+        let (sin_roll, cos_roll) = angle.z.sin_cos();
 
         let mut forward = Vec3::zero();
         let mut right = Vec3::zero();
@@ -162,65 +164,65 @@ impl Vec3 {
         Vec3::splat(1.0)
     }
 
-    pub fn distance(self, other: Vec3) -> f32 {
+    pub const fn distance(self, other: Vec3) -> f32 {
         self.to_vec().distance(other.to_vec())
     }
 
-    pub fn distance_squared(self, other: Vec3) -> f32 {
+    pub const fn distance_squared(self, other: Vec3) -> f32 {
         self.to_vec().distance_squared(other.to_vec())
     }
 
-    pub fn distance2d(self, other: Vec3) -> f32 {
+    pub const fn distance2d(self, other: Vec3) -> f32 {
         self.to_vec2().distance(other.to_vec2())
     }
 
-    pub fn distance2d_squared(self, other: Vec3) -> f32 {
+    pub const fn distance2d_squared(self, other: Vec3) -> f32 {
         self.to_vec2().distance_squared(other.to_vec2())
     }
 
-    pub fn dot(self, other: Vec3) -> f32 {
+    pub const fn dot(self, other: Vec3) -> f32 {
         self.to_vec().dot(other.to_vec())
     }
 
     /// Calculate the magnitude (length).
-    pub fn magnitude(self) -> f32 {
+    pub const fn magnitude(self) -> f32 {
         self.to_vec().magnitude()
     }
 
     /// Calculate the magnitude (length) without squaring.
-    pub fn magnitude_squared(self) -> f32 {
+    pub const fn magnitude_squared(self) -> f32 {
         self.to_vec().magnitude_squared()
     }
 
     /// Calculate the magnitude (length) of y and x.
-    pub fn magnitude2d(self) -> f32 {
+    pub const fn magnitude2d(self) -> f32 {
         self.to_vec2().magnitude()
     }
 
     /// Calculate the magnitude (length) of y and x without squaring.
-    pub fn magnitude2d_squared(self) -> f32 {
+    pub const fn magnitude2d_squared(self) -> f32 {
         self.to_vec2().magnitude_squared()
     }
 
-    pub fn is_finite(self) -> bool {
+    pub const fn is_finite(self) -> bool {
         self.x.is_finite() && self.y.is_finite() && self.z.is_finite()
     }
 
-    pub fn is_normal(self) -> bool {
+    pub const fn is_normal(self) -> bool {
         self.x.is_normal() && self.y.is_normal() && self.z.is_normal()
     }
 
-    fn from_vec(vec: meth::Vec3<f32>) -> Vec3 {
+    const fn from_vec(vec: meth::Vec3<f32>) -> Vec3 {
         Vec3::from_array(vec.to_array())
     }
 
-    fn to_vec(self) -> meth::Vec3<f32> {
+    const fn to_vec(self) -> meth::Vec3<f32> {
         let Vec3 { x, y, z } = self;
 
         meth::Vec3::from_array([x, y, z])
     }
 
-    fn to_vec2(self) -> meth::Vec2<f32> {
+    const fn to_vec2(self) -> meth::Vec2<f32> {
         let Vec3 { x, y, .. } = self;
 
         meth::Vec2::from_array([x, y])
@@ -229,7 +231,7 @@ impl Vec3 {
 
 macro_rules! impl_op {
     { $ty:ident, $trait:ident, $trait_assign:ident, $fn:ident, $fn_assign:ident, $op:tt } => {
-        impl $trait < $ty > for $ty {
+        impl const $trait < $ty > for $ty {
             type Output = $ty;
 
             fn $fn(self, other: $ty) -> $ty {
@@ -237,7 +239,7 @@ macro_rules! impl_op {
             }
         }
 
-        impl $trait_assign < $ty > for $ty {
+        impl const $trait_assign < $ty > for $ty {
             fn $fn_assign(&mut self, other: $ty) {
                 *self = *self $op other;
             }

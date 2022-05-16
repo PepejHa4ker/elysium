@@ -80,6 +80,22 @@ macro_rules! virtual_table {
     };
 }
 
+#[macro_export]
+macro_rules! virtual_offset_table {
+    () => {};
+    (
+        $ident:ident[$offset:literal];
+        $($tail:tt)*
+    ) => {
+        #[inline]
+        unsafe fn $ident(&self) -> *const () {
+            $crate::virtual_offset(self.as_ptr() as *const (), $offset)
+        }
+
+        virtual_offset_table! { $($tail)* }
+    };
+}
+
 pub unsafe fn relative_offset(address: *const (), offset: usize) -> *const () {
     (address as *const u8).add(offset) as *const ()
 }

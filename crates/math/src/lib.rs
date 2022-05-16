@@ -1,5 +1,7 @@
-#![feature(const_ptr_offset)]
-#![feature(const_ptr_read)]
+#![feature(const_float_classify)]
+#![feature(const_fn_floating_point_arithmetic)]
+#![feature(const_mut_refs)]
+#![feature(const_trait_impl)]
 
 pub use matrix3x4::Matrix3x4;
 pub use vec2::Vec2;

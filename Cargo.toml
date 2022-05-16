@@ -91,10 +91,6 @@ path = "crates/sdk"
 [dependencies.spirit]
 path = "crates/spirit"
 
-[dependencies.vek]
-features = ["repr_simd"]
-version = "0.15"
-
 [dependencies.tracing]
 default-features = false
 features = ["std", "attributes"]
@@ -108,8 +104,3 @@ version = "0.3"
 [lib]
 crate-type = ["cdylib"]
 path = "src/lib.rs"
-
-[profile.release]
-codegen-units = 1
-lto = "thin"
-panic = "abort"
