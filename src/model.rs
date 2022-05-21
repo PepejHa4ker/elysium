@@ -3,7 +3,7 @@ use crate::material::Material;
 use core::marker::PhantomData;
 use core::{fmt, ptr};
 use providence_math::{Matrix3x4, Vec3};
-use sdk::Pad;
+use sdk2::Pad;
 use spirit::Str;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]

@@ -1,9 +1,6 @@
 #![feature(once_cell)]
-#![feature(const_fn_fn_ptr_basics)]
-#![feature(const_fn_trait_bound)]
 #![feature(const_intrinsic_copy)]
 #![feature(const_mut_refs)]
-#![feature(const_ptr_offset)]
 #![feature(const_ptr_write)]
 
 use regex::bytes::Regex;

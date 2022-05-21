@@ -1,0 +1,10 @@
+[package]
+edition = "2021"
+name = "elysium-gl"
+version = "0.0.0"
+
+[dependencies.elysium-dl]
+path = "../dl"
+
+[dependencies.frosting]
+git = "https://github.com/elysian6969/frosting.git"

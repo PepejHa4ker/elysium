@@ -1,4 +1,4 @@
-#![feature(const_fn_fn_ptr_basics)]
+#![feature(const_maybe_uninit_zeroed)]
 #![feature(const_mut_refs)]
 #![feature(const_trait_impl)]
 #![feature(extern_types)]
@@ -14,11 +14,9 @@ use crate::entity::Weapon;
 use crate::frame::Frame;
 use crate::global::Global;
 use crate::trace::{Ray, Summary};
-use atomic_float::AtomicF32;
 use core::ptr;
 use providence_math::Vec3;
-use std::sync::atomic::{AtomicI32, AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::sync::atomic::{AtomicI32, Ordering};
 use std::thread;
 use std::time::Duration;
 
@@ -54,25 +52,127 @@ pub mod networked;
 pub mod pad;
 pub mod pattern;
 pub mod physics;
-pub mod state;
 pub mod trace;
 
-fn main() -> Result<()> {
-    // todo: check we are loaded into counter strike
-    //       we get loaded into bash too when executing
-    //       counter strike from steam (csgo.sh)
+use elysium_dl::Library;
+use std::path::Path;
 
-    if library::Library::serverbrowser().is_err() {
-        println!("Waiting for Counter Strike to finish loading...");
+pub use elysium_state as state;
 
-        while library::Library::serverbrowser().is_err() {
-            thread::sleep(Duration::from_millis(500));
-        }
+pub mod hooks2;
+
+#[link_section = ".init_array"]
+#[used]
+static BOOTSTRAP: unsafe extern "C" fn() = bootstrap;
+
+#[link_section = ".text.startup"]
+unsafe extern "C" fn bootstrap() {
+    // check the name of the process we're injected into
+    let is_csgo = std::env::args()
+        .next()
+        .and_then(|process_path| {
+            let process_path = Path::new(&process_path);
+            let process_name = process_path.file_name()?;
+
+            Some(process_name == "csgo_linux64")
+        })
+        .unwrap_or(false);
+
+    // bail if we're injected into not csgo
+    if !is_csgo {
+        return;
     }
 
-    println!("Initializing providence...");
+    // spawn a new thread to prevent blocking csgo
+    thread::spawn(main);
+}
 
-    let global = Global::init()?;
+#[inline]
+fn main() {
+    // wait for serverbrowser.so to load as it is the last to load.
+    frosting::println!("waiting for `serverbrowser_client.so` to load");
+
+    loop {
+        if Library::exists("./bin/linux64/serverbrowser_client.so") {
+            break;
+        }
+
+        thread::sleep(Duration::from_millis(500));
+    }
+
+    frosting::println!("`serverbrowser_client.so` loaded");
+    frosting::println!("looking for libray: libGL.so.1");
+
+    let gl = match elysium_gl::Gl::open() {
+        Some(gl) => gl,
+        None => {
+            frosting::println!("failed to load GL, aborting");
+            return;
+        }
+    };
+
+    frosting::println!("loaded GL: {:016x?}", gl);
+
+    unsafe {
+        let gl_context = elysium_gl::Context::new(|symbol| gl.get_proc_address(symbol).cast());
+
+        state::set_gl_context(gl_context);
+        state::set_gl(gl);
+    }
+
+    frosting::println!("looking for libray: libSDL-2.0.so.0");
+
+    let sdl = match elysium_sdl::Sdl::open() {
+        Some(sdl) => sdl,
+        None => {
+            frosting::println!("failed to load SDL, aborting");
+            return;
+        }
+    };
+
+    frosting::println!("loaded SDL: {:016x?}", sdl);
+    frosting::println!("looking for symbol: `SDL_GL_SwapWindow`");
+
+    let swap_window = match unsafe { sdl.swap_window() } {
+        Some(swap_window) => swap_window,
+        None => {
+            frosting::println!("failed to find symbol `SDL_GL_SwapWindow`, aborting");
+            return;
+        }
+    };
+
+    frosting::println!("`SDL_GL_SwapWindow`: {:016x?}", swap_window);
+    frosting::println!("looking for symbol: `SDL_PollEvent`");
+
+    let poll_event = match unsafe { sdl.poll_event() } {
+        Some(poll_event) => poll_event,
+        None => {
+            frosting::println!("failed to find symbol `SDL_PollEvent`, aborting");
+            return;
+        }
+    };
+
+    frosting::println!("found `SDL_PollEvent`: {:016x?}", poll_event);
+
+    unsafe {
+        state::set_sdl(sdl);
+
+        frosting::println!("hooking `SDL_GL_SwapWindow`");
+
+        let swap_window = swap_window as *mut state::SwapWindowFn;
+
+        state::set_swap_window(swap_window.replace(hooks2::swap_window));
+
+        frosting::println!("hooking `SDL_PollEvent`");
+
+        let poll_event = poll_event as *mut state::PollEventFn;
+
+        state::set_poll_event(poll_event.replace(hooks2::poll_event));
+    }
+
+    println!("initializing providence...");
+
+    let global = Global::init().expect("global");
     let global2 = global.clone();
     let global3 = global.clone();
     let choked = AtomicI32::new(0);
@@ -98,19 +198,19 @@ fn main() -> Result<()> {
                         unsafe {
                             let original_view_angle = local_player.view_angle();
 
-                            *providence_state::original_view_angle() = original_view_angle;
+                            *elysium_state::local::view_angle() = original_view_angle;
 
-                            local_player.set_view_angle(*providence_state::view_angle());
+                            local_player.set_view_angle(*elysium_state::view_angle());
                         }
                     }
 
                     unsafe {
-                        let cached_players = &mut *providence_state::cached_players();
+                        let cached_players = &mut *elysium_state::players();
                         let entity_list = global2.entity_list();
                         let client_time = global2.client_time();
 
                         for index in 1..64 {
-                            let bones = &mut cached_players.players[index as usize].bones;
+                            let bones = &mut cached_players[index as usize].bones;
 
                             if let Some(entity) = entity_list.get(index) {
                                 let bones_ptr = bones.as_mut_ptr();
@@ -163,7 +263,7 @@ fn main() -> Result<()> {
                     // Restore the local players view_angle.
                     if global2.input().thirdperson {
                         unsafe {
-                            local_player.set_view_angle(*providence_state::original_view_angle());
+                            local_player.set_view_angle(*elysium_state::local::view_angle());
                         }
                     }
 
@@ -204,7 +304,7 @@ fn main() -> Result<()> {
                     *weapon.next_attack_available_after() = global3.globals().current_time;
 
                     let entity_list = global3.entity_list();
-                    let cached_players = &mut *providence_state::cached_players();
+                    let cached_players = &mut *elysium_state::players();
                     let local_player_index = movement.local_player.index();
                     let local_player_eye_origin = movement.local_player.eye_origin();
 
@@ -217,7 +317,7 @@ fn main() -> Result<()> {
                             continue;
                         }
 
-                        let bones = &mut cached_players.players[index as usize].bones;
+                        let bones = &mut cached_players[index as usize].bones;
 
                         let entity = match entity_list.get(index) {
                             Some(entity) => entity,
@@ -277,12 +377,12 @@ fn main() -> Result<()> {
 
         if movement.send_packet {
             unsafe {
-                *providence_state::view_angle() = movement.view;
+                *elysium_state::view_angle() = movement.view;
 
-                let cached_players = &mut *providence_state::cached_players();
+                let cached_players = &mut *elysium_state::players();
                 let index = movement.local_player.index();
-                let bones = &mut cached_players.players[index as usize].bones;
-                let local_player_bones = &mut *providence_state::local_player_bones();
+                let bones = &mut cached_players[index as usize].bones;
+                let local_player_bones = &mut *elysium_state::local::bones();
 
                 ptr::copy_nonoverlapping(
                     bones.as_ptr(),
@@ -319,17 +419,6 @@ fn main() -> Result<()> {
         movement.vectors.x = cos * original_vectors.x + cos90 * original_vectors.y;
         movement.vectors.y = sin * original_vectors.x + sin90 * original_vectors.y;
         movement
-    });
-
-    Ok(())
-}
-
-#[ctor::ctor]
-fn load() {
-    let _ = thread::Builder::new().spawn(move || {
-        tracing_subscriber::fmt::init();
-
-        let _ = main();
     });
 }
 

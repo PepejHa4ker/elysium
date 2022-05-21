@@ -1,0 +1,12 @@
+[package]
+edition = "2021"
+name = "elysium-dl"
+version = "0.0.0"
+
+[dependencies.libc]
+default-features = false
+version = "0.2"
+
+[dependencies.libloading]
+default-features = false
+version = "0.7"

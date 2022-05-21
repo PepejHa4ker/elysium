@@ -1,5 +1,5 @@
 use providence_math::{Vec3, Vec4Aligned};
-use sdk::Pad;
+use sdk2::Pad;
 
 /// Ray to be traced.
 #[derive(Debug)]

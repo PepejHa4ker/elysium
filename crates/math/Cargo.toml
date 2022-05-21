@@ -4,4 +4,4 @@ name = "providence-math"
 version = "0.0.0"
 
 [dependencies]
-meth = { git = "https://github.com/mov-rax-rax/meth.git" }
+meth = { git = "https://github.com/elysian6969/meth.git" }

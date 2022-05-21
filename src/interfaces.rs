@@ -7,7 +7,7 @@ use crate::entity::EntityList;
 use crate::globals::Globals;
 use crate::input::Input;
 use crate::libraries::Libraries;
-use crate::material::{Material, Materials};
+use crate::material::Materials;
 use crate::model::{ModelInfo, ModelRender};
 use crate::pattern;
 use crate::physics::Physics;
@@ -160,21 +160,21 @@ impl Interfaces {
 
         unsafe {
             use core::ptr::NonNull;
-            use providence_material::MaterialKind;
+            use elysium_sdk_material::MaterialKind;
 
-            *providence_state::material::flat() = NonNull::new_unchecked(
+            /* *elysium_state::material::flat() = NonNull::new_unchecked(
                 materials
                     .find(MaterialKind::Flat, ptr::null(), true, ptr::null())
                     .expect("Flat material")
                     .as_ptr() as *mut _,
             );
 
-            *providence_state::material::plastic() = NonNull::new_unchecked(
+            *elysium_state::material::plastic() = NonNull::new_unchecked(
                 materials
                     .find(MaterialKind::Plastic, ptr::null(), true, ptr::null())
                     .expect("Plastic material")
                     .as_ptr() as *mut _,
-            );
+            );*/
         }
 
         Self {

@@ -1,5 +1,5 @@
 use providence_math::Vec3;
-use sdk::Pad;
+use sdk2::Pad;
 
 pub use self::button::Button;
 pub use self::joystick::Joystick;

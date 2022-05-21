@@ -18,12 +18,14 @@ pub unsafe extern "C" fn hook<'a>(
     info: &'a ModelRenderInfo,
     bone_to_world: *const Matrix3x4,
 ) {
-    let entity_index = info.entity_index;
     let global = Global::handle();
-    let flat_material =
-        Material::new_unchecked(providence_state::material::flat().as_ptr() as *mut _);
-    let plastic_material =
-        Material::new_unchecked(providence_state::material::plastic().as_ptr() as *mut _);
+
+    global.draw_model_execute_original(this, context, state, info, bone_to_world);
+
+    /*let entity_index = info.entity_index;
+    let global = Global::handle();
+    let flat_material = Material::new_unchecked(*elysium_state::material::flat() as _);
+    let plastic_material = Material::new_unchecked(*elysium_state::material::plastic() as _);
 
     // obtain local player index
     let local_player_index = global
@@ -71,7 +73,7 @@ pub unsafe extern "C" fn hook<'a>(
         //plastic_material.color([1.0, 0.0, 1.0, 1.0]);
         //global.model_render().set_material(&plastic_material);
         //global.draw_model_execute_original(this, context, state, info, bone_to_world);
-    }
+    }*/
 }
 
 const COLORS: [[f32; 4]; 6] = [

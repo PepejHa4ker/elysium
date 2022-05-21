@@ -1,43 +1,13 @@
 [package]
-name    = "providence"
-version = "0.0.1"
 edition = "2021"
-
-[workspace]
-members = ["crates/*"]
+name = "elysium"
+version = "0.0.0"
 
 [dependencies.palette]
 version = "0.6"
 
 [dependencies.atomic_float]
 version = "0.1"
-
-[dependencies.ctor]
-version = "0.1"
-
-#[dependencies.iced_glutin]
-#default-features = false
-#features = ["debug"]
-#git = "https://github.com/iced-rs/iced.git"
-
-#[dependencies.iced_glow]
-#default-features = false
-#features = ["default_system_font"]
-#git = "https://github.com/iced-rs/iced.git"
-
-#[dependencies.iced_winit]
-#default-features = false
-#features = ["debug"]
-#git = "https://github.com/iced-rs/iced.git"
-
-#[dependencies.glium]
-#default-features = false
-#version = "0.30"
-#features = ["glutin"]
-
-#[dependencies.glow]
-#default-features = false
-#version = "0.6"
 
 [dependencies.daisy_chain]
 path = "crates/daisy_chain"
@@ -64,7 +34,7 @@ path = "crates/math"
 [dependencies.providence-model]
 path = "crates/model"
 
-[dependencies.providence-material]
+[dependencies.elysium-sdk-material]
 path = "crates/material"
 
 [dependencies.providence-networked]
@@ -72,9 +42,6 @@ path = "crates/networked"
 
 [dependencies.providence-pattern]
 path = "crates/pattern"
-
-[dependencies.providence-state]
-path = "crates/state"
 
 [dependencies.providence-util]
 path = "crates/util"
@@ -84,9 +51,6 @@ version = "0.8"
 
 [dependencies.regex]
 version = "1.5"
-
-[dependencies.sdk]
-path = "crates/sdk"
 
 [dependencies.spirit]
 path = "crates/spirit"
@@ -104,3 +68,61 @@ version = "0.3"
 [lib]
 crate-type = ["cdylib"]
 path = "src/lib.rs"
+
+[dependencies.elysium-dl]
+path = "crates/library/dl"
+
+[dependencies.elysium-gl]
+path = "crates/library/gl"
+
+[dependencies.elysium-input]
+path = "crates/input"
+
+[dependencies.elysium-mem]
+path = "crates/mem"
+
+[dependencies.elysium-menu]
+path = "crates/menu"
+
+[dependencies.elysium-sdl]
+path = "crates/library/sdl"
+
+[dependencies.elysium-state]
+path = "crates/state"
+
+[dependencies.elysium-theme]
+path = "crates/theme"
+
+[dependencies.frosting]
+git = "https://github.com/elysian6969/frosting.git"
+
+[dependencies.iced_elysium-gl]
+path = "crates/iced/gl"
+
+[dependencies.iced_native]
+git = "https://github.com/iced-rs/iced"
+
+[dependencies.sdk2]
+path = "crates/sdk2"
+
+[dependencies.sdl2-sys]
+version = "0.35"
+
+[workspace]
+members = [
+    "crates/iced/gl",
+    "crates/iced/gl-glyph",
+    "crates/input",
+    "crates/library/dl",
+    "crates/library/gl",
+    "crates/library/sdl",
+    "crates/mem",
+    "crates/menu",
+    "crates/sdk/client",
+    "crates/sdk/engine",
+    "crates/sdk/trace",
+    "crates/sdk2",
+    "crates/state",
+    "crates/state2",
+    "crates/theme",
+]

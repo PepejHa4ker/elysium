@@ -2,9 +2,7 @@ use core::ptr;
 use findshlibs::{Segment, SharedLibrary, TargetSharedLibrary};
 use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use providence_pattern::Pattern;
-use regex::bytes::Regex;
 use std::collections::HashMap;
-use std::lazy::SyncLazy;
 use std::path::Path;
 use std::sync::Arc;
 

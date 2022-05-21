@@ -1,6 +1,6 @@
 use crate::managed::{handle, Managed};
 use providence_util::virtual_table;
-use sdk::Pad;
+use sdk2::Pad;
 
 #[derive(Debug)]
 #[repr(C)]

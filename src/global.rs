@@ -10,7 +10,6 @@ use crate::hooks::Hook;
 use crate::input::Input;
 use crate::interfaces::Interfaces;
 use crate::libraries::Libraries;
-use crate::material::Material;
 use crate::model::{DrawModelState, ModelInfo, ModelRender, ModelRenderInfo};
 use crate::movement::Movement;
 use crate::networked::Networked;

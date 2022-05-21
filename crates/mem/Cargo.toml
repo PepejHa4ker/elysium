@@ -1,0 +1,11 @@
+[package]
+edition = "2021"
+name = "elysium-mem"
+version = "0.0.0"
+
+[dependencies.libc]
+default-features = false
+version = "0.2"
+
+[dev-dependencies.frosting]
+git = "https://github.com/elysian6969/frosting.git"

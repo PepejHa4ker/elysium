@@ -1,0 +1,10 @@
+[package]
+edition = "2021"
+name = "providence-state"
+version = "0.0.0"
+
+[dependencies.providence-math]
+path = "../math"
+
+[dependencies.providence-model]
+path = "../model"

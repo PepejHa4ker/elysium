@@ -4,7 +4,7 @@ use crate::managed::handle;
 use crate::model::Model;
 use core::cmp;
 use providence_math::Vec3;
-use sdk::{AnimationLayer, AnimationState};
+use sdk2::{AnimationLayer, AnimationState};
 
 const DUCKING: i32 = 1 << 1;
 const IN_WATER: i32 = 1 << 9;

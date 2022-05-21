@@ -1,6 +1,6 @@
 use super::Material;
 use crate::managed::{handle, Managed};
-use providence_material::MaterialKind;
+use elysium_sdk_material::MaterialKind;
 
 /// Materials interface.
 #[derive(Debug)]
@@ -63,7 +63,7 @@ impl Materials {
         }
     }
 
-    pub fn find(
+    /*pub fn find(
         &self,
         kind: MaterialKind,
         texture_group_name: *const u8,
@@ -89,5 +89,5 @@ impl Materials {
 
             Material::new(ptr)
         }
-    }
+    }*/
 }

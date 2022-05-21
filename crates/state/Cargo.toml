@@ -1,7 +1,37 @@
 [package]
 edition = "2021"
-name = "providence-state"
+name = "elysium-state"
 version = "0.0.0"
+
+[dependencies.elysium-dl]
+path = "../library/dl"
+
+[dependencies.elysium-gl]
+path = "../library/gl"
+
+[dependencies.elysium-mem]
+path = "../mem"
+
+[dependencies.elysium-menu]
+path = "../menu"
+
+[dependencies.elysium-sdl]
+path = "../library/sdl"
+
+[dependencies.elysium-theme]
+path = "../theme"
+
+[dependencies.frosting]
+git = "https://github.com/elysian6969/frosting.git"
+
+[dependencies.iced_elysium-gl]
+path = "../iced/gl"
+
+[dependencies.iced_native]
+git = "https://github.com/iced-rs/iced"
+
+[dependencies.sdl2-sys]
+version = "0.35"
 
 [dependencies.providence-math]
 path = "../math"
