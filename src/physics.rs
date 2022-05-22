@@ -1,6 +1,6 @@
 use crate::managed::{handle, Managed};
+use elysium_sdk::Pad;
 use providence_util::virtual_table;
-use sdk2::Pad;
 
 #[derive(Debug)]
 #[repr(C)]

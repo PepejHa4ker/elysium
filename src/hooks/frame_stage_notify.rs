@@ -9,7 +9,7 @@ pub unsafe extern "C" fn hook(this: *const (), frame: Frame) {
     let local_player = unsafe {
         let ptr = global
             .entity_list()
-            .get_unchecked(global.engine().local_player());
+            .get_unchecked(global.engine().local_player_index());
 
         Player::new(ptr)
     };

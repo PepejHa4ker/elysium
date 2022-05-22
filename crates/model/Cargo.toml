@@ -3,5 +3,5 @@ edition = "2021"
 name = "providence-model"
 version = "0.0.0"
 
-[dependencies.providence-math]
+[dependencies.elysium-math]
 path = "../math"

@@ -1,5 +1,5 @@
 use crate::managed::{handle, Managed};
-use providence_math::Vec3;
+use elysium_math::Vec3;
 
 /// The debug overlay interface.
 #[derive(Debug)]

@@ -2,7 +2,6 @@ use crate::client::Client;
 use crate::console::{Console, Var};
 use crate::consts::interface;
 use crate::consts::var;
-use crate::engine::Engine;
 use crate::entity::EntityList;
 use crate::globals::Globals;
 use crate::input::Input;
@@ -13,13 +12,13 @@ use crate::pattern;
 use crate::physics::Physics;
 use crate::trace::RayTracer;
 use core::ptr;
+use elysium_sdk::Engine;
 
-#[derive(Debug)]
 pub struct Interfaces {
     pub console: Console,
     pub client: Client,
     pub client_mode: *mut (),
-    pub engine: Engine,
+    pub engine: &'static Engine,
     pub globals: &'static Globals,
     pub input: &'static Input,
     pub panel: *mut (),
@@ -62,8 +61,9 @@ impl Interfaces {
 
         let client = Client::new(libraries.client.get_interface(interface::VCLIENT) as _).unwrap();
 
-        let engine =
-            Engine::new(libraries.engine.get_interface(interface::VENGINECLIENT) as _).unwrap();
+        let engine: &'static Engine = unsafe {
+            core::mem::transmute(libraries.engine.get_interface(interface::VENGINECLIENT))
+        };
 
         let panel = libraries.vgui2.get_interface(interface::VENGINEVGUI);
 
@@ -160,7 +160,7 @@ impl Interfaces {
 
         unsafe {
             use core::ptr::NonNull;
-            use elysium_sdk_material::MaterialKind;
+            use elysium_sdk::MaterialKind;
 
             /* *elysium_state::material::flat() = NonNull::new_unchecked(
                 materials

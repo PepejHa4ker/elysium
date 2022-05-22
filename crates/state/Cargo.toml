@@ -9,6 +9,9 @@ path = "../library/dl"
 [dependencies.elysium-gl]
 path = "../library/gl"
 
+[dependencies.elysium-math]
+path = "../math"
+
 [dependencies.elysium-mem]
 path = "../mem"
 
@@ -32,9 +35,6 @@ git = "https://github.com/iced-rs/iced"
 
 [dependencies.sdl2-sys]
 version = "0.35"
-
-[dependencies.providence-math]
-path = "../math"
 
 [dependencies.providence-model]
 path = "../model"

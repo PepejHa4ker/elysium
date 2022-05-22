@@ -2,8 +2,8 @@ use crate::managed::{handle, Managed};
 use crate::material::Material;
 use core::marker::PhantomData;
 use core::{fmt, ptr};
-use providence_math::{Matrix3x4, Vec3};
-use sdk2::Pad;
+use elysium_math::{Matrix3x4, Vec3};
+use elysium_sdk::Pad;
 use spirit::Str;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]

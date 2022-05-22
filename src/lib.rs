@@ -15,7 +15,7 @@ use crate::frame::Frame;
 use crate::global::Global;
 use crate::trace::{Ray, Summary};
 use core::ptr;
-use providence_math::Vec3;
+use elysium_math::Vec3;
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::thread;
 use std::time::Duration;
@@ -29,7 +29,6 @@ pub mod console;
 pub mod consts;
 pub mod contents;
 pub mod debug;
-pub mod engine;
 pub mod entity;
 pub mod error;
 pub mod frame;
@@ -282,20 +281,15 @@ fn main() {
     });
 
     global.on_move(move |mut movement| {
-        let view_angle = global3.engine().view_angle();
+        println!("level_name = {:?}", global3.engine().get_level_name());
+
+        let view_angle = global3.engine().get_view_angle();
         let vectors = movement.vectors;
         let punch = movement.local_player.aim_punch_angle() * Vec3::splat(2.0);
         let original_vectors = movement.vectors;
         let side = (movement.tick_count * 2 - 1) as f32;
 
-        movement.view.x = 89.0;
-        movement.view.y += if movement.tick_count % 3 == 0 {
-            180.0
-        } else {
-            -180.0
-        };
-
-        if movement.do_attack {
+        /*if movement.do_attack {
             movement.send_packet = true;
             movement.view = view_angle;
 
@@ -351,18 +345,32 @@ fn main() {
                     if view_angle == movement.view {
                         movement.view -= punch;
                     } else {
-                        movement.view = view_angle;
+                        //movement.view = view_angle;
                     }
                 }
             }
         } else {
-            if choked.load(Ordering::Relaxed) > 0 {
-                choked.store(0, Ordering::Relaxed);
-                movement.send_packet = true;
+            movement.view.x = 89.0;
+            movement.view.y += if movement.tick_count % 3 == 0 {
+                180.0
             } else {
-                choked.fetch_add(1, Ordering::Relaxed);
-                movement.send_packet = false;
-            }
+                -180.0
+            };
+
+
+        }*/
+
+        if choked.load(Ordering::Relaxed) > 0 {
+            choked.store(0, Ordering::Relaxed);
+            movement.send_packet = true;
+        } else {
+            choked.fetch_add(1, Ordering::Relaxed);
+            movement.send_packet = false;
+        }
+
+        if movement.do_attack {
+            choked.store(0, Ordering::Relaxed);
+            movement.send_packet = true;
         }
 
         if movement.do_duck {

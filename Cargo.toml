@@ -28,14 +28,11 @@ version = "0.11"
 features = ["macros"]
 version = "0.10"
 
-[dependencies.providence-math]
+[dependencies.elysium-math]
 path = "crates/math"
 
 [dependencies.providence-model]
 path = "crates/model"
-
-[dependencies.elysium-sdk-material]
-path = "crates/material"
 
 [dependencies.providence-networked]
 path = "crates/networked"
@@ -102,8 +99,8 @@ path = "crates/iced/gl"
 [dependencies.iced_native]
 git = "https://github.com/iced-rs/iced"
 
-[dependencies.sdk2]
-path = "crates/sdk2"
+[dependencies.elysium-sdk]
+path = "crates/sdk"
 
 [dependencies.sdl2-sys]
 version = "0.35"
@@ -118,10 +115,7 @@ members = [
     "crates/library/sdl",
     "crates/mem",
     "crates/menu",
-    "crates/sdk/client",
-    "crates/sdk/engine",
-    "crates/sdk/trace",
-    "crates/sdk2",
+    "crates/sdk",
     "crates/state",
     "crates/theme",
 ]

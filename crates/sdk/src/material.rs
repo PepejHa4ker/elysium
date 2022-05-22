@@ -1,9 +1,3 @@
-#![feature(const_convert)]
-#![feature(const_slice_index)]
-#![feature(const_trait_impl)]
-#![feature(const_try)]
-#![no_std]
-
 use core::ptr;
 
 macro_rules! materials {

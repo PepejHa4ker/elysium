@@ -1,6 +1,6 @@
 use super::Material;
 use crate::managed::{handle, Managed};
-use elysium_sdk_material::MaterialKind;
+use elysium_sdk::MaterialKind;
 
 /// Materials interface.
 #[derive(Debug)]

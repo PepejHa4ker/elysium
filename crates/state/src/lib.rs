@@ -8,12 +8,12 @@
 use cache::Players;
 use core::mem::ManuallyDrop;
 use core::ptr;
+use elysium_math::Vec3;
 use elysium_menu::Menu;
 use iced_elysium_gl::Viewport;
 use iced_native::{Point, Size};
 use local::Local;
 use material::Materials;
-use providence_math::Vec3;
 
 pub use shared::Shared;
 pub use shared_box::SharedBox;
@@ -44,6 +44,7 @@ struct State {
     gl_context: Shared<elysium_gl::Context>,
 
     menu: SharedBox<Menu>,
+    menu_open: Shared<bool>,
     cursor_position: Shared<Point>,
     window_size: Shared<Size<u32>>,
 
@@ -69,6 +70,7 @@ static STATE: ManuallyDrop<State> = ManuallyDrop::new(State {
     gl_context: Shared::new(elysium_gl::Context::NONE),
 
     menu: SharedBox::none(),
+    menu_open: Shared::new(false),
     cursor_position: Shared::new(Point::new(0.0, 0.0)),
     window_size: Shared::new(Size::new(0, 0)),
 
@@ -143,6 +145,20 @@ pub fn menu(context: &elysium_gl::Context, viewport: Viewport) -> &'static mut M
     }
 
     unsafe { menu_unchecked() }
+}
+
+/// Is the menu open?
+#[inline]
+pub fn is_menu_open() -> bool {
+    unsafe { *STATE.menu_open.as_mut() }
+}
+
+/// Toggle the open state of the menu.
+#[inline]
+pub fn toggle_menu() {
+    unsafe {
+        *STATE.menu_open.as_mut() ^= true;
+    }
 }
 
 /// Returns a reference to the menu structure, without initialising it if not present.

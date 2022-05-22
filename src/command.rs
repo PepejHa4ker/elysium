@@ -1,4 +1,4 @@
-use providence_math::Vec3;
+use elysium_math::Vec3;
 
 pub const IN_ATTACK: i32 = 1 << 0;
 pub const IN_JUMP: i32 = 1 << 1;

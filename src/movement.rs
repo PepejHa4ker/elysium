@@ -1,5 +1,5 @@
 use crate::entity::Player;
-use providence_math::Vec3;
+use elysium_math::Vec3;
 
 #[derive(Debug)]
 pub struct Movement {

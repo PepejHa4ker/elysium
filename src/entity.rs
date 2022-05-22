@@ -3,7 +3,7 @@ use crate::global::Global;
 use crate::managed::{handle, Managed};
 use crate::model::Model;
 use core::cmp;
-use providence_math::{Matrix3x4, Vec3};
+use elysium_math::{Matrix3x4, Vec3};
 
 pub use fog::Fog;
 pub use id::EntityId;

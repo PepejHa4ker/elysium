@@ -2,7 +2,7 @@ use super::{Plane, Surface};
 use crate::contents::Contents;
 use crate::hit_group::HitGroup;
 use crate::managed::handle;
-use providence_math::Vec3;
+use elysium_math::Vec3;
 
 /// Ray trace summary.
 #[derive(Debug)]

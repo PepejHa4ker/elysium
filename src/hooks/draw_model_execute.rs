@@ -1,7 +1,7 @@
 use crate::global::Global;
 use crate::material::Material;
 use crate::model::{DrawModelState, ModelRenderInfo};
-use providence_math::Matrix3x4;
+use elysium_math::Matrix3x4;
 
 pub type Signature = unsafe extern "C" fn(
     this: *const (),

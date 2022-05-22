@@ -3,8 +3,8 @@ use crate::global::Global;
 use crate::managed::handle;
 use crate::model::Model;
 use core::cmp;
-use providence_math::Vec3;
-use sdk2::{AnimationLayer, AnimationState};
+use elysium_math::Vec3;
+use elysium_sdk::{AnimationLayer, AnimationState};
 
 const DUCKING: i32 = 1 << 1;
 const IN_WATER: i32 = 1 << 9;

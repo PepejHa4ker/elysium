@@ -1,5 +1,5 @@
-use providence_math::{Vec3, Vec4Aligned};
-use sdk2::Pad;
+use elysium_math::{Vec3, Vec4Aligned};
+use elysium_sdk::Pad;
 
 /// Ray to be traced.
 #[derive(Debug)]
@@ -25,9 +25,9 @@ impl Ray {
 
         Self {
             start,
-            _pad0: Pad::zeroed(),
+            _pad0: Pad::uninit(),
             delta,
-            _pad1: Pad::zeroed(),
+            _pad1: Pad::uninit(),
             is_ray,
             is_swept,
         }

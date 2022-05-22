@@ -1,5 +1,5 @@
 use core::mem::MaybeUninit;
-use providence_math::{Matrix3x4, Vec3};
+use elysium_math::{Matrix3x4, Vec3};
 use std::usize;
 
 pub const MAX_BONES: usize = 256;

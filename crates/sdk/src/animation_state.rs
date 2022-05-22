@@ -16,6 +16,7 @@ pub struct AnimationState {
 }
 
 impl fmt::Debug for AnimationState {
+    #[inline]
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_struct("AnimationState")
             .field("duck_amount", &self.duck_amount)

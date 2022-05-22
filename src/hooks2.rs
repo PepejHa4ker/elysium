@@ -30,10 +30,12 @@ pub unsafe extern "C" fn swap_window(sdl_window: *mut sdl2_sys::SDL_Window) {
     let viewport = Viewport::with_physical_size(size, 1.0);
     let menu = state::menu(context, viewport.clone());
 
-    context.viewport(0, 0, size.width as i32, size.height as i32);
+    if state::is_menu_open() {
+        context.viewport(0, 0, size.width as i32, size.height as i32);
 
-    menu.update(viewport.clone(), state::cursor_position());
-    menu.draw(context, viewport);
+        menu.update(viewport.clone(), state::cursor_position());
+        menu.draw(context, viewport);
+    }
 
     // disable auto-conversion from/to sRGB
     context.enable(elysium_gl::FRAMEBUFFER_SRGB);
@@ -55,10 +57,13 @@ pub unsafe extern "C" fn poll_event(sdl_event: *mut sdl2_sys::SDL_Event) -> i32 
         let menu = state::menu_unchecked();
 
         elysium_input::map_event(*sdl_event, |event| {
-            use iced_native::mouse;
-            use iced_native::Event;
+            use iced_native::{keyboard, mouse, Event};
 
             match &event {
+                Event::Keyboard(keyboard::Event::KeyPressed {
+                    key_code: keyboard::KeyCode::Insert,
+                    ..
+                }) => state::toggle_menu(),
                 Event::Mouse(mouse::Event::CursorMoved { position }) => {
                     state::update_cursor_position(*position)
                 }
@@ -69,7 +74,10 @@ pub unsafe extern "C" fn poll_event(sdl_event: *mut sdl2_sys::SDL_Event) -> i32 
         });
     }
 
-    //(*sdl_event).type_ = 0;
+    // block input to the game when the menu is open
+    if state::is_menu_open() {
+        (*sdl_event).type_ = 0;
+    }
 
     result
 }

@@ -1,7 +1,6 @@
 use crate::client::Client;
 use crate::command::Command;
 use crate::console::{Console, Var};
-use crate::engine::Engine;
 use crate::entity::{EntityList, Player};
 use crate::frame::Frame;
 use crate::globals::Globals;
@@ -17,7 +16,8 @@ use crate::physics::Physics;
 use crate::trace::RayTracer;
 use crate::Result;
 use core::ptr;
-use providence_math::{Matrix3x4, Vec3};
+use elysium_math::{Matrix3x4, Vec3};
+use elysium_sdk::Engine;
 use providence_model::Bones;
 use std::lazy::SyncOnceCell;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};

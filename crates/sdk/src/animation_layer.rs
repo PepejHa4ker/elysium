@@ -15,6 +15,7 @@ pub struct AnimationLayer {
 }
 
 impl fmt::Debug for AnimationLayer {
+    #[inline]
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_struct("AnimationLayer")
             .field("order", &self.order)

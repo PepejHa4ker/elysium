@@ -1,7 +1,10 @@
 [package]
 edition = "2021"
-name = "elysium-sdk-client"
+name = "elysium-sdk"
 version = "0.0.0"
+
+[dependencies.elysium-math]
+path = "../math"
 
 [dependencies.frosting]
 git = "https://github.com/elysian6969/frosting"

@@ -3,7 +3,7 @@ use crate::contents::Contents;
 use crate::managed::{handle, Managed};
 use core::mem::MaybeUninit;
 use core::ptr;
-use providence_math::Vec3;
+use elysium_math::Vec3;
 
 pub use filter::Filter;
 pub use plane::Plane;

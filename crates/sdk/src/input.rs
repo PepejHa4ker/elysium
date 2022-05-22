@@ -1,10 +1,10 @@
+use crate::Pad;
 use elysium_math::Vec3;
-use elysium_sdk::Pad;
 
-pub use self::button::Button;
-pub use self::joystick::Joystick;
-pub use self::mouse::Mouse;
-pub use self::state::State;
+pub use button::Button;
+pub use joystick::Joystick;
+pub use mouse::Mouse;
+pub use state::State;
 
 mod button;
 mod joystick;

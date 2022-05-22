@@ -1,7 +1,0 @@
-[package]
-edition = "2021"
-name = "elysium-sdk-trace"
-version = "0.0.0"
-
-[dependencies.frosting]
-git = "https://github.com/elysian6969/frosting"

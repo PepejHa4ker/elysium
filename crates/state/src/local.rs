@@ -2,7 +2,7 @@
 
 use super::{Shared, SharedOption, STATE};
 use core::ptr::NonNull;
-use providence_math::Vec3;
+use elysium_math::Vec3;
 use providence_model::Bones;
 
 pub(crate) struct Local {
