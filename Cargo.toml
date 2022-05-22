@@ -123,6 +123,5 @@ members = [
     "crates/sdk/trace",
     "crates/sdk2",
     "crates/state",
-    "crates/state2",
     "crates/theme",
 ]
