@@ -237,7 +237,7 @@ fn main() {
                             use crate::entity::{EntityId, Fog};
 
                             if class.entity_id == EntityId::CFogController {
-                                println!("found fog!");
+                                //println!("found fog!");
 
                                 let fog = Fog::new_unchecked(entity.as_ptr() as *mut _);
 
@@ -278,13 +278,20 @@ fn main() {
     });
 
     global.on_move(move |mut movement| {
-        println!("level_name = {:?}", global3.engine().get_level_name());
-
-        let view_angle = global3.engine().get_view_angle();
+        let engine = unsafe { &*elysium_state::engine().cast::<elysium_sdk::Engine>() };
+        let network_channel = unsafe { &*engine.get_network_channel() }; //unsafe { &*elysium_state::network_channel().cast::<elysium_sdk::NetworkChannel>() };
+        let latency = network_channel.get_latency(0);
+        let choked_packets = network_channel.choked_packets;
+        let level_name = engine.get_level_name();
+        let view_angle = engine.get_view_angle();
         let vectors = movement.vectors;
         let punch = movement.local_player.aim_punch_angle() * Vec3::splat(2.0);
         let original_vectors = movement.vectors;
         let side = (movement.tick_count * 2 - 1) as f32;
+
+        println!("level_name = {level_name:?}");
+        println!("latency = {latency:?}");
+        println!("choked_packets = {choked_packets:?}");
 
         /*if movement.do_attack {
             movement.send_packet = true;
@@ -357,7 +364,7 @@ fn main() {
 
         }*/
 
-        if choked.load(Ordering::Relaxed) > 0 {
+        /*if choked.load(Ordering::Relaxed) > 0 {
             choked.store(0, Ordering::Relaxed);
             movement.send_packet = true;
         } else {
@@ -378,7 +385,7 @@ fn main() {
 
         if !movement.send_packet {
             movement.view.y += 270.0;
-        }
+        }*/
 
         if movement.send_packet {
             unsafe {
@@ -397,10 +404,10 @@ fn main() {
             }
         }
 
-        movement.view.normalize_in_place();
-        movement.view.clamp_in_place();
+        //movement.view.normalize_in_place();
+        //movement.view.clamp_in_place();
 
-        let mut yaw1 = view_angle.y;
+        /*let mut yaw1 = view_angle.y;
         let mut yaw2 = movement.view.y;
 
         if yaw1 < 0.0 {
@@ -422,7 +429,7 @@ fn main() {
         let (sin90, cos90) = (delta + 90.0).to_radians().sin_cos();
 
         movement.vectors.x = cos * original_vectors.x + cos90 * original_vectors.y;
-        movement.vectors.y = sin * original_vectors.x + sin90 * original_vectors.y;
+        movement.vectors.y = sin * original_vectors.x + sin90 * original_vectors.y;*/
         movement
     });
 }

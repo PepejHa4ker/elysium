@@ -17,7 +17,6 @@ use crate::trace::RayTracer;
 use crate::Result;
 use core::ptr;
 use elysium_math::{Matrix3x4, Vec3};
-use elysium_sdk::Engine;
 use providence_model::Bones;
 use std::lazy::SyncOnceCell;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
@@ -34,24 +33,6 @@ use std::collections::HashMap;
 pub struct CachedPlayer {
     bones: Bones,
 }
-
-/*impl CachedPlayer {
-    pub fn get_bone(&self, index: usize) -> Option<Matrix3x4> {
-        self.bones.get_bone(index)
-    }
-
-    pub fn get_origin(&self, index: usize) -> Option<Vec3> {
-        self.bones.get_origin(index)
-    }
-
-    pub fn get_head_bone(&self) -> Matrix3x4 {
-        self.bones.get_head_bone()
-    }
-
-    pub fn get_head_origin(&self) -> Vec3 {
-        self.bones.get_head_origin()
-    }
-}*/
 
 pub(crate) struct GlobalRef {
     // The games libraries.
@@ -231,10 +212,6 @@ impl Global {
 
     pub fn input(&self) -> &Input {
         self.0.interfaces.input
-    }
-
-    pub fn engine(&self) -> &Engine {
-        &self.0.interfaces.engine
     }
 
     pub fn entity_list(&self) -> &EntityList {

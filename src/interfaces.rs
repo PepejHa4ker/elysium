@@ -12,13 +12,11 @@ use crate::pattern;
 use crate::physics::Physics;
 use crate::trace::RayTracer;
 use core::ptr;
-use elysium_sdk::Engine;
 
 pub struct Interfaces {
     pub console: Console,
     pub client: Client,
     pub client_mode: *mut (),
-    pub engine: &'static Engine,
     pub globals: &'static Globals,
     pub input: &'static Input,
     pub panel: *mut (),
@@ -61,9 +59,16 @@ impl Interfaces {
 
         let client = Client::new(libraries.client.get_interface(interface::VCLIENT) as _).unwrap();
 
-        let engine: &'static Engine = unsafe {
-            core::mem::transmute(libraries.engine.get_interface(interface::VENGINECLIENT))
-        };
+        unsafe {
+            let engine = libraries.engine.get_interface(interface::VENGINECLIENT);
+
+            elysium_state::set_engine(engine.cast());
+
+            let engine = &*engine.cast::<elysium_sdk::Engine>();
+            /*let network_channel = engine.get_network_channel();
+
+            elysium_state::set_network_channel(network_channel.cast());*/
+        }
 
         let panel = libraries.vgui2.get_interface(interface::VENGINEVGUI);
 
@@ -158,30 +163,10 @@ impl Interfaces {
         let ragdoll_gravity = console.var(var::RAGDOLL_GRAVITY).unwrap();
         let show_impacts = console.var(var::SHOW_IMPACTS).unwrap();
 
-        unsafe {
-            use core::ptr::NonNull;
-            use elysium_sdk::MaterialKind;
-
-            /* *elysium_state::material::flat() = NonNull::new_unchecked(
-                materials
-                    .find(MaterialKind::Flat, ptr::null(), true, ptr::null())
-                    .expect("Flat material")
-                    .as_ptr() as *mut _,
-            );
-
-            *elysium_state::material::plastic() = NonNull::new_unchecked(
-                materials
-                    .find(MaterialKind::Plastic, ptr::null(), true, ptr::null())
-                    .expect("Plastic material")
-                    .as_ptr() as *mut _,
-            );*/
-        }
-
         Self {
             console,
             client,
             client_mode,
-            engine,
             globals,
             input,
             panel,

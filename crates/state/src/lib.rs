@@ -4,10 +4,12 @@
 #![feature(const_option_ext)]
 #![feature(const_ptr_write)]
 #![feature(const_mut_refs)]
+#![feature(ptr_const_cast)]
 
 use cache::Players;
 use core::mem::ManuallyDrop;
 use core::ptr;
+use core::ptr::NonNull;
 use elysium_math::Vec3;
 use elysium_menu::Menu;
 use iced_elysium_gl::Viewport;
@@ -61,6 +63,12 @@ struct State {
     send_packet: Shared<*mut bool>,
     tick_count: Shared<i32>,
     view_angle: Shared<Vec3>,
+
+    /// type-erased reference to the game engine
+    engine: SharedOption<NonNull<u8>>,
+
+    /// type-erased reference to the network chane;
+    network_channel: SharedOption<NonNull<u8>>,
 }
 
 static STATE: ManuallyDrop<State> = ManuallyDrop::new(State {
@@ -87,6 +95,9 @@ static STATE: ManuallyDrop<State> = ManuallyDrop::new(State {
     send_packet: Shared::new(ptr::null_mut()),
     tick_count: Shared::new(0),
     view_angle: Shared::new(Vec3::splat(0.0)),
+
+    engine: SharedOption::none(),
+    network_channel: SharedOption::none(),
 });
 
 /// Returns a reference to the `libGL` loader.
@@ -277,4 +288,26 @@ pub unsafe fn tick_count() -> &'static mut i32 {
 #[inline]
 pub unsafe fn view_angle() -> &'static mut Vec3 {
     STATE.view_angle.as_mut()
+}
+
+#[inline]
+pub unsafe fn engine() -> *const u8 {
+    STATE.engine.as_mut().as_ptr()
+}
+
+#[inline]
+pub unsafe fn set_engine(engine: *const u8) {
+    STATE.engine.write(NonNull::new_unchecked(engine.as_mut()));
+}
+
+#[inline]
+pub unsafe fn network_channel() -> *const u8 {
+    STATE.network_channel.as_mut().as_ptr()
+}
+
+#[inline]
+pub unsafe fn set_network_channel(network_channel: *const u8) {
+    STATE
+        .engine
+        .write(NonNull::new_unchecked(network_channel.as_mut()));
 }

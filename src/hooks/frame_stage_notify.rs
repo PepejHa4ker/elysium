@@ -6,13 +6,11 @@ pub type Signature = unsafe extern "C" fn(this: *const (), frame: Frame);
 
 pub unsafe extern "C" fn hook(this: *const (), frame: Frame) {
     let global = Global::handle();
-    let local_player = unsafe {
-        let ptr = global
-            .entity_list()
-            .get_unchecked(global.engine().local_player_index());
+    let engine = &*elysium_state::engine().cast::<elysium_sdk::Engine>();
+    let entity_list = global.entity_list();
 
-        Player::new(ptr)
-    };
+    let local_player = entity_list.get_unchecked(engine.local_player_index());
+    let local_player = Player::new(local_player);
 
     *global.local_player_ptr() = Box::new(local_player);
 
