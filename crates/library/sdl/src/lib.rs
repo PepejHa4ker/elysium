@@ -14,7 +14,7 @@ impl<'a> Sdl<'a> {
     /// Load SDL, specifically `libSDL2-2.0.so.0`.
     #[inline]
     pub fn open() -> Option<Self> {
-        let library = Library::open("libSDL2-2.0.so.0")?;
+        let library = Library::open("libSDL2-2.0.so.0\0")?;
 
         Some(Self { library })
     }
@@ -29,7 +29,7 @@ impl<'a> Sdl<'a> {
     pub unsafe fn swap_window(&self) -> Option<*const ()> {
         frosting::println!("resolving absolute address of `SDL_GL_SwapWindow` from JMP /4");
 
-        let symbol = self.library.symbol("SDL_GL_SwapWindow")?;
+        let symbol = self.library.symbol("SDL_GL_SwapWindow\0")?;
         let base = symbol.as_ptr();
         let relative = base.byte_add(2).cast::<i32>().read() as isize;
         let address = elysium_mem::to_absolute(base, relative, 6);
@@ -47,7 +47,7 @@ impl<'a> Sdl<'a> {
     pub unsafe fn poll_event(&self) -> Option<*const ()> {
         frosting::println!("resolving absolute address of `SDL_PollEvent` from JMP /4");
 
-        let symbol = self.library.symbol("SDL_PollEvent")?;
+        let symbol = self.library.symbol("SDL_PollEvent\0")?;
         let base = symbol.as_ptr();
         let relative = base.byte_add(2).cast::<i32>().read() as isize;
         let address = elysium_mem::to_absolute(base, relative, 6);

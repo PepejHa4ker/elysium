@@ -57,7 +57,7 @@ impl<'a> Gl<'a> {
     /// Load GL, specifically `libGL.so.1`.
     #[inline]
     pub fn open() -> Option<Self> {
-        let library = Library::open_global("libGL.so.1")?;
+        let library = Library::open_global("libGL.so.1\0")?;
 
         Some(Self { library })
     }
