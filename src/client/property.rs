@@ -1,7 +1,7 @@
 use super::Table;
-use crate::pad::Pad;
 use core::fmt;
 use core::ptr::NonNull;
+use elysium_sdk::Pad;
 
 // TODO: I hate this entire file.
 

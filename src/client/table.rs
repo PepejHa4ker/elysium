@@ -1,7 +1,7 @@
 use super::Property;
 use crate::islice::ISlice;
-use crate::pad::Pad;
 use core::fmt;
+use elysium_sdk::Pad;
 
 #[non_exhaustive]
 #[repr(C)]

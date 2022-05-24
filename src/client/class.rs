@@ -1,7 +1,7 @@
 use super::Table;
 use crate::entity::EntityId;
-use crate::pad::Pad;
 use core::fmt;
+use elysium_sdk::Pad;
 
 #[non_exhaustive]
 #[repr(C)]

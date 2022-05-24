@@ -1,7 +1,8 @@
+#![feature(pointer_byte_offsets)]
+
 //! Convenience wrapper around `elysium_dl::Library` for SDL methods.
 
 use elysium_dl::Library;
-use elysium_mem::address::Jmp4;
 use std::fmt;
 
 /// The SDL library.
@@ -26,17 +27,12 @@ impl<'a> Sdl<'a> {
     /// ```
     #[inline]
     pub unsafe fn swap_window(&self) -> Option<*const ()> {
-        let symbol = self.library.symbol("SDL_GL_SwapWindow")?;
-        let base_address = symbol.as_ptr();
-        let jmp = symbol.as_ptr().cast::<Jmp4>().read();
-
         frosting::println!("resolving absolute address of `SDL_GL_SwapWindow` from JMP /4");
-        frosting::println!("rip: {:0x?}", base_address.add(6));
-        frosting::println!("opcode: {:0x?}", jmp.opcode());
-        frosting::println!("modrm: {:0x?}", jmp.modrm());
-        frosting::println!("address: {:0x?}", jmp.address());
 
-        let address = jmp.to_absolute(base_address);
+        let symbol = self.library.symbol("SDL_GL_SwapWindow")?;
+        let base = symbol.as_ptr();
+        let relative = base.byte_add(2).cast::<i32>().read() as isize;
+        let address = elysium_mem::to_absolute(base, relative, 6);
 
         Some(address)
     }
@@ -49,17 +45,12 @@ impl<'a> Sdl<'a> {
     /// ```
     #[inline]
     pub unsafe fn poll_event(&self) -> Option<*const ()> {
-        let symbol = self.library.symbol("SDL_PollEvent")?;
-        let base_address = symbol.as_ptr();
-        let jmp = symbol.as_ptr().cast::<Jmp4>().read();
-
         frosting::println!("resolving absolute address of `SDL_PollEvent` from JMP /4");
-        frosting::println!("rip: {:0x?}", base_address.add(6));
-        frosting::println!("opcode: {:0x?}", jmp.opcode());
-        frosting::println!("modrm: {:0x?}", jmp.modrm());
-        frosting::println!("address: {:0x?}", jmp.address());
 
-        let address = jmp.to_absolute(base_address);
+        let symbol = self.library.symbol("SDL_PollEvent")?;
+        let base = symbol.as_ptr();
+        let relative = base.byte_add(2).cast::<i32>().read() as isize;
+        let address = elysium_mem::to_absolute(base, relative, 6);
 
         Some(address)
     }
