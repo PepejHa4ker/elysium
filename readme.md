@@ -1,6 +1,8 @@
 <h1 align="center"><code>elysium</code></h1>
 
-### thanks
+still very experimental!
+
+### thanks/read more stuff on this stuff
 
  - [0thespy/seaside](https://github.com/0TheSpy/Seaside)
  - [acuifex/acuion](https://github.com/acuifex/acuion)
