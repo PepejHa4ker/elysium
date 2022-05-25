@@ -212,6 +212,12 @@ impl Entity {
 
         unsafe { self.virtual_entry::<Fn>(210)(self.as_ptr()) }
     }
+
+    pub fn set_model_index(&self, index: i32) {
+        type Fn = unsafe extern "C" fn(this: *const handle::Entity, index: i32) -> *mut Vec3;
+
+        unsafe { self.virtual_entry::<Fn>(111)(self.as_ptr(), index) }
+    }
 }
 
 impl cmp::PartialEq<Entity> for Entity {

@@ -60,4 +60,5 @@ mod weapon;
 
 pub mod id;
 pub mod input;
+pub mod player_model;
 pub mod trace;
