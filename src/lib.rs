@@ -7,7 +7,6 @@
 #![feature(maybe_uninit_uninit_array)]
 #![feature(ptr_metadata)]
 
-use crate::contents::Contents;
 use crate::entity::Entity;
 use crate::entity::Player;
 use crate::entity::Weapon;
@@ -26,7 +25,6 @@ pub mod client;
 pub mod command;
 pub mod console;
 pub mod consts;
-pub mod contents;
 pub mod entity;
 pub mod frame;
 pub mod global;
