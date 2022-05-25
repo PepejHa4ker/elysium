@@ -2,6 +2,8 @@
 
 still very experimental!
 
+press insert to toggle the menu that does little to nothing (for now)
+
 ### thanks/read more stuff on this stuff
 
  - [0thespy/seaside](https://github.com/0TheSpy/Seaside)
