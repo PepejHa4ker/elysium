@@ -6,7 +6,6 @@ use crate::frame::Frame;
 use crate::globals::Globals;
 use crate::hooks;
 use crate::hooks::Hook;
-use crate::input::Input;
 use crate::interfaces::Interfaces;
 use crate::libraries::Libraries;
 use crate::model::{DrawModelState, ModelInfo, ModelRender, ModelRenderInfo};
@@ -207,10 +206,6 @@ impl Global {
 
     pub fn physics(&self) -> &Physics {
         &self.0.interfaces.physics
-    }
-
-    pub fn input(&self) -> &Input {
-        self.0.interfaces.input
     }
 
     pub fn entity_list(&self) -> &EntityList {

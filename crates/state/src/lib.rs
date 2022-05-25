@@ -67,6 +67,9 @@ struct State {
     /// type-erased reference to the game engine interface
     engine: SharedOption<NonNull<u8>>,
 
+    /// type-erased reference to the input interface
+    input: SharedOption<NonNull<u8>>,
+
     /// type-erased reference to the network channel
     network_channel: SharedOption<NonNull<u8>>,
 
@@ -100,6 +103,7 @@ static STATE: ManuallyDrop<State> = ManuallyDrop::new(State {
     view_angle: Shared::new(Vec3::splat(0.0)),
 
     engine: SharedOption::none(),
+    input: SharedOption::none(),
     network_channel: SharedOption::none(),
     trace: SharedOption::none(),
 });
@@ -302,6 +306,16 @@ pub unsafe fn engine() -> *const u8 {
 #[inline]
 pub unsafe fn set_engine(engine: *const u8) {
     STATE.engine.write(NonNull::new_unchecked(engine.as_mut()));
+}
+
+#[inline]
+pub unsafe fn input() -> *const u8 {
+    STATE.input.as_mut().as_ptr()
+}
+
+#[inline]
+pub unsafe fn set_input(input: *const u8) {
+    STATE.input.write(NonNull::new_unchecked(input.as_mut()));
 }
 
 #[inline]

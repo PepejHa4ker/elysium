@@ -33,7 +33,6 @@ pub mod global;
 pub mod globals;
 pub mod hit_group;
 pub mod hooks;
-pub mod input;
 pub mod interfaces;
 pub mod islice;
 pub mod item_kind;
@@ -172,6 +171,8 @@ fn main() {
     let choked = AtomicI32::new(0);
 
     global.on_frame(move |frame| {
+        let input = unsafe { &*elysium_state::input().cast::<elysium_sdk::Input>() };
+
         if let Some(local_player) = global2.local_player() {
             match frame {
                 Frame::RENDER_START => {
@@ -188,7 +189,7 @@ fn main() {
                     local_player.set_view_punch_angle(Vec3::zero());
 
                     // "Fix" the local players view angle and backup the current value.
-                    if global2.input().thirdperson {
+                    if input.thirdperson {
                         unsafe {
                             let original_view_angle = local_player.view_angle();
 
@@ -255,7 +256,7 @@ fn main() {
                     local_player.set_view_punch_angle(global2.view_punch_angle());
 
                     // Restore the local players view_angle.
-                    if global2.input().thirdperson {
+                    if input.thirdperson {
                         unsafe {
                             local_player.set_view_angle(*elysium_state::local::view_angle());
                         }

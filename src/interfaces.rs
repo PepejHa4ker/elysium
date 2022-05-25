@@ -4,7 +4,6 @@ use crate::consts::interface;
 use crate::consts::var;
 use crate::entity::EntityList;
 use crate::globals::Globals;
-use crate::input::Input;
 use crate::libraries::Libraries;
 use crate::material::Materials;
 use crate::model::{ModelInfo, ModelRender};
@@ -17,7 +16,6 @@ pub struct Interfaces {
     pub client: Client,
     pub client_mode: *mut (),
     pub globals: &'static Globals,
-    pub input: &'static Input,
     pub panel: *mut (),
     pub entity_list: EntityList,
     pub engine_vgui: *mut (),
@@ -110,7 +108,12 @@ impl Interfaces {
 
         let client_mode = client.client_mode_ptr() as *mut ();
         let globals = unsafe { &*(client.globals_ptr() as *const Globals) };
-        let input = unsafe { &*(client.input_ptr() as *const Input) };
+
+        unsafe {
+            let input = client.input_ptr();
+
+            elysium_state::set_input(input.cast());
+        }
 
         println!(
             "Searching for pattern {:?} (animation_layers) in `client_client.so'",
@@ -159,7 +162,6 @@ impl Interfaces {
             client,
             client_mode,
             globals,
-            input,
             panel,
             entity_list,
             engine_vgui,
