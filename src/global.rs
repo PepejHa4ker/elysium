@@ -2,7 +2,6 @@ use crate::client::Client;
 use crate::command::Command;
 use crate::console::{Console, Var};
 use crate::entity::{EntityList, Player};
-use crate::frame::Frame;
 use crate::globals::Globals;
 use crate::hooks;
 use crate::hooks::Hook;
@@ -15,6 +14,7 @@ use crate::physics::Physics;
 use crate::Result;
 use core::ptr;
 use elysium_math::{Matrix3x4, Vec3};
+use elysium_sdk::Frame;
 use providence_model::Bones;
 use std::lazy::SyncOnceCell;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
@@ -316,7 +316,7 @@ impl Global {
             as *mut hooks::frame_stage_notify::Signature
     }
 
-    pub(crate) fn frame_stage_notify_original(&self, this: *const (), frame: Frame) {
+    pub(crate) fn frame_stage_notify_original(&self, this: *const (), frame: i32) {
         let original = unsafe { *self.frame_stage_notify_original_ptr() };
 
         unsafe { original(this, frame) }

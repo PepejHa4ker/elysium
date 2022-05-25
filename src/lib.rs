@@ -10,13 +10,17 @@
 use crate::entity::Entity;
 use crate::entity::Player;
 use crate::entity::Weapon;
-use crate::frame::Frame;
 use crate::global::Global;
 use core::ptr;
+use elysium_dl::Library;
 use elysium_math::Vec3;
+use elysium_sdk::Frame;
+use std::path::Path;
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::thread;
 use std::time::Duration;
+
+pub use elysium_state as state;
 
 pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -26,10 +30,10 @@ pub mod command;
 pub mod console;
 pub mod consts;
 pub mod entity;
-pub mod frame;
 pub mod global;
 pub mod globals;
 pub mod hooks;
+pub mod hooks2;
 pub mod interfaces;
 pub mod islice;
 pub mod item_kind;
@@ -44,13 +48,7 @@ pub mod networked;
 pub mod pattern;
 pub mod physics;
 
-use elysium_dl::Library;
-use std::path::Path;
-
-pub use elysium_state as state;
-
-pub mod hooks2;
-
+// this is called by glibc after the library is loaded into a process
 #[link_section = ".init_array"]
 #[used]
 static BOOTSTRAP: unsafe extern "C" fn() = bootstrap;
@@ -172,7 +170,7 @@ fn main() {
 
         if let Some(local_player) = global2.local_player() {
             match frame {
-                Frame::RENDER_START => {
+                Frame::RenderStart => {
                     //global2.draw_model_stats_overlay().set(0);
                     global2.lost_focus_sleep().set(1);
                     global2.physics_timescale().set(0.5);
@@ -247,7 +245,7 @@ fn main() {
                         }
                     }
                 }
-                Frame::RENDER_END => {
+                Frame::RenderEnd => {
                     // Restore aim and view punch to not break things.
                     local_player.set_aim_punch_angle(global2.aim_punch_angle());
                     local_player.set_view_punch_angle(global2.view_punch_angle());

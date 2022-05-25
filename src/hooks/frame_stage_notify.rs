@@ -1,10 +1,10 @@
 use crate::entity::Player;
-use crate::frame::Frame;
 use crate::global::Global;
+use core::mem;
 
-pub type Signature = unsafe extern "C" fn(this: *const (), frame: Frame);
+pub type Signature = unsafe extern "C" fn(this: *const (), frame: i32);
 
-pub unsafe extern "C" fn hook(this: *const (), frame: Frame) {
+pub unsafe extern "C" fn hook(this: *const (), frame: i32) {
     let global = Global::handle();
     let engine = &*elysium_state::engine().cast::<elysium_sdk::Engine>();
     let entity_list = global.entity_list();
@@ -16,7 +16,14 @@ pub unsafe extern "C" fn hook(this: *const (), frame: Frame) {
 
     let on_frame = &*global.on_frame_ptr();
 
-    on_frame(frame);
+    // TODO: investigate if invalid variants really occur!
+    if matches!(frame, 0..=6) {
+        let frame = mem::transmute(frame);
+
+        on_frame(frame);
+    } else {
+        frosting::println!("refused to call on_frame as frame is not a valid variant");
+    }
 
     global.frame_stage_notify_original(this, frame);
 }
