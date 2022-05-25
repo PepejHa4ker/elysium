@@ -18,6 +18,7 @@ const VTABLE_VALIDATION: () = {
     }
 };
 
+/// Network Channel.
 #[repr(C)]
 pub struct NetworkChannel {
     vtable: &'static VTable,

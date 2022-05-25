@@ -4,7 +4,6 @@ use super::TraceKind;
 struct VTable<F>
 where
     F: super::Filter,
-    F: 'static,
 {
     should_hit_entity:
         unsafe extern "C" fn(this: *const Filter<F>, entity: *const (), mask: i32) -> bool,
@@ -15,9 +14,9 @@ where
 pub struct Filter<F>
 where
     F: super::Filter,
-    F: 'static,
 {
-    vtable: &'static VTable<F>,
+    // FIXME: `&'static` causes `F` to require `'static`.
+    vtable: *const VTable<F>,
     filter: F,
 }
 
@@ -33,6 +32,10 @@ where
             },
             filter,
         }
+    }
+
+    pub const fn as_ptr(&self) -> *const () {
+        self as *const Self as *const ()
     }
 }
 

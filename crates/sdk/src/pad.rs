@@ -1,6 +1,7 @@
 use core::fmt;
 use core::mem::MaybeUninit;
 
+/// Byte-padding for unknown data.
 #[repr(C)]
 pub struct Pad<const N: usize>([MaybeUninit<u8>; N]);
 

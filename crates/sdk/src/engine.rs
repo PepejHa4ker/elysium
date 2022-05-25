@@ -5,6 +5,7 @@ use frosting::str;
 use std::ffi::OsStr;
 use std::mem::MaybeUninit;
 
+/// Player information.
 #[repr(C)]
 pub struct PlayerInfo {
     pub version: u64,
@@ -127,6 +128,7 @@ const VTABLE_VALIDATION: () = {
     }
 };
 
+/// Engine interface.
 #[repr(C)]
 pub struct Engine {
     vtable: &'static VTable,

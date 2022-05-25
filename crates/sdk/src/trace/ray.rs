@@ -1,5 +1,5 @@
+use crate::Pad;
 use elysium_math::{Vec3, Vec4Aligned};
-use elysium_sdk::Pad;
 
 /// Ray to be traced.
 #[derive(Debug)]

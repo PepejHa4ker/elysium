@@ -8,6 +8,7 @@ mod engine;
 mod panel;
 mod panorama_engine;
 
+/// Panorama Event Registration.
 #[repr(C)]
 pub struct PanoramaEventRegistration {
     pub args_len: i32,

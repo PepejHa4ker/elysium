@@ -18,6 +18,7 @@ struct VTable {
     set_attribute_f32: unsafe extern "C" fn(this: *const UIPanel, name: *const u8, value: f32),
 }
 
+/// A panorama UI panel.
 #[repr(C)]
 pub struct UIPanel {
     vtable: &'static VTable,

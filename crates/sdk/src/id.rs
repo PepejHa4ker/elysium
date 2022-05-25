@@ -1,3 +1,5 @@
+//! Steam ID.
+
 pub use instance::Instance;
 pub use kind::Kind;
 pub use universe::Universe;

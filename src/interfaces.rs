@@ -10,7 +10,6 @@ use crate::material::Materials;
 use crate::model::{ModelInfo, ModelRender};
 use crate::pattern;
 use crate::physics::Physics;
-use crate::trace::RayTracer;
 use core::ptr;
 
 pub struct Interfaces {
@@ -27,7 +26,6 @@ pub struct Interfaces {
     pub physics: Physics,
     pub materials: Materials,
     pub sound: *mut (),
-    pub tracer: RayTracer,
     pub movement: *mut (),
     pub prediction: *mut (),
     pub events: *mut (),
@@ -61,13 +59,10 @@ impl Interfaces {
 
         unsafe {
             let engine = libraries.engine.get_interface(interface::VENGINECLIENT);
+            let trace = libraries.engine.get_interface(interface::ENGINETRACECLIENT);
 
             elysium_state::set_engine(engine.cast());
-
-            let engine = &*engine.cast::<elysium_sdk::Engine>();
-            /*let network_channel = engine.get_network_channel();
-
-            elysium_state::set_network_channel(network_channel.cast());*/
+            elysium_state::set_trace(trace.cast());
         }
 
         let panel = libraries.vgui2.get_interface(interface::VENGINEVGUI);
@@ -91,10 +86,6 @@ impl Interfaces {
                 .get_interface(interface::VPHYSICSSURFACEPROPS) as _,
         )
         .unwrap();
-
-        let tracer =
-            RayTracer::new(libraries.engine.get_interface(interface::ENGINETRACECLIENT) as _)
-                .unwrap();
 
         let movement = libraries.engine.get_interface(interface::GAMEMOVEMENT);
 
@@ -177,7 +168,6 @@ impl Interfaces {
             physics,
             materials,
             sound,
-            tracer,
             movement,
             prediction,
             events,

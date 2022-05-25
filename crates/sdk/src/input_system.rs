@@ -8,6 +8,7 @@ struct VTable {
     reset_input_state: unsafe extern "C" fn(this: *const InputSystem),
 }
 
+/// Input System interface.
 #[repr(C)]
 pub struct InputSystem {
     vtable: &'static VTable,

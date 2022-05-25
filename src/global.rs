@@ -13,7 +13,6 @@ use crate::model::{DrawModelState, ModelInfo, ModelRender, ModelRenderInfo};
 use crate::movement::Movement;
 use crate::networked::Networked;
 use crate::physics::Physics;
-use crate::trace::RayTracer;
 use crate::Result;
 use core::ptr;
 use elysium_math::{Matrix3x4, Vec3};
@@ -216,10 +215,6 @@ impl Global {
 
     pub fn entity_list(&self) -> &EntityList {
         &self.0.interfaces.entity_list
-    }
-
-    pub fn ray_tracer(&self) -> &RayTracer {
-        &self.0.interfaces.tracer
     }
 
     pub fn client(&self) -> &Client {

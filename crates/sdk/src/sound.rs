@@ -1,12 +1,14 @@
 use super::Pad;
 use elysium_math::Vec3;
 
+/// Active audio channels.
 #[repr(C)]
 pub struct ActiveChannels {
     pub count: i32,
     pub list: [u16; 128],
 }
 
+/// A audio channel.
 #[repr(C)]
 pub struct Channel {
     _pad0: Pad<260>,

@@ -6,6 +6,7 @@ struct VTable {
     dispatch_event: unsafe extern "C" fn(this: *const UIEngine, event: *const ()),
 }
 
+/// Panorama UI Engine.
 #[repr(C)]
 pub struct UIEngine {
     vtable: &'static VTable,

@@ -1,3 +1,4 @@
+/// Steam API context (SteamWorks API/`libsteam_api.so`)
 #[repr(C)]
 pub struct SteamAPIContext {
     pub steam_client: *const (),

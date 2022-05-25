@@ -1,6 +1,7 @@
 use crate::Pad;
 use core::fmt;
 
+/// An animation layer.
 #[repr(C)]
 pub struct AnimationLayer {
     _pad0: Pad<24>,

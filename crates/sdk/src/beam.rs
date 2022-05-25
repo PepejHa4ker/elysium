@@ -2,6 +2,7 @@ use super::Pad;
 use elysium_math::Vec3;
 use frosting::ffi::vtable;
 
+/// Information for creating a beam.
 #[repr(C)]
 pub struct BeamInfo {
     pub kind: i32,
@@ -36,6 +37,7 @@ pub struct BeamInfo {
     pub ring_end_radius: f32,
 }
 
+/// A beam.
 #[repr(C)]
 pub struct Beam {
     _pad0: Pad<76>,
@@ -53,6 +55,7 @@ struct VTable {
     ) -> *const Beam,
 }
 
+/// ViewRenderBeams interface.
 #[repr(C)]
 pub struct ViewRenderBeams {
     vtable: &'static VTable,

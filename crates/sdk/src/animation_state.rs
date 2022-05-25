@@ -1,6 +1,7 @@
 use crate::pad::Pad;
 use core::fmt;
 
+/// Animation state.
 #[repr(C)]
 pub struct AnimationState {
     _pad0: Pad<164>,

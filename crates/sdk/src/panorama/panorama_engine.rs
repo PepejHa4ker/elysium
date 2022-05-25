@@ -7,6 +7,7 @@ struct VTable {
     access_ui_engine: unsafe extern "C" fn(this: *const PanoramaUIEngine) -> *const UIEngine,
 }
 
+/// Panorama UI Engine.
 #[repr(C)]
 pub struct PanoramaUIEngine {
     vtable: &'static VTable,

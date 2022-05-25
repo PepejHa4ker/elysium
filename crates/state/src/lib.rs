@@ -64,11 +64,14 @@ struct State {
     tick_count: Shared<i32>,
     view_angle: Shared<Vec3>,
 
-    /// type-erased reference to the game engine
+    /// type-erased reference to the game engine interface
     engine: SharedOption<NonNull<u8>>,
 
-    /// type-erased reference to the network chane;
+    /// type-erased reference to the network channel
     network_channel: SharedOption<NonNull<u8>>,
+
+    /// type-erased reference to the trace interface
+    trace: SharedOption<NonNull<u8>>,
 }
 
 static STATE: ManuallyDrop<State> = ManuallyDrop::new(State {
@@ -98,6 +101,7 @@ static STATE: ManuallyDrop<State> = ManuallyDrop::new(State {
 
     engine: SharedOption::none(),
     network_channel: SharedOption::none(),
+    trace: SharedOption::none(),
 });
 
 /// Returns a reference to the `libGL` loader.
@@ -310,4 +314,14 @@ pub unsafe fn set_network_channel(network_channel: *const u8) {
     STATE
         .engine
         .write(NonNull::new_unchecked(network_channel.as_mut()));
+}
+
+#[inline]
+pub unsafe fn trace() -> *const u8 {
+    STATE.trace.as_mut().as_ptr()
+}
+
+#[inline]
+pub unsafe fn set_trace(trace: *const u8) {
+    STATE.trace.write(NonNull::new_unchecked(trace.as_mut()));
 }

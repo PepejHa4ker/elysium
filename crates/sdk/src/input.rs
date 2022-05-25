@@ -1,3 +1,5 @@
+//! Input interace.
+
 use crate::Pad;
 use elysium_math::Vec3;
 
