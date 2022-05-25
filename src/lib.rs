@@ -31,7 +31,6 @@ pub mod entity;
 pub mod frame;
 pub mod global;
 pub mod globals;
-pub mod hit_group;
 pub mod hooks;
 pub mod interfaces;
 pub mod islice;
