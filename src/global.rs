@@ -32,12 +32,12 @@ pub struct CachedPlayer {
     bones: Bones,
 }
 
-pub(crate) struct GlobalRef {
+pub struct GlobalRef {
     // The games libraries.
     libraries: Libraries,
 
     // Source interfaces.
-    interfaces: Interfaces,
+    pub interfaces: Interfaces,
 
     // Callbacks exposed to the user of this library.
     on_frame: OnFrame,
@@ -70,7 +70,7 @@ pub(crate) struct GlobalRef {
 }
 
 #[derive(Clone)]
-pub struct Global(pub(crate) Arc<GlobalRef>);
+pub struct Global(pub Arc<GlobalRef>);
 
 unsafe impl Send for GlobalRef {}
 unsafe impl Sync for GlobalRef {}

@@ -1,3 +1,4 @@
+/// argument passed to `FrameStageNotify`
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(i32)]
 pub enum Frame {

@@ -21,6 +21,7 @@ pub enum Series {
     SabreFootsoldier,
     TACPCavalry,
     TheProfessionals,
+    USAFTACP,
 }
 
 impl Series {

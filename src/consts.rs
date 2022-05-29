@@ -71,6 +71,29 @@ pub mod var {
     pub const POST_PROCESS: Var = var!("mat_postprocess_enable");
     pub const RAGDOLL_GRAVITY: Var = var!("cl_ragdoll_gravity");
     pub const SHOW_IMPACTS: Var = var!("sv_showimpacts");
+
+    pub const SHADOWS: Var = var!("r_shadows");
+    pub const CSM: Var = var!("cl_csm_enabled");
+    pub const PROP_SHADOWS: Var = var!("cl_csm_static_prop_shadows");
+    pub const CSM_SHADOWS: Var = var!("cl_csm_shadows");
+    pub const WORLD_SHADOWS: Var = var!("cl_csm_world_shadows");
+    pub const FOOT_SHADOWS: Var = var!("cl_foot_contact_shadows");
+    pub const VIEWMODEL_SHADOWS: Var = var!("cl_csm_viewmodel_shadows");
+    pub const ROPE_SHADOWS: Var = var!("cl_csm_rope_shadows");
+    pub const SPRITE_SHADOWS: Var = var!("cl_csm_sprite_shadows");
+
+    pub const BLOOD: Var = var!("violence_hblood");
+    pub const SKYBOX_3D: Var = var!("r_3dsky");
+    pub const DECALS: Var = var!("r_drawdecals");
+    pub const RAIN: Var = var!("r_drawrain");
+    pub const ROPES: Var = var!("r_drawropes");
+    pub const SPRITES: Var = var!("r_drawsprites");
+    pub const WATER_FOG: Var = var!("fog_enable_water_fog");
+    
+    pub const SHOW_HELP: Var = var!("cl_showhelp");
+    pub const AUTO_HELP: Var = var!("cl_autohelp");
+    pub const HTML_MOTD: Var = var!("cl_disablehtmlmotd");
+    pub const FREEZE_CAM: Var = var!("cl_disablefreezecam");
 }
 
 pub mod skybox {

@@ -30,6 +30,7 @@ pub struct Interfaces {
 
     pub animation_layers: u32,
     pub animation_state: u32,
+
     pub cheats: Var<i32>,
     pub draw_model_stats_overlay: Var<i32>,
     pub ffa: Var<i32>,
@@ -42,6 +43,19 @@ pub struct Interfaces {
     pub post_processing: Var<i32>,
     pub ragdoll_gravity: Var<f32>,
     pub show_impacts: Var<i32>,
+    
+    pub shadows: Var<i32>,
+    pub csm: Var<i32>,
+    pub csm_shadows: Var<i32>,
+    pub foot_shadows: Var<i32>,
+
+    pub blood: Var<i32>,
+    pub decals: Var<i32>,
+
+    pub auto_help: Var<i32>,
+    pub show_help: Var<i32>,
+    pub html_motd: Var<i32>,
+    pub freeze_cam: Var<i32>,
 }
 
 impl Interfaces {
@@ -156,8 +170,34 @@ impl Interfaces {
         let post_processing = console.var(var::POST_PROCESS).unwrap();
         let ragdoll_gravity = console.var(var::RAGDOLL_GRAVITY).unwrap();
         let show_impacts = console.var(var::SHOW_IMPACTS).unwrap();
+        
+        let shadows = console.var(var::SHADOWS).unwrap();
+        let csm = console.var(var::CSM).unwrap();
+        let csm_shadows = console.var(var::CSM_SHADOWS).unwrap();
+        let foot_shadows = console.var(var::FOOT_SHADOWS).unwrap();
+        
+        let blood = console.var(var::BLOOD).unwrap();
+        let decals = console.var(var::DECALS).unwrap();
 
+        let show_help = console.var(var::SHOW_HELP).unwrap();
+        let auto_help = console.var(var::AUTO_HELP).unwrap();
+        let html_motd = console.var(var::HTML_MOTD).unwrap();
+        let freeze_cam = console.var(var::FREEZE_CAM).unwrap();
+        
         Self {
+            shadows,
+            csm,
+            csm_shadows,
+            foot_shadows,
+
+            blood,
+            decals,
+
+            show_help,
+            auto_help,
+            html_motd,
+            freeze_cam,
+
             console,
             client,
             client_mode,

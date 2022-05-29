@@ -2,6 +2,7 @@ use super::UtlMem;
 use core::ops::{Deref, DerefMut};
 use core::slice;
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct UtlVec<T> {
     pub mem: UtlMem<T>,

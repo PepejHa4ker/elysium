@@ -1,6 +1,6 @@
 use super::Pad;
 
-/// Kind of weapon.
+/// kjind of weapon
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(i32)]
 pub enum WeaponKind {
@@ -24,12 +24,13 @@ pub enum WeaponKind {
 }
 
 impl WeaponKind {
+    #[inline]
     pub const fn as_i32(&self) -> i32 {
         *self as i32
     }
 }
 
-/// Information about a weapon.
+/// information about a weapon
 #[repr(C)]
 pub struct WeaponInfo {
     _pad0: Pad<32>,

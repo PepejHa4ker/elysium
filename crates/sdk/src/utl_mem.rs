@@ -2,6 +2,7 @@
 ///
 /// Source SDK: [tier1/utlmemory.h](https://github.com/ValveSoftware/source-sdk-2013/blob/master/mp/src/public/tier1/utlmemory.h)
 #[doc(alias = "CUtlMemory")]
+#[derive(Debug)]
 #[repr(C)]
 pub struct UtlMem<T> {
     pub mem: *const T,

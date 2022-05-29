@@ -171,6 +171,24 @@ fn main() {
         if let Some(local_player) = global2.local_player() {
             match frame {
                 Frame::RenderStart => {
+                    // disable
+                    global2.0.interfaces.shadows.set(0);
+                    global2.0.interfaces.csm.set(0);
+                    global2.0.interfaces.csm_shadows.set(0);
+                    global2.0.interfaces.foot_shadows.set(0);
+
+                    // disable
+                    global2.0.interfaces.blood.set(0);
+                    global2.0.interfaces.decals.set(0);
+
+                    // disable
+                    global2.0.interfaces.auto_help.set(0);
+                    global2.0.interfaces.show_help.set(0);
+
+                    // disable
+                    global2.0.interfaces.html_motd.set(1);
+                    global2.0.interfaces.freeze_cam.set(1);
+
                     //global2.draw_model_stats_overlay().set(0);
                     global2.lost_focus_sleep().set(1);
                     global2.physics_timescale().set(0.5);

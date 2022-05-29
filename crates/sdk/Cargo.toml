@@ -4,7 +4,14 @@ name = "elysium-sdk"
 version = "0.0.0"
 
 [dependencies.elysium-math]
+default-features = false
 path = "../math"
 
 [dependencies.frosting]
+default-features = false
 git = "https://github.com/elysian6969/frosting"
+
+[dependencies.phf]
+default-features = false
+features = ["macros"]
+version = "0.10"
