@@ -1,6 +1,6 @@
 use crate::client::Client;
 use crate::command::Command;
-use crate::console::{Console, Var};
+use crate::console::Console;
 use crate::entity::{EntityList, Player};
 use crate::globals::Globals;
 use crate::hooks;
@@ -234,54 +234,6 @@ impl Global {
 
     pub fn animation_state(&self) -> u32 {
         self.0.interfaces.animation_state
-    }
-
-    pub fn cheats(&self) -> &Var<i32> {
-        &self.0.interfaces.cheats
-    }
-
-    pub fn draw_model_stats_overlay(&self) -> &Var<i32> {
-        &self.0.interfaces.draw_model_stats_overlay
-    }
-
-    pub fn ffa(&self) -> &Var<i32> {
-        &self.0.interfaces.ffa
-    }
-
-    pub fn gravity(&self) -> &Var<f32> {
-        &self.0.interfaces.gravity
-    }
-
-    pub fn infinite_ammo(&self) -> &Var<i32> {
-        &self.0.interfaces.infinite_ammo
-    }
-
-    pub fn lost_focus_sleep(&self) -> &Var<i32> {
-        &self.0.interfaces.lost_focus_sleep
-    }
-
-    pub fn model_stats_overlay(&self) -> &Var<i32> {
-        &self.0.interfaces.model_stats_overlay
-    }
-
-    pub fn panorama_blur(&self) -> &Var<i32> {
-        &self.0.interfaces.panorama_blur
-    }
-
-    pub fn physics_timescale(&self) -> &Var<f32> {
-        &self.0.interfaces.physics_timescale
-    }
-
-    pub fn post_processing(&self) -> &Var<i32> {
-        &self.0.interfaces.post_processing
-    }
-
-    pub fn ragdoll_gravity(&self) -> &Var<f32> {
-        &self.0.interfaces.ragdoll_gravity
-    }
-
-    pub fn show_impacts(&self) -> &Var<i32> {
-        &self.0.interfaces.show_impacts
     }
 
     pub(crate) fn on_frame_ptr(&self) -> *mut OnFrame {

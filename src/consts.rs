@@ -89,7 +89,7 @@ pub mod var {
     pub const ROPES: Var = var!("r_drawropes");
     pub const SPRITES: Var = var!("r_drawsprites");
     pub const WATER_FOG: Var = var!("fog_enable_water_fog");
-    
+
     pub const SHOW_HELP: Var = var!("cl_showhelp");
     pub const AUTO_HELP: Var = var!("cl_autohelp");
     pub const HTML_MOTD: Var = var!("cl_disablehtmlmotd");

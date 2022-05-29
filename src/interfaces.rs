@@ -1,7 +1,6 @@
 use crate::client::Client;
-use crate::console::{Console, Var};
+use crate::console::Console;
 use crate::consts::interface;
-use crate::consts::var;
 use crate::entity::EntityList;
 use crate::globals::Globals;
 use crate::libraries::Libraries;
@@ -10,9 +9,10 @@ use crate::model::{ModelInfo, ModelRender};
 use crate::pattern;
 use crate::physics::Physics;
 use core::ptr;
+use elysium_sdk::convar::Vars;
 
 pub struct Interfaces {
-    pub console: Console,
+    pub console: &'static Console,
     pub client: Client,
     pub client_mode: *mut (),
     pub globals: &'static Globals,
@@ -31,41 +31,17 @@ pub struct Interfaces {
     pub animation_layers: u32,
     pub animation_state: u32,
 
-    pub cheats: Var<i32>,
-    pub draw_model_stats_overlay: Var<i32>,
-    pub ffa: Var<i32>,
-    pub gravity: Var<f32>,
-    pub infinite_ammo: Var<i32>,
-    pub lost_focus_sleep: Var<i32>,
-    pub model_stats_overlay: Var<i32>,
-    pub panorama_blur: Var<i32>,
-    pub physics_timescale: Var<f32>,
-    pub post_processing: Var<i32>,
-    pub ragdoll_gravity: Var<f32>,
-    pub show_impacts: Var<i32>,
-    
-    pub shadows: Var<i32>,
-    pub csm: Var<i32>,
-    pub csm_shadows: Var<i32>,
-    pub foot_shadows: Var<i32>,
-
-    pub blood: Var<i32>,
-    pub decals: Var<i32>,
-
-    pub auto_help: Var<i32>,
-    pub show_help: Var<i32>,
-    pub html_motd: Var<i32>,
-    pub freeze_cam: Var<i32>,
+    pub vars: Vars,
 }
 
 impl Interfaces {
     pub fn new(libraries: &Libraries) -> Self {
-        let console = Console::new(
-            libraries
+        let console: &'static Console = unsafe {
+            &*libraries
                 .materialsystem
-                .get_interface(interface::VENGINECVAR) as _,
-        )
-        .unwrap();
+                .get_interface(interface::VENGINECVAR)
+                .cast()
+        };
 
         let client = Client::new(libraries.client.get_interface(interface::VCLIENT) as _).unwrap();
 
@@ -158,46 +134,17 @@ impl Interfaces {
                 .add(52) as *const u32)
         };
 
-        let cheats = console.var(var::CHEATS).unwrap();
-        let draw_model_stats_overlay = console.var(var::DRAW_MODEL_STATS_OVERLAY).unwrap();
-        let ffa = console.var(var::FFA).unwrap();
-        let gravity = console.var(var::GRAVITY).unwrap();
-        let infinite_ammo = console.var(var::INFINITE_AMMO).unwrap();
-        let lost_focus_sleep = console.var(var::LOST_FOCUS_SLEEP).unwrap();
-        let model_stats_overlay = console.var(var::MODEL_STATS_OVERLAY).unwrap();
-        let panorama_blur = console.var(var::PANORAMA_BLUR).unwrap();
-        let physics_timescale = console.var(var::PHYSICS_TIMESCALE).unwrap();
-        let post_processing = console.var(var::POST_PROCESS).unwrap();
-        let ragdoll_gravity = console.var(var::RAGDOLL_GRAVITY).unwrap();
-        let show_impacts = console.var(var::SHOW_IMPACTS).unwrap();
-        
-        let shadows = console.var(var::SHADOWS).unwrap();
-        let csm = console.var(var::CSM).unwrap();
-        let csm_shadows = console.var(var::CSM_SHADOWS).unwrap();
-        let foot_shadows = console.var(var::FOOT_SHADOWS).unwrap();
-        
-        let blood = console.var(var::BLOOD).unwrap();
-        let decals = console.var(var::DECALS).unwrap();
+        let vars = unsafe {
+            Vars::from_loader(|name| {
+                let address = console.var(name);
 
-        let show_help = console.var(var::SHOW_HELP).unwrap();
-        let auto_help = console.var(var::AUTO_HELP).unwrap();
-        let html_motd = console.var(var::HTML_MOTD).unwrap();
-        let freeze_cam = console.var(var::FREEZE_CAM).unwrap();
-        
+                println!("convar {:?} -> {:?}", name, address);
+
+                address
+            })
+        };
+
         Self {
-            shadows,
-            csm,
-            csm_shadows,
-            foot_shadows,
-
-            blood,
-            decals,
-
-            show_help,
-            auto_help,
-            html_motd,
-            freeze_cam,
-
             console,
             client,
             client_mode,
@@ -217,18 +164,7 @@ impl Interfaces {
             animation_layers,
             animation_state,
 
-            cheats,
-            draw_model_stats_overlay,
-            ffa,
-            gravity,
-            infinite_ammo,
-            lost_focus_sleep,
-            model_stats_overlay,
-            panorama_blur,
-            physics_timescale,
-            post_processing,
-            ragdoll_gravity,
-            show_impacts,
+            vars,
         }
     }
 }

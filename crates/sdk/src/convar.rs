@@ -184,11 +184,7 @@ macro_rules! vars {
                     let $name = &*loader($string).cast::<Var<$type>>();
                 )*
 
-                Self {
-                    $(
-                        $name,
-                    )*
-                }
+                Self { $($name,)* }
             }
         }
     };
@@ -217,7 +213,7 @@ vars! {
     min_interp_ratio: f32 => "sv_client_min_interp_ratio",
     model_stats: i32 => "r_drawmodelstatsoverlay",
     panorama_blur: bool => "@panorama_disable_blur",
-    phys_timescale: f32 => "cl_phys_timescale",
+    physics_timescale: f32 => "cl_phys_timescale",
     prop_shadows: bool => "cl_csm_static_prop_shadows",
     rain: bool => "r_drawrain",
     recoil_scale: f32 => "weapon_recoil_scale",

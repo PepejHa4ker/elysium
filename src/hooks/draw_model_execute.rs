@@ -1,5 +1,4 @@
 use crate::global::Global;
-use crate::material::Material;
 use crate::model::{DrawModelState, ModelRenderInfo};
 use elysium_math::Matrix3x4;
 

@@ -45,7 +45,6 @@ mod class;
 mod client;
 mod engine;
 mod entry;
-mod ffi;
 mod frame;
 mod input_system;
 mod material;
@@ -63,6 +62,7 @@ mod var;
 mod weapon;
 
 pub mod convar;
+pub mod ffi;
 pub mod id;
 pub mod input;
 pub mod player_model;

@@ -7,16 +7,13 @@
 #![feature(maybe_uninit_uninit_array)]
 #![feature(ptr_metadata)]
 
-use crate::entity::Entity;
-use crate::entity::Player;
-use crate::entity::Weapon;
 use crate::global::Global;
 use core::ptr;
 use elysium_dl::Library;
 use elysium_math::Vec3;
 use elysium_sdk::Frame;
 use std::path::Path;
-use std::sync::atomic::{AtomicI32, Ordering};
+use std::sync::atomic::AtomicI32;
 use std::thread;
 use std::time::Duration;
 
@@ -171,28 +168,28 @@ fn main() {
         if let Some(local_player) = global2.local_player() {
             match frame {
                 Frame::RenderStart => {
-                    // disable
-                    global2.0.interfaces.shadows.set(0);
-                    global2.0.interfaces.csm.set(0);
-                    global2.0.interfaces.csm_shadows.set(0);
-                    global2.0.interfaces.foot_shadows.set(0);
+                    let vars = &global2.0.interfaces.vars;
 
-                    // disable
-                    global2.0.interfaces.blood.set(0);
-                    global2.0.interfaces.decals.set(0);
+                    vars.cheats.write(true);
 
-                    // disable
-                    global2.0.interfaces.auto_help.set(0);
-                    global2.0.interfaces.show_help.set(0);
+                    vars.auto_help.write(false);
+                    vars.show_help.write(false);
 
-                    // disable
-                    global2.0.interfaces.html_motd.set(1);
-                    global2.0.interfaces.freeze_cam.set(1);
+                    // these disable when true
+                    vars.html_motd.write(true);
+                    vars.freeze_cam.write(true);
+                    vars.panorama_blur.write(true);
 
-                    //global2.draw_model_stats_overlay().set(0);
-                    global2.lost_focus_sleep().set(1);
-                    global2.physics_timescale().set(0.5);
-                    //global2.ragdoll_gravity().set(-800.0);
+                    vars.shadows.write(false);
+                    vars.csm.write(false);
+                    vars.csm_shadows.write(false);
+                    vars.feet_shadows.write(false);
+
+                    vars.blood.write(false);
+                    vars.decals.write(false);
+
+                    vars.engine_sleep.write(true);
+                    vars.physics_timescale.write(0.5);
 
                     // No recoil / no punch.
                     global2.set_aim_punch_angle(local_player.actual_aim_punch_angle());
@@ -274,19 +271,10 @@ fn main() {
                             local_player.set_view_angle(*elysium_state::local::view_angle());
                         }
                     }
-
-                    //global2.draw_model_stats_overlay().set(0);
-                    global2.lost_focus_sleep().set(0);
-                    global2.physics_timescale().set(1.0);
-                    //global2.ragdoll_gravity().set(800.0);
                 }
                 _ => {}
             }
         }
-
-        global2.panorama_blur().set(1);
-        global2.cheats().set(1);
-        global2.show_impacts().set(2);
     });
 
     global.on_move(move |mut movement| {
