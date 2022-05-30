@@ -1,4 +1,4 @@
-use super::{ffi, NetworkChannel, SteamAPIContext, SteamId};
+use super::{ffi, vtable_export, vtable_validate, NetworkChannel, SteamAPIContext, SteamId};
 use elysium_math::{Matrix3x4, Vec3};
 use frosting::ffi::vtable;
 use frosting::str;
@@ -31,8 +31,8 @@ struct VTable {
     _unknown2: vtable::Pad<2>,
     local_player_index: unsafe extern "C" fn(this: *const Engine) -> i32,
     _unknown3: vtable::Pad<5>,
-    get_view_angle: unsafe extern "C" fn(this: *const Engine, view_angle: *mut Vec3),
-    set_view_angle: unsafe extern "C" fn(this: *const Engine, view_angle: *const Vec3),
+    get_view_angle: unsafe extern "C" fn(this: *const Engine, angle: *mut Vec3),
+    set_view_angle: unsafe extern "C" fn(this: *const Engine, angle: *const Vec3),
     get_max_clients: unsafe extern "C" fn(this: *const Engine) -> i32,
     _unknown4: vtable::Pad<5>,
     is_in_game: unsafe extern "C" fn(this: *const Engine) -> bool,
@@ -58,75 +58,24 @@ struct VTable {
     get_steam_api_context: unsafe extern "C" fn(this: *const Engine) -> *const SteamAPIContext,
 }
 
-#[allow(dead_code)]
-#[allow(invalid_value)]
-const VTABLE_VALIDATION: () = {
-    let vtable: VTable = unsafe { MaybeUninit::uninit().assume_init() };
-
-    if frosting::offset_of!(vtable.get_screen_size) != 5 * 8 {
-        panic!("invalid vtable.get_screen_size offset");
-    }
-
-    if frosting::offset_of!(vtable.get_player_info) != 8 * 8 {
-        panic!("invalid vtable.get_player_info offset");
-    }
-
-    if frosting::offset_of!(vtable.get_player_for_user_id) != 9 * 8 {
-        panic!("invalid vtable.get_player_for_user_id offset");
-    }
-
-    if frosting::offset_of!(vtable.local_player_index) != 12 * 8 {
-        panic!("invalid vtable.local_player_index offset");
-    }
-
-    if frosting::offset_of!(vtable.get_view_angle) != 18 * 8 {
-        panic!("invalid vtable.get_view_angle offset");
-    }
-
-    if frosting::offset_of!(vtable.set_view_angle) != 19 * 8 {
-        panic!("invalid vtable.set_view_angle offset");
-    }
-
-    if frosting::offset_of!(vtable.get_max_clients) != 20 * 8 {
-        panic!("invalid vtable.get_max_clients offset");
-    }
-
-    if frosting::offset_of!(vtable.is_in_game) != 26 * 8 {
-        panic!("invalid vtable.is_in_game offset");
-    }
-
-    if frosting::offset_of!(vtable.is_connected) != 27 * 8 {
-        panic!("invalid vtable.is_connected offset");
-    }
-
-    if frosting::offset_of!(vtable.set_cull_box) != 34 * 8 {
-        panic!("invalid vtable.set_cull_box offset");
-    }
-
-    if frosting::offset_of!(vtable.world_to_screen_matrix) != 37 * 8 {
-        panic!("invalid vtable.world_to_screen_matrix offset");
-    }
-
-    if frosting::offset_of!(vtable.get_bsp_tree_query) != 43 * 8 {
-        panic!("invalid vtable.get_bsp_tree_query offset");
-    }
-
-    if frosting::offset_of!(vtable.get_level_name) != 53 * 8 {
-        panic!("invalid vtable.get_level_name offset");
-    }
-
-    if frosting::offset_of!(vtable.get_network_channel) != 78 * 8 {
-        panic!("invalid vtable.get_network_channel offset");
-    }
-
-    if frosting::offset_of!(vtable.command) != 113 * 8 {
-        panic!("invalid vtable.command offset");
-    }
-
-    if frosting::offset_of!(vtable.get_steam_api_context) != 186 * 8 {
-        panic!("invalid vtable.get_steam_api_context offset");
-    }
-};
+vtable_validate! {
+    get_screen_size => 5,
+    get_player_info => 8,
+    get_player_for_user_id => 9,
+    local_player_index => 12,
+    get_view_angle => 18,
+    set_view_angle => 19,
+    get_max_clients => 20,
+    is_in_game => 26,
+    is_connected => 27,
+    set_cull_box => 34,
+    world_to_screen_matrix => 37,
+    get_bsp_tree_query => 43,
+    get_level_name => 53,
+    get_network_channel => 78,
+    command => 113,
+    get_steam_api_context => 186,
+}
 
 /// Engine interface.
 #[repr(C)]
@@ -135,6 +84,15 @@ pub struct Engine {
 }
 
 impl Engine {
+    vtable_export! {
+        local_player_index() -> i32,
+        get_max_clients() -> i32,
+        is_in_game() -> bool,
+        is_connected() -> bool,
+        get_bsp_tree_query() -> *const (),
+        get_network_channel() -> *const NetworkChannel,
+    }
+
     #[inline]
     pub fn get_screen_size(&self) -> (f32, f32) {
         unsafe {
@@ -171,11 +129,6 @@ impl Engine {
     }
 
     #[inline]
-    pub fn local_player_index(&self) -> i32 {
-        unsafe { (self.vtable.local_player_index)(self) }
-    }
-
-    #[inline]
     pub fn get_view_angle(&self) -> Vec3 {
         unsafe {
             let mut view_angle = MaybeUninit::uninit();
@@ -187,40 +140,18 @@ impl Engine {
     }
 
     #[inline]
-    pub fn set_view_angle(&self, view_angle: Vec3) {
-        unsafe { (self.vtable.set_view_angle)(self, &view_angle) }
+    pub fn set_view_angle(&self, angle: Vec3) {
+        unsafe { (self.vtable.set_view_angle)(self, &angle) }
     }
 
     #[inline]
-    pub fn get_max_clients(&self) -> i32 {
-        unsafe { (self.vtable.get_max_clients)(self) }
-    }
-
-    #[inline]
-    pub fn is_in_game(&self) -> bool {
-        unsafe { (self.vtable.is_in_game)(self) }
-    }
-
-    #[inline]
-    pub fn is_connected(&self) -> bool {
-        unsafe { (self.vtable.is_connected)(self) }
-    }
-
-    #[inline]
-    pub fn set_cull_box(&self, min: Vec3, max: Vec3) {
-        unsafe {
-            (self.vtable.set_cull_box)(self, &min, &max);
-        }
+    pub fn set_cull_box(&self, min: Vec3, max: Vec3) -> bool {
+        unsafe { (self.vtable.set_cull_box)(self, &min, &max) }
     }
 
     #[inline]
     pub fn world_to_screen_matrix(&self) -> Matrix3x4 {
         unsafe { *(self.vtable.world_to_screen_matrix)(self) }
-    }
-
-    #[inline]
-    pub fn get_bsp_tree_query(&self) -> *const () {
-        unsafe { (self.vtable.get_bsp_tree_query)(self) }
     }
 
     #[inline]
@@ -230,11 +161,6 @@ impl Engine {
 
             ffi::str_from_ptr(address)
         }
-    }
-
-    #[inline]
-    pub fn get_network_channel(&self) -> *const NetworkChannel {
-        unsafe { (self.vtable.get_network_channel)(self) }
     }
 
     #[inline]
