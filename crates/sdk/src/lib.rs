@@ -47,6 +47,7 @@ mod engine;
 mod entry;
 mod frame;
 mod input_system;
+mod macros;
 mod material;
 mod network;
 mod pad;
