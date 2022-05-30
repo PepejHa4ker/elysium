@@ -185,19 +185,20 @@ fn main() {
                 vars.csm_shadows.write(false);
                 vars.feet_shadows.write(false);
                 vars.prop_shadows.write(false);
-                vars.rain.write(false);
-                vars.ropes.write(false);
                 vars.rope_shadows.write(false);
                 vars.shadows.write(false);
-                vars.sprites.write(false);
                 vars.skybox3d.write(false);
                 vars.viewmodel_shadows.write(false);
-                vars.water_fog.write(false);
                 vars.world_shadows.write(false);
+
+                // useless objects
+                vars.ropes.write(false);
+                vars.sprites.write(false);
 
                 // translucent things
                 vars.translucent_renderables.write(false);
                 vars.translucent_world.write(false);
+                vars.water_fog.write(false);
 
                 // overlay
                 vars.underwater_overlay.write(false);
@@ -205,6 +206,7 @@ fn main() {
                 // effects
                 vars.blood.write(false);
                 vars.decals.write(false);
+                vars.rain.write(false);
 
                 // phsyics
                 vars.physics_timescale.write(0.5);
