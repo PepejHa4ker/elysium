@@ -206,6 +206,7 @@ fn main() {
                 // effects
                 vars.blood.write(false);
                 vars.decals.write(false);
+                vars.jiggle_bones.write(false);
                 vars.rain.write(false);
 
                 // phsyics

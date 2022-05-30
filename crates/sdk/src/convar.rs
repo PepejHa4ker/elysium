@@ -215,6 +215,7 @@ vars! {
     html_motd: bool => "cl_disablehtmlmotd",
     interp: f32 => "cl_interp",
     interp_ratio: f32 => "cl_interp_ratio",
+    jiggle_bones: bool => "r_jiggle_bones",
     lag_comp: f32 => "cl_lagcompensation",
     max_interp_ratio: f32 => "sv_client_max_interp_ratio",
     max_lag_comp: f32 => "sv_maxunlag",
