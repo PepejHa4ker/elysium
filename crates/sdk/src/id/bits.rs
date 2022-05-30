@@ -1,3 +1,4 @@
+#[inline]
 const fn mask(bits: u8) -> u64 {
     (1 << bits) - 1
 }

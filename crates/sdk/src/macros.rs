@@ -1,3 +1,4 @@
+/// validate vtable indices
 #[macro_export]
 macro_rules! object_validate {
     ($type:ident; $(
@@ -17,6 +18,7 @@ macro_rules! object_validate {
     };
 }
 
+/// reexport vtable functions
 #[macro_export]
 macro_rules! vtable_export {
     ($(
@@ -31,6 +33,7 @@ macro_rules! vtable_export {
     )*};
 }
 
+/// validate vtable indicies
 #[macro_export]
 macro_rules! vtable_validate {
     ($(

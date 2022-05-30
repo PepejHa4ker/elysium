@@ -2,52 +2,57 @@ use crate::{Pad, UtlVec};
 use core::marker::PhantomData;
 use frosting::ffi::vtable;
 
-pub trait Sealed: Sized {}
+mod sealed {
+    use super::Var;
 
-pub trait Kind: Sealed {
-    fn read(var: &Var<Self>) -> Self;
-    fn write(self, var: &Var<Self>);
-}
-
-impl Sealed for f32 {}
-impl Sealed for i32 {}
-impl Sealed for bool {}
-
-impl Kind for f32 {
-    #[inline]
-    fn read(var: &Var<f32>) -> Self {
-        var.read_f32()
+    pub trait Sealed: Sized {
+        fn read(var: &Var<Self>) -> Self;
+        fn write(self, var: &Var<Self>);
     }
 
-    #[inline]
-    fn write(self, var: &Var<f32>) {
-        var.write_f32(self)
-    }
-}
+    impl Sealed for f32 {
+        #[inline]
+        fn read(var: &Var<f32>) -> Self {
+            var.read_f32()
+        }
 
-impl Kind for i32 {
-    #[inline]
-    fn read(var: &Var<i32>) -> Self {
-        var.read_i32()
-    }
-
-    #[inline]
-    fn write(self, var: &Var<i32>) {
-        var.write_i32(self)
-    }
-}
-
-impl Kind for bool {
-    #[inline]
-    fn read(var: &Var<bool>) -> Self {
-        var.read_i32() != 0
+        #[inline]
+        fn write(self, var: &Var<f32>) {
+            var.write_f32(self)
+        }
     }
 
-    #[inline]
-    fn write(self, var: &Var<bool>) {
-        var.write_i32(self as i32)
+    impl Sealed for i32 {
+        #[inline]
+        fn read(var: &Var<i32>) -> Self {
+            var.read_i32()
+        }
+
+        #[inline]
+        fn write(self, var: &Var<i32>) {
+            var.write_i32(self)
+        }
+    }
+
+    impl Sealed for bool {
+        #[inline]
+        fn read(var: &Var<bool>) -> Self {
+            var.read_i32() != 0
+        }
+
+        #[inline]
+        fn write(self, var: &Var<bool>) {
+            var.write_i32(self as i32)
+        }
     }
 }
+
+/// valid types config variables can store
+pub trait Kind: sealed::Sealed {}
+
+impl Kind for f32 {}
+impl Kind for i32 {}
+impl Kind for bool {}
 
 #[derive(Debug)]
 #[repr(C)]
@@ -60,6 +65,7 @@ struct VTable<T> {
     write_i32: unsafe extern "C" fn(this: *const Var<T>, value: i32),
 }
 
+/// config variable
 #[derive(Debug)]
 #[repr(C)]
 pub struct Var<T> {
@@ -102,14 +108,16 @@ impl<T> Var<T>
 where
     T: Kind,
 {
+    /// read the config variable
     #[inline]
     pub fn read(&self) -> T {
-        <T as Kind>::read(self)
+        <T as sealed::Sealed>::read(self)
     }
 
+    /// write `value` to the config variable
     #[inline]
     pub fn write(&self, value: T) {
-        <T as Kind>::write(value, self)
+        <T as sealed::Sealed>::write(value, self)
     }
 }
 
@@ -175,6 +183,7 @@ macro_rules! vars {
         }
 
         impl Vars {
+            /// load all config variables
             #[inline]
             pub unsafe fn from_loader<L>(mut loader: L) -> Self
             where
@@ -226,7 +235,10 @@ vars! {
     sprites: bool => "r_drawsprites",
     skybox3d: bool => "r_3dsky",
     sprite_shadows: bool => "cl_csm_sprite_shadows",
+    translucent_renderables: bool => "r_drawtranslucentrenderables",
+    translucent_world: bool => "r_drawtranslucentworld",
     update_rate: f32 => "cl_updaterate",
+    underwater_overlay: bool => "r_drawunderwateroverlay",
     viewmodel_shadows: bool => "cl_csm_viewmodel_shadows",
     water_fog: bool => "fog_enable_water_fog",
     world_shadows: bool => "cl_csm_world_shadows"

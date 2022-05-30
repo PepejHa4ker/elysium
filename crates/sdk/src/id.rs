@@ -15,6 +15,7 @@ pub mod bits;
 pub struct SteamId(pub u64);
 
 impl SteamId {
+    #[inline]
     pub const fn new(id: u64) -> Option<Self> {
         if Instance::from_u64(instance(id)).is_none() {
             return None;
@@ -31,39 +32,48 @@ impl SteamId {
         Some(Self(id))
     }
 
+    #[inline]
     pub const unsafe fn new_unchecked(id: u64) -> Self {
         Self(id)
     }
 
+    #[inline]
     pub const fn id(&self) -> u32 {
         id(self.0) as u32
     }
 
+    #[inline]
     pub const fn instance(&self) -> Instance {
         unsafe { Instance::from_u64_unchecked(instance(self.0)) }
     }
 
+    #[inline]
     pub const fn kind(&self) -> Kind {
         unsafe { Kind::from_u64_unchecked(kind(self.0)) }
     }
 
+    #[inline]
     pub const fn universe(&self) -> Universe {
         unsafe { Universe::from_u64_unchecked(universe(self.0)) }
     }
 }
 
+#[inline]
 pub const fn id(id: u64) -> u64 {
     (id >> bits::ID_SHIFT) & bits::ID_MASK
 }
 
+#[inline]
 pub const fn instance(id: u64) -> u64 {
     (id >> bits::INSTANCE_SHIFT) & bits::INSTANCE_MASK
 }
 
+#[inline]
 pub const fn kind(id: u64) -> u64 {
     (id >> bits::KIND_SHIFT) & bits::KIND_MASK
 }
 
+#[inline]
 pub const fn universe(id: u64) -> u64 {
     (id >> bits::UNIVERSE_SHIFT) & bits::UNIVERSE_MASK
 }

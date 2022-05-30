@@ -1,3 +1,4 @@
+use crate::{vtable_export, vtable_validate};
 use frosting::ffi::vtable;
 use frosting::option;
 
@@ -15,16 +16,23 @@ struct VTable {
     ) -> bool,
 }
 
+vtable_validate! {
+    get_all_classes => 8,
+    dispatch_user_message => 38,
+}
+
+/// Client interface.
 #[repr(C)]
 pub struct Client {
     vtable: &'static VTable,
 }
 
 impl Client {
-    pub fn get_all_clases(&self) -> *const () {
-        unsafe { (self.vtable.get_all_classes)(self) }
+    vtable_export! {
+        get_all_classes() -> *const (),
     }
 
+    #[inline]
     pub fn dispatch_user_message<'a, D>(
         &self,
         message_kind: i32,

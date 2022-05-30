@@ -10,6 +10,9 @@ pub struct Node<K, V> {
     pub val: V,
 }
 
+/// An associative container.
+///
+/// Source SDK: [tier1/utlmap.h](https://github.com/ValveSoftware/source-sdk-2013/blob/master/mp/src/public/tier1/utlmap.h)
 #[repr(C)]
 pub struct UtlMap<K, V> {
     pub cmp_fn: *const (),
@@ -22,6 +25,7 @@ pub struct UtlMap<K, V> {
 }
 
 impl<K, V> UtlMap<K, V> {
+    #[inline]
     pub fn find<'a>(&self, key: &'a K) -> i32
     where
         K: PartialOrd<&'a K>,
@@ -43,10 +47,12 @@ impl<K, V> UtlMap<K, V> {
         current
     }
 
+    #[inline]
     pub fn first(&self) -> *const Node<K, V> {
         self.mem.mem
     }
 
+    #[inline]
     pub fn last(&self) -> *const Node<K, V> {
         unsafe { self.mem.mem.add(self.elements_len as usize) }
     }

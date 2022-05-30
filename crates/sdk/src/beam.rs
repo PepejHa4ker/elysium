@@ -62,6 +62,7 @@ pub struct ViewRenderBeams {
 }
 
 impl ViewRenderBeams {
+    /// create a beam
     #[inline]
     pub fn create_beam_points(&self, beam_info: &BeamInfo) -> *const Beam {
         unsafe { (self.vtable.create_beam_points)(self, beam_info) }

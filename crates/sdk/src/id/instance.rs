@@ -10,10 +10,12 @@ pub enum Instance {
 }
 
 impl Instance {
+    #[inline]
     pub const fn from_i32(instance: i32) -> Option<Self> {
         Self::from_u64(instance as u64)
     }
 
+    #[inline]
     pub const fn from_u64(instance: u64) -> Option<Self> {
         match instance {
             0 => Some(Instance::All),
@@ -24,14 +26,17 @@ impl Instance {
         }
     }
 
+    #[inline]
     pub const unsafe fn from_u64_unchecked(instance: u64) -> Self {
         mem::transmute(instance as i32)
     }
 
+    #[inline]
     pub const fn to_i32(&self) -> i32 {
         *self as i32
     }
 
+    #[inline]
     pub const fn to_u64(&self) -> u64 {
         *self as u64
     }

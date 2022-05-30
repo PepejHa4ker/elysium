@@ -2,6 +2,9 @@ use super::UtlMem;
 use core::ops::{Deref, DerefMut};
 use core::{slice, str};
 
+/// Simple string class.
+///
+/// Source SDK: [tier1/utlstring.h](https://github.com/ValveSoftware/source-sdk-2013/blob/master/mp/src/public/tier1/utlstring.h)
 #[repr(C)]
 pub struct UtlString {
     pub mem: UtlMem<u8>,

@@ -5,7 +5,7 @@ use frosting::str;
 use std::ffi::OsStr;
 use std::mem::MaybeUninit;
 
-/// Player information.
+/// player information
 #[repr(C)]
 pub struct PlayerInfo {
     pub version: u64,
@@ -27,7 +27,7 @@ struct VTable {
     _unknown1: vtable::Pad<2>,
     get_player_info:
         unsafe extern "C" fn(this: *const Engine, index: i32, player_info: *mut PlayerInfo) -> bool,
-    get_player_for_user_id: unsafe extern "C" fn(this: *const Engine, id: u64) -> i32,
+    get_player_for_user_id: unsafe extern "C" fn(this: *const Engine, user_id: SteamId) -> i32,
     _unknown2: vtable::Pad<2>,
     local_player_index: unsafe extern "C" fn(this: *const Engine) -> i32,
     _unknown3: vtable::Pad<5>,
@@ -77,7 +77,7 @@ vtable_validate! {
     get_steam_api_context => 186,
 }
 
-/// Engine interface.
+/// engine interface
 #[repr(C)]
 pub struct Engine {
     vtable: &'static VTable,
@@ -85,14 +85,26 @@ pub struct Engine {
 
 impl Engine {
     vtable_export! {
+        /// returns the local player's index
         local_player_index() -> i32,
+
+        /// returns the maximum amount of clients
         get_max_clients() -> i32,
+
+        /// if in game
         is_in_game() -> bool,
+
+        /// if connected
         is_connected() -> bool,
+
+        /// returns the bsp tree
         get_bsp_tree_query() -> *const (),
+
+        /// returns the network channel
         get_network_channel() -> *const NetworkChannel,
     }
 
+    /// returns the screen size
     #[inline]
     pub fn get_screen_size(&self) -> (f32, f32) {
         unsafe {
@@ -105,6 +117,7 @@ impl Engine {
         }
     }
 
+    /// get player info for the player at `index`
     #[inline]
     pub fn get_player_info(&self, index: i32) -> Option<PlayerInfo> {
         unsafe {
@@ -119,15 +132,17 @@ impl Engine {
         }
     }
 
+    /// get player index by `user_id`
     #[inline]
-    pub fn get_player_for_user_id(&self, id: SteamId) -> Option<i32> {
+    pub fn get_player_for_user_id(&self, user_id: SteamId) -> Option<i32> {
         unsafe {
-            let index = (self.vtable.get_player_for_user_id)(self, id.0);
+            let index = (self.vtable.get_player_for_user_id)(self, user_id);
 
             Some(index)
         }
     }
 
+    /// get the view angle
     #[inline]
     pub fn get_view_angle(&self) -> Vec3 {
         unsafe {
@@ -139,21 +154,25 @@ impl Engine {
         }
     }
 
+    /// set the view angle
     #[inline]
     pub fn set_view_angle(&self, angle: Vec3) {
         unsafe { (self.vtable.set_view_angle)(self, &angle) }
     }
 
+    /// set the cull box
     #[inline]
     pub fn set_cull_box(&self, min: Vec3, max: Vec3) -> bool {
         unsafe { (self.vtable.set_cull_box)(self, &min, &max) }
     }
 
+    /// returns the world to screen matrix
     #[inline]
     pub fn world_to_screen_matrix(&self) -> Matrix3x4 {
         unsafe { *(self.vtable.world_to_screen_matrix)(self) }
     }
 
+    /// returns the current level name
     #[inline]
     pub fn get_level_name(&self) -> &str {
         unsafe {
@@ -163,6 +182,7 @@ impl Engine {
         }
     }
 
+    /// executes a command
     #[inline]
     pub fn command<C>(&self, command: C, from_console_or_keybind: bool)
     where

@@ -17,10 +17,12 @@ pub enum Kind {
 }
 
 impl Kind {
+    #[inline]
     pub const fn from_i32(kind: i32) -> Option<Self> {
         Self::from_u64(kind as u64)
     }
 
+    #[inline]
     pub const fn from_u64(kind: u64) -> Option<Self> {
         match kind {
             0 => Some(Kind::Invalid),
@@ -38,14 +40,17 @@ impl Kind {
         }
     }
 
+    #[inline]
     pub const unsafe fn from_u64_unchecked(kind: u64) -> Self {
         mem::transmute(kind as i32)
     }
 
+    #[inline]
     pub const fn to_i32(&self) -> i32 {
         *self as i32
     }
 
+    #[inline]
     pub const fn to_u64(&self) -> u64 {
         *self as u64
     }

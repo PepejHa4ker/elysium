@@ -13,7 +13,7 @@ macro_rules! entries {
             )*
         }
 
-        static ENTRIES: phf::Map<&'static str, Entry> = phf::phf_map! {
+        const ENTRIES: phf::Map<&'static str, Entry> = phf::phf_map! {
             $(
                 $string => Entry::$name,
             )*
@@ -21,11 +21,13 @@ macro_rules! entries {
 
         impl Entry {
             /// map a string into an entry we're interested in
+            #[inline]
             pub fn from_str(entry: &str) -> Option<Self> {
                 ENTRIES.get(entry).cloned()
             }
 
             /// returns this entry as a string
+            #[inline]
             pub const fn as_str(&self) -> &'static str {
                 match self {
                     $(

@@ -163,34 +163,60 @@ fn main() {
     let choked = AtomicI32::new(0);
 
     global.on_frame(move |frame| {
+        match frame {
+            Frame::RenderStart => {
+                let vars = &global2.0.interfaces.vars;
+
+                // misc
+                vars.cheats.write(true);
+
+                // annoying
+                vars.auto_help.write(false);
+                vars.show_help.write(false);
+
+                // these disable when true
+                vars.engine_sleep.write(true);
+                vars.html_motd.write(true);
+                vars.freeze_cam.write(true);
+                vars.panorama_blur.write(true);
+
+                // shadows
+                vars.csm.write(false);
+                vars.csm_shadows.write(false);
+                vars.feet_shadows.write(false);
+                vars.prop_shadows.write(false);
+                vars.rain.write(false);
+                vars.ropes.write(false);
+                vars.rope_shadows.write(false);
+                vars.shadows.write(false);
+                vars.sprites.write(false);
+                vars.skybox3d.write(false);
+                vars.viewmodel_shadows.write(false);
+                vars.water_fog.write(false);
+                vars.world_shadows.write(false);
+
+                // translucent things
+                vars.translucent_renderables.write(false);
+                vars.translucent_world.write(false);
+
+                // overlay
+                vars.underwater_overlay.write(false);
+
+                // effects
+                vars.blood.write(false);
+                vars.decals.write(false);
+
+                // phsyics
+                vars.physics_timescale.write(0.5);
+            }
+            _ => {},
+        }
+
         let input = unsafe { &*elysium_state::input().cast::<elysium_sdk::Input>() };
 
         if let Some(local_player) = global2.local_player() {
             match frame {
                 Frame::RenderStart => {
-                    let vars = &global2.0.interfaces.vars;
-
-                    vars.cheats.write(true);
-
-                    vars.auto_help.write(false);
-                    vars.show_help.write(false);
-
-                    // these disable when true
-                    vars.html_motd.write(true);
-                    vars.freeze_cam.write(true);
-                    vars.panorama_blur.write(true);
-
-                    vars.shadows.write(false);
-                    vars.csm.write(false);
-                    vars.csm_shadows.write(false);
-                    vars.feet_shadows.write(false);
-
-                    vars.blood.write(false);
-                    vars.decals.write(false);
-
-                    vars.engine_sleep.write(true);
-                    vars.physics_timescale.write(0.5);
-
                     // No recoil / no punch.
                     global2.set_aim_punch_angle(local_player.actual_aim_punch_angle());
                     global2.set_view_punch_angle(local_player.actual_view_punch_angle());
@@ -280,8 +306,6 @@ fn main() {
     global.on_move(move |mut movement| {
         let engine = unsafe { &*elysium_state::engine().cast::<elysium_sdk::Engine>() };
         let network_channel = unsafe { &*engine.get_network_channel() }; //unsafe { &*elysium_state::network_channel().cast::<elysium_sdk::NetworkChannel>() };
-        let latency = network_channel.get_latency(Flow::Outgoing)
-            + network_channel.get_latency(Flow::Incoming);
         let choked_packets = network_channel.choked_packets;
         let level_name = engine.get_level_name();
         let view_angle = engine.get_view_angle();
@@ -290,9 +314,17 @@ fn main() {
         let original_vectors = movement.vectors;
         let side = (movement.tick_count * 2 - 1) as f32;
 
-        println!("level_name = {level_name:?}");
-        println!("latency = {latency:?}");
-        println!("choked_packets = {choked_packets:?}");
+        //let address = network_channel.get_address();
+        //let name = network_channel.get_name();
+        //let avg_outgoing = network_channel.get_latency(Flow::Outgoing);
+        //let avg_incoming = network_channel.get_latency(Flow::Incoming);
+
+        //println!("level_name = {level_name:?}");
+        //println!("address = {address:?}");
+        //println!("name = {name:?}");
+        //println!("avg_outgoing = {avg_outgoing:?}");
+        //println!("avg_incoming = {avg_incoming:?}");
+        //println!("choked_packets = {choked_packets:?}");
 
         if movement.send_packet {
             unsafe {
