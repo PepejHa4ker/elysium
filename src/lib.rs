@@ -11,7 +11,7 @@ use crate::global::Global;
 use core::ptr;
 use elysium_dl::Library;
 use elysium_math::Vec3;
-use elysium_sdk::Frame;
+use elysium_sdk::{Flow, Frame};
 use std::path::Path;
 use std::sync::atomic::AtomicI32;
 use std::thread;
@@ -280,7 +280,8 @@ fn main() {
     global.on_move(move |mut movement| {
         let engine = unsafe { &*elysium_state::engine().cast::<elysium_sdk::Engine>() };
         let network_channel = unsafe { &*engine.get_network_channel() }; //unsafe { &*elysium_state::network_channel().cast::<elysium_sdk::NetworkChannel>() };
-        let latency = network_channel.get_latency(0);
+        let latency = network_channel.get_latency(Flow::Outgoing)
+            + network_channel.get_latency(Flow::Incoming);
         let choked_packets = network_channel.choked_packets;
         let level_name = engine.get_level_name();
         let view_angle = engine.get_view_angle();

@@ -5,7 +5,7 @@ use frosting::ffi::vtable;
 #[repr(C)]
 struct VTable {
     _pad0: vtable::Pad<9>,
-    get_latency: unsafe extern "C" fn(this: *const NetworkChannel, flow: i32) -> f32,
+    get_latency: unsafe extern "C" fn(this: *const NetworkChannel, flow: Flow) -> f32,
 }
 
 #[allow(dead_code)]
@@ -36,9 +36,17 @@ const OBJECT_VALIDATION: () = {
     }
 };
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(i32)]
+pub enum Flow {
+    Outgoing = 0,
+    Incoming = 1,
+    Both = 2,
+}
+
 impl NetworkChannel {
     #[inline]
-    pub fn get_latency(&self, flow: i32) -> f32 {
+    pub fn get_latency(&self, flow: Flow) -> f32 {
         unsafe { (self.vtable.get_latency)(self, flow) }
     }
 }

@@ -24,7 +24,7 @@ pub use id::SteamId;
 pub use input::Input;
 pub use input_system::InputSystem;
 pub use material::MaterialKind;
-pub use network::NetworkChannel;
+pub use network::{Flow, NetworkChannel};
 pub use pad::Pad;
 pub use panorama::{PanoramaEventRegistration, PanoramaUIEngine, UIEngine, UIPanel};
 pub use render::{OverrideKind, Render};
