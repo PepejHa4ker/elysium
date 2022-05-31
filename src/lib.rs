@@ -155,8 +155,6 @@ fn main() {
         state::set_poll_event(poll_event.replace(hooks2::poll_event));
     }
 
-    println!("initializing providence...");
-
     let global = Global::init().expect("global");
     let global2 = global.clone();
     let global3 = global.clone();
@@ -196,8 +194,8 @@ fn main() {
                 vars.sprites.write(false);
 
                 // translucent things
-                vars.translucent_renderables.write(false);
-                vars.translucent_world.write(false);
+                //vars.translucent_renderables.write(false);
+                //vars.translucent_world.write(false);
                 vars.water_fog.write(false);
 
                 // overlay
@@ -220,22 +218,23 @@ fn main() {
         if let Some(local_player) = global2.local_player() {
             match frame {
                 Frame::RenderStart => {
-                    // No recoil / no punch.
-                    global2.set_aim_punch_angle(local_player.actual_aim_punch_angle());
-                    global2.set_view_punch_angle(local_player.actual_view_punch_angle());
+                    use elysium_state::local;
 
-                    local_player.set_aim_punch_angle(Vec3::zero());
-                    local_player.set_view_punch_angle(Vec3::zero());
+                    // todo refactor
+                    let aim_punch_angle = local_player.actual_aim_punch_angle();
+                    let view_angle = local_player.view_angle();
+                    let view_punch_angle = local_player.actual_view_punch_angle();
 
-                    // "Fix" the local players view angle and backup the current value.
+                    local::set_aim_punch_angle(aim_punch_angle);
+                    local::set_view_angle(view_angle);
+                    local::set_view_punch_angle(view_punch_angle);
+
+                    //local_player.set_aim_punch_angle(Vec3::zero());
+                    //local_player.set_view_punch_angle(Vec3::zero());
+
+                    // the game doesnt render actual local player angles by default
                     if input.thirdperson {
-                        unsafe {
-                            let original_view_angle = local_player.view_angle();
-
-                            *elysium_state::local::view_angle() = original_view_angle;
-
-                            local_player.set_view_angle(*elysium_state::view_angle());
-                        }
+                        local_player.set_view_angle(*elysium_state::view_angle());
                     }
 
                     unsafe {
@@ -291,13 +290,13 @@ fn main() {
                 }
                 Frame::RenderEnd => {
                     // Restore aim and view punch to not break things.
-                    local_player.set_aim_punch_angle(global2.aim_punch_angle());
-                    local_player.set_view_punch_angle(global2.view_punch_angle());
+                    //local_player.set_aim_punch_angle(global2.aim_punch_angle());
+                    //local_player.set_view_punch_angle(global2.view_punch_angle());
 
                     // Restore the local players view_angle.
                     if input.thirdperson {
                         unsafe {
-                            local_player.set_view_angle(*elysium_state::local::view_angle());
+                            local_player.set_view_angle(elysium_state::local::view_angle());
                         }
                     }
                 }
@@ -308,7 +307,7 @@ fn main() {
 
     global.on_move(move |mut movement| {
         let engine = unsafe { &*elysium_state::engine().cast::<elysium_sdk::Engine>() };
-        let network_channel = unsafe { &*engine.get_network_channel() }; //unsafe { &*elysium_state::network_channel().cast::<elysium_sdk::NetworkChannel>() };
+        let network_channel = unsafe { &*engine.get_network_channel() };
         let choked_packets = network_channel.choked_packets;
         let level_name = engine.get_level_name();
         let view_angle = engine.get_view_angle();
@@ -336,7 +335,7 @@ fn main() {
                 let cached_players = &mut *elysium_state::players();
                 let index = movement.local_player.index();
                 let bones = &mut cached_players[index as usize].bones;
-                let local_player_bones = &mut *elysium_state::local::bones();
+                let mut local_player_bones = elysium_state::local::bones();
 
                 ptr::copy_nonoverlapping(
                     bones.as_ptr(),

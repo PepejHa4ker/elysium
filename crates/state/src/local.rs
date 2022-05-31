@@ -5,38 +5,45 @@ use core::ptr::NonNull;
 use elysium_math::Vec3;
 use providence_model::Bones;
 
-pub(crate) struct Local {
-    pub player: SharedOption<NonNull<usize>>,
-    pub bones: Shared<Bones>,
-    pub weapon: SharedOption<NonNull<usize>>,
-    pub magazine_ammo: Shared<i32>,
-    pub total_ammo: Shared<i32>,
-    pub health: Shared<i32>,
-    pub view_angle: Shared<Vec3>,
-}
-
-impl Local {
-    pub const fn new() -> Self {
-        Self {
-            player: SharedOption::none(),
-            bones: Shared::new(Bones::zero()),
-            weapon: SharedOption::none(),
-            magazine_ammo: Shared::new(0),
-            total_ammo: Shared::new(0),
-            health: Shared::new(0),
-            view_angle: Shared::new(Vec3::splat(0.0)),
+macro_rules! local {
+    ($(($get:ident, $set:ident): $shared:ident<$ty:ty> = $expr:expr;)*) => {
+        pub(crate) struct Local {
+            $($get: $shared<$ty>,)*
         }
-    }
+
+        impl Local {
+            #[inline]
+            pub const fn new() -> Self {
+                Self {
+                    $($get: $expr,)*
+                }
+            }
+        }
+
+        $(
+            #[inline]
+            pub unsafe fn $get() -> $ty {
+                *STATE.local.$get.as_mut()
+            }
+
+            #[inline]
+            pub fn $set(material: $ty) {
+                unsafe {
+                    STATE.local.$get.write(material);
+                }
+            }
+        )*
+    };
 }
 
-/// Return's a reference to the local player's bones.
-#[inline]
-pub unsafe fn bones() -> &'static mut Bones {
-    STATE.local.bones.as_mut()
-}
-
-/// Return's a reference to the local player's view_angle.
-#[inline]
-pub unsafe fn view_angle() -> &'static mut Vec3 {
-    STATE.local.view_angle.as_mut()
+local! {
+    (aim_punch_angle, set_aim_punch_angle): Shared<Vec3> = Shared::new(Vec3::zero());
+    (player, set_player): SharedOption<NonNull<usize>> = SharedOption::none();
+    (bones, set_bones): Shared<Bones> = Shared::new(Bones::zero());
+    (weapon, set_weapon): SharedOption<NonNull<usize>> = SharedOption::none();
+    (magazine_ammo, set_magazine_ammo): Shared<i32> = Shared::new(0);
+    (total_ammo, set_total_ammo): Shared<i32> = Shared::new(0);
+    (health, set_health): Shared<i32> = Shared::new(0);
+    (view_angle, set_view_angle): Shared<Vec3> = Shared::new(Vec3::zero());
+    (view_punch_angle, set_view_punch_angle): Shared<Vec3> = Shared::new(Vec3::zero());
 }

@@ -57,7 +57,7 @@ impl EntityList {
             index: i32,
         ) -> *mut handle::Entity;
 
-        unsafe { self.virtual_entry::<Fn>(3)(self.as_ptr(), index) }
+        self.virtual_entry::<Fn>(3)(self.as_ptr(), index)
     }
 
     pub fn get(&self, index: i32) -> Option<Entity> {

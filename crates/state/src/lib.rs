@@ -294,8 +294,8 @@ pub unsafe fn tick_count() -> &'static mut i32 {
 
 /// Return's a reference to engine view_angle.
 #[inline]
-pub unsafe fn view_angle() -> &'static mut Vec3 {
-    STATE.view_angle.as_mut()
+pub fn view_angle() -> &'static mut Vec3 {
+    unsafe { STATE.view_angle.as_mut() }
 }
 
 #[inline]
