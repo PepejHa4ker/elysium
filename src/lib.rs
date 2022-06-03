@@ -5,6 +5,8 @@
 #![feature(once_cell)]
 #![feature(maybe_uninit_array_assume_init)]
 #![feature(maybe_uninit_uninit_array)]
+#![feature(pointer_byte_offsets)]
+#![feature(ptr_const_cast)]
 #![feature(ptr_metadata)]
 
 use crate::global::Global;
@@ -177,6 +179,9 @@ fn main() {
                 vars.html_motd.write(true);
                 vars.freeze_cam.write(true);
                 vars.panorama_blur.write(true);
+                
+                // p100
+                vars.hud.write(false);
 
                 // shadows
                 vars.csm.write(false);
@@ -316,17 +321,18 @@ fn main() {
         let original_vectors = movement.vectors;
         let side = (movement.tick_count * 2 - 1) as f32;
 
-        //let address = network_channel.get_address();
-        //let name = network_channel.get_name();
-        //let avg_outgoing = network_channel.get_latency(Flow::Outgoing);
-        //let avg_incoming = network_channel.get_latency(Flow::Incoming);
+        let address = network_channel.get_address();
+        // segfaults btw
+        // let name = network_channel.get_name();
+        let avg_outgoing = network_channel.get_latency(Flow::Outgoing);
+        let avg_incoming = network_channel.get_latency(Flow::Incoming);
 
-        //println!("level_name = {level_name:?}");
-        //println!("address = {address:?}");
-        //println!("name = {name:?}");
-        //println!("avg_outgoing = {avg_outgoing:?}");
-        //println!("avg_incoming = {avg_incoming:?}");
-        //println!("choked_packets = {choked_packets:?}");
+        println!("level_name = {level_name:?}");
+        println!("address = {address:?}");
+        // println!("name = {name:?}");
+        println!("avg_outgoing = {avg_outgoing:?}");
+        println!("avg_incoming = {avg_incoming:?}");
+        println!("choked_packets = {choked_packets:?}");
 
         if movement.send_packet {
             unsafe {

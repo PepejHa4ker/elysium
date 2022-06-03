@@ -30,12 +30,12 @@ pub unsafe extern "C" fn swap_window(sdl_window: *mut sdl2_sys::SDL_Window) {
     let viewport = Viewport::with_physical_size(size, 1.0);
     let menu = state::menu(context, viewport.clone());
 
-    if state::is_menu_open() {
+    //if state::is_menu_open() {
         context.viewport(0, 0, size.width as i32, size.height as i32);
 
         menu.update(viewport.clone(), state::cursor_position());
         menu.draw(context, viewport);
-    }
+    //}
 
     // disable auto-conversion from/to sRGB
     context.enable(elysium_gl::FRAMEBUFFER_SRGB);
@@ -80,4 +80,12 @@ pub unsafe extern "C" fn poll_event(sdl_event: *mut sdl2_sys::SDL_Event) -> i32 
     }
 
     result
+}
+
+/// `CL_Move` hook.
+#[inline(never)]
+pub unsafe extern "C" fn cl_move(accumulated_extra_samples: f32, final_tick: bool) {
+    frosting::println!("(accumulated_extra_samples: {:?}, final_tick: {:?})", accumulated_extra_samples, final_tick);
+
+    state::cl_move(accumulated_extra_samples, final_tick);
 }

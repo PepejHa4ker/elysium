@@ -26,3 +26,25 @@ impl StyleSheet for Overlay {
         }
     }
 }
+
+pub struct Crosshair;
+
+impl StyleSheet for Crosshair {
+    fn style(&self) -> Style {
+        Style {
+            background: Color::BLACK.into(),
+            ..Style::default()
+        }
+    }
+}
+
+pub struct Transparent;
+
+impl StyleSheet for Transparent {
+    fn style(&self) -> Style {
+        Style {
+            background: Color::TRANSPARENT.into(),
+            ..Style::default()
+        }
+    }
+}

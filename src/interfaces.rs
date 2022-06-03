@@ -110,8 +110,6 @@ impl Interfaces {
             pattern::ANIMATION_LAYERS
         );
 
-        println!("Regex: {:?}", pattern::ANIMATION_LAYERS.regex());
-
         let patterns = pattern::Libraries::new();
         let animation_layers = unsafe {
             *(patterns
@@ -125,14 +123,96 @@ impl Interfaces {
             pattern::ANIMATION_STATE
         );
 
-        println!("Regex: {:?}", pattern::ANIMATION_STATE.regex());
-
         let animation_state = unsafe {
             *(patterns
                 .address_of("client_client.so", &pattern::ANIMATION_STATE)
                 .unwrap_or(ptr::null())
                 .add(52) as *const u32)
         };
+
+        println!(
+            "Searching for pattern {:?} (host_run_frame_input) in `engine_client.so'",
+            pattern::HOST_RUN_FRAME_INPUT
+        );
+
+        let host_run_frame_input = unsafe {
+            patterns
+                .address_of("engine_client.so", &pattern::HOST_RUN_FRAME_INPUT)
+                .unwrap_or(ptr::null())
+        };
+
+        println!(
+            "Searching for pattern {:?} (cl_move) in `engine_client.so'",
+            pattern::CL_MOVE
+        );
+
+        // refer to patterns.rs
+        let cl_move = unsafe {
+            let cl_move = patterns
+                .address_of("engine_client.so", &pattern::CL_MOVE)
+                .unwrap_or(ptr::null());
+
+            let cl_move: elysium_state::ClMoveFn = core::mem::transmute(cl_move);
+            
+            elysium_state::set_cl_move(cl_move);
+
+            cl_move
+        };
+
+        println!("host_run_frame_input = {host_run_frame_input:?}");
+        println!("host_run_frame_input = {:02X?}", unsafe { host_run_frame_input.cast::<[u8; 39]>().read() });
+
+        println!("cl_move = {cl_move:?}");
+        println!("cl_move = {:02X?}", unsafe { (cl_move as *const u8).cast::<[u8; 31]>().read() });
+
+        // e8 <relative>  call  CL_SendMove
+        // 0x005929d3 - 0x00592910 = 195
+        unsafe {
+            let cl_move_hook = crate::hooks2::cl_move as usize as *const u8;
+
+            println!("cl_move_hook = {:02X?}", cl_move_hook.cast::<[u8; 7]>().read());
+
+            let call_cl_move = host_run_frame_input.byte_offset(195);
+
+            println!("call cl_move (host_run_frame_input + 195) = {:02X?}", call_cl_move.cast::<[u8; 5]>().read());
+
+            // obtain rip
+            let rip = call_cl_move.byte_offset(5);
+
+            // calulate relative
+            let relative = cl_move_hook.byte_offset_from(rip);
+
+            println!("cl_move_hook relative = {relative:?}");
+
+            // remove protection
+            let protection = elysium_mem::unprotect(call_cl_move);
+
+            // replace relative
+            let original = call_cl_move.byte_offset(1).cast::<i32>().as_mut().replace(relative as i32);
+
+            println!("cl_move_hook relative (original) = {original:?}");
+
+            // restore protection
+            elysium_mem::protect(call_cl_move, protection);
+            
+            println!("call cl_move (host_run_frame_input + 195) (new) = {:02X?}", call_cl_move.cast::<[u8; 5]>().read());
+        }
+
+        // e8 <relative>  call  CL_SendMove
+        // 0x003b5ac0 - 0x003b5740 = 896
+        let cl_sendmove = unsafe {
+            let base = (cl_move as *const u8).byte_offset(896);
+
+            println!("call cl_sendmove (cl_move + 896) = {:02X?}", base.cast::<[u8; 5]>().read());
+
+            // skip e8 in call
+            let relative = base.byte_add(1).cast::<i32>().read() as isize;
+            let address = elysium_mem::to_absolute(base, relative, 5);
+
+            address
+        };
+        
+        println!("cl_sendmove = {cl_sendmove:?}");
 
         let vars = unsafe {
             Vars::from_loader(|name| {

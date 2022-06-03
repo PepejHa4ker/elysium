@@ -212,7 +212,9 @@ vars! {
     feet_shadows: bool => "cl_foot_contact_shadows",
     freeze_cam: bool => "cl_disablefreezecam",
     gravity: f32 => "sv_gravity",
+    horizontal_speed: f32 => "cl_sidespeed",
     html_motd: bool => "cl_disablehtmlmotd",
+    hud: bool => "cl_drawhud",
     interp: f32 => "cl_interp",
     interp_ratio: f32 => "cl_interp_ratio",
     jiggle_bones: bool => "r_jiggle_bones",
@@ -240,6 +242,7 @@ vars! {
     translucent_world: bool => "r_drawtranslucentworld",
     update_rate: f32 => "cl_updaterate",
     underwater_overlay: bool => "r_drawunderwateroverlay",
+    vertical_speed: f32 => "cl_forwardspeed",
     viewmodel_shadows: bool => "cl_csm_viewmodel_shadows",
     water_fog: bool => "fog_enable_water_fog",
     world_shadows: bool => "cl_csm_world_shadows"

@@ -29,9 +29,17 @@ pub mod cache;
 pub mod local;
 pub mod material;
 
-/// `Client::CreateMove` signature.
+/// `CreateMove` signature.
 pub type CreateMoveFn =
     unsafe extern "C" fn(this: *const (), sample_time: f32, command: *const ()) -> bool;
+
+/// `CL_Move` signature.
+pub type ClMoveFn =
+    unsafe extern "C" fn(accumulated_extra_samples: f32, final_tick: bool);
+
+/// `CL_SendMove` signature.
+pub type ClSendMoveFn =
+    unsafe extern "C" fn();
 
 /// `SDL_GL_SwapWindow` signature.
 pub type SwapWindowFn = unsafe extern "C" fn(sdl_window: *mut sdl2_sys::SDL_Window);
@@ -51,6 +59,8 @@ struct State {
     window_size: Shared<Size<u32>>,
 
     create_move: SharedOption<CreateMoveFn>,
+    cl_move: SharedOption<ClMoveFn>,
+    cl_send_move: SharedOption<ClSendMoveFn>,
     swap_window: SharedOption<SwapWindowFn>,
     poll_event: SharedOption<PollEventFn>,
 
@@ -89,6 +99,8 @@ static STATE: ManuallyDrop<State> = ManuallyDrop::new(State {
     window_size: Shared::new(Size::new(0, 0)),
 
     create_move: SharedOption::none(),
+    cl_move: SharedOption::none(),
+    cl_send_move: SharedOption::none(),
     poll_event: SharedOption::none(),
     swap_window: SharedOption::none(),
 
@@ -258,7 +270,7 @@ pub unsafe fn players() -> &'static mut Players {
     STATE.players.as_mut()
 }
 
-/// Calls the original `Client::CreateMove`.
+/// Calls the original `CreateMove`.
 #[inline]
 pub unsafe fn create_move(this: *const (), sample_time: f32, command: *const ()) -> bool {
     let create_move = *STATE.create_move.as_mut();
@@ -266,11 +278,27 @@ pub unsafe fn create_move(this: *const (), sample_time: f32, command: *const ())
     create_move(this, sample_time, command)
 }
 
-/// Set the original `Client::CreateMove`.
+/// Set the original `CreateMove`.
 #[inline]
 pub fn set_create_move(create_move: CreateMoveFn) {
     unsafe {
         STATE.create_move.write(create_move);
+    }
+}
+
+/// Calls the original `ClMove`.
+#[inline]
+pub unsafe fn cl_move(accumulated_extra_samples: f32, final_tick: bool) {
+    let cl_move = *STATE.cl_move.as_mut();
+
+    cl_move(accumulated_extra_samples, final_tick)
+}
+
+/// Set the original `ClMove`.
+#[inline]
+pub fn set_cl_move(cl_move: ClMoveFn) {
+    unsafe {
+        STATE.cl_move.write(cl_move);
     }
 }
 

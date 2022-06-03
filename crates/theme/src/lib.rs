@@ -3,7 +3,7 @@
 
 use iced_native::Color;
 
-pub use container::Overlay;
+pub use container::{Overlay, Transparent, Crosshair};
 
 mod button;
 mod checkbox;

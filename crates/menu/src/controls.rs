@@ -17,6 +17,7 @@ pub struct Controls {
     slider_value: f32,
     checkbox_value: bool,
     toggler_value: bool,
+    menu_visibility: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -26,6 +27,7 @@ pub enum Message {
     SliderChanged(f32),
     CheckboxToggled(bool),
     TogglerToggled(bool),
+    MenuVisibility(bool),
 }
 
 impl Controls {
@@ -47,6 +49,7 @@ impl Program for Controls {
             Message::SliderChanged(value) => self.slider_value = value,
             Message::CheckboxToggled(value) => self.checkbox_value = value,
             Message::TogglerToggled(value) => self.toggler_value = value,
+            Message::MenuVisibility(value) => self.menu_visibility = value,
         }
 
         Command::none()
@@ -54,7 +57,7 @@ impl Program for Controls {
 
     #[inline]
     fn view(&mut self) -> Element<Message, Renderer> {
-        let text_input = TextInput::new(
+        /*let text_input = TextInput::new(
             &mut self.input,
             "Type something...",
             &self.input_value,
@@ -129,13 +132,21 @@ impl Program for Controls {
             .center_x()
             .center_y()
             .style(self.theme);
+        */
 
-        Container::new(menu)
+        let crosshair = Container::new(iced_native::widget::Space::new(Length::Units(1), Length::Units(1)))
+            .width(Length::Units(4))
+            .height(Length::Units(4))
+            .center_x()
+            .center_y()
+            .style(elysium_theme::Crosshair);
+
+        Container::new(crosshair)
             .width(Length::Fill)
             .height(Length::Fill)
             .center_x()
             .center_y()
-            .style(elysium_theme::Overlay(self.theme))
+            .style(elysium_theme::Transparent) //(self.theme))
             .into()
     }
 }
