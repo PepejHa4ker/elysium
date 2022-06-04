@@ -1,19 +1,18 @@
-use crate::client::Class;
 use crate::global::Global;
 use crate::managed::{handle, Managed};
 use crate::model::Model;
 use core::cmp;
 use elysium_math::{Matrix3x4, Vec3};
+use elysium_sdk::client::Class;
 
+pub use elysium_sdk::entity::EntityId;
 pub use fog::Fog;
-pub use id::EntityId;
 pub use list::EntityList;
 pub use player::Player;
 pub use weapon::Weapon;
 pub use weapon_info::WeaponInfo;
 
 mod fog;
-mod id;
 mod list;
 mod player;
 mod weapon;

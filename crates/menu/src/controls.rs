@@ -134,12 +134,15 @@ impl Program for Controls {
             .style(self.theme);
         */
 
-        let crosshair = Container::new(iced_native::widget::Space::new(Length::Units(1), Length::Units(1)))
-            .width(Length::Units(4))
-            .height(Length::Units(4))
-            .center_x()
-            .center_y()
-            .style(elysium_theme::Crosshair);
+        let crosshair = Container::new(iced_native::widget::Space::new(
+            Length::Units(1),
+            Length::Units(1),
+        ))
+        .width(Length::Units(4))
+        .height(Length::Units(4))
+        .center_x()
+        .center_y()
+        .style(elysium_theme::Crosshair);
 
         Container::new(crosshair)
             .width(Length::Fill)

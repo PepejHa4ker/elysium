@@ -1,3 +1,4 @@
+use super::vtable_validate;
 use frosting::ffi::vtable;
 
 #[repr(C)]
@@ -6,6 +7,11 @@ struct VTable {
     enable_input: unsafe extern "C" fn(this: *const InputSystem, enable: bool),
     _pad1: vtable::Pad<27>,
     reset_input_state: unsafe extern "C" fn(this: *const InputSystem),
+}
+
+vtable_validate! {
+    enable_input => 11,
+    reset_input_state => 39,
 }
 
 /// Input System interface.

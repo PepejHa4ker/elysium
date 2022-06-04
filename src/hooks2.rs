@@ -31,10 +31,10 @@ pub unsafe extern "C" fn swap_window(sdl_window: *mut sdl2_sys::SDL_Window) {
     let menu = state::menu(context, viewport.clone());
 
     //if state::is_menu_open() {
-        context.viewport(0, 0, size.width as i32, size.height as i32);
+    context.viewport(0, 0, size.width as i32, size.height as i32);
 
-        menu.update(viewport.clone(), state::cursor_position());
-        menu.draw(context, viewport);
+    menu.update(viewport.clone(), state::cursor_position());
+    menu.draw(context, viewport);
     //}
 
     // disable auto-conversion from/to sRGB
@@ -82,10 +82,52 @@ pub unsafe extern "C" fn poll_event(sdl_event: *mut sdl2_sys::SDL_Event) -> i32 
     result
 }
 
+use crate::entity::Player;
+use core::ptr;
+use elysium_sdk::Flow;
+
 /// `CL_Move` hook.
 #[inline(never)]
 pub unsafe extern "C" fn cl_move(accumulated_extra_samples: f32, final_tick: bool) {
-    frosting::println!("(accumulated_extra_samples: {:?}, final_tick: {:?})", accumulated_extra_samples, final_tick);
+    let engine = &*state::engine().cast::<elysium_sdk::Engine>();
 
-    state::cl_move(accumulated_extra_samples, final_tick);
+    if !engine.is_connected() {
+        return;
+    }
+
+    if !state::local::is_player_none() {
+        let network_channel = &*engine.get_network_channel();
+        let choked_packets = network_channel.choked_packets;
+        let level_name = engine.get_level_name();
+        let view_angle = engine.get_view_angle();
+
+        let address = network_channel.get_address();
+        // segfaults btw
+        // let name = network_channel.get_name();
+        let avg_outgoing = network_channel.get_latency(Flow::Outgoing);
+        let avg_incoming = network_channel.get_latency(Flow::Incoming);
+
+        println!("level_name = {level_name:?}");
+        println!("address = {address:?}");
+        // println!("name = {name:?}");
+        println!("avg_outgoing = {avg_outgoing:?}");
+        println!("avg_incoming = {avg_incoming:?}");
+        println!("choked_packets = {choked_packets:?}");
+
+        *state::view_angle() = engine.get_view_angle();
+
+        let cached_players = &mut *elysium_state::players();
+        let local =
+            Player::new(core::mem::transmute(elysium_state::local::player())).expect("player");
+
+        let index = local.index();
+        let bones = &mut cached_players[index as usize].bones;
+        let mut local_player_bones = elysium_state::local::bones();
+
+        ptr::copy_nonoverlapping(
+            bones.as_ptr(),
+            local_player_bones.as_mut_ptr(),
+            providence_model::MAX_BONES,
+        );
+    }
 }

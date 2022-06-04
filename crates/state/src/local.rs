@@ -47,3 +47,9 @@ local! {
     (view_angle, set_view_angle): Shared<Vec3> = Shared::new(Vec3::zero());
     (view_punch_angle, set_view_punch_angle): Shared<Vec3> = Shared::new(Vec3::zero());
 }
+
+/// Is the local player uninitialized.
+#[inline]
+pub fn is_player_none() -> bool {
+    STATE.local.player.is_none()
+}

@@ -1,6 +1,7 @@
 // https://github.com/HackerPolice/MissedIT/blob/master/src/SDK/INetChannel.h
 
 use crate::{ffi, object_validate, vtable_export, vtable_validate, Pad};
+use core::marker::PhantomData;
 use core::mem::MaybeUninit;
 
 #[repr(C)]
@@ -231,11 +232,127 @@ impl NetworkChannel {
 
     /// get channel name
     #[inline]
-    pub fn get_name(&self) -> &str {
+    pub fn get_name(&self) -> Option<&str> {
         unsafe {
             let ptr = (self.vtable.get_name)(self);
 
-            ffi::str_from_ptr(ptr)
+            if ptr.is_null() {
+                None
+            } else {
+                Some(ffi::str_from_ptr(ptr))
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+#[repr(C)]
+pub struct Message {
+    /// valve: "true if message should be send reliable"
+    /// english 100
+    pub reliable: bool,
+    /// if this message object owns it's own data
+    pub own_data: bool,
+}
+
+#[derive(Clone, Debug)]
+#[repr(C)]
+pub struct SendFile {
+    pub message: Message,
+    pub file_crc: i32,
+}
+
+impl SendFile {
+    pub fn new(file_crc: i32) -> Self {
+        let message = Message {
+            reliable: true,
+            own_data: false,
+        };
+
+        Self { message, file_crc }
+    }
+}
+
+#[derive(Clone, Debug)]
+#[repr(C)]
+pub struct Move<'a> {
+    pub message: Message,
+    pub backup_commands: i32,
+    pub new_commands: i32,
+    pub len: i32,
+    pub data: *const u8,
+    _phantom: PhantomData<&'a [u8]>,
+}
+
+impl<'a> Move<'a> {
+    pub fn new(backup_commands: i32, new_commands: i32, data: &'a [u8]) -> Self {
+        let message = Message {
+            reliable: true,
+            own_data: false,
+        };
+
+        Self {
+            message,
+            backup_commands,
+            new_commands,
+            len: data.len() as i32,
+            data: data.as_ptr(),
+            _phantom: PhantomData,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+#[repr(C)]
+pub struct Command<'a> {
+    pub message: Message,
+    pub command: *const u8,
+    _phantom: PhantomData<&'a [u8]>,
+}
+
+impl<'a> Command<'a> {
+    pub fn new(command: &'a [u8]) -> Self {
+        let message = Message {
+            reliable: true,
+            own_data: false,
+        };
+
+        Self {
+            message,
+            command: command.as_ptr(),
+            _phantom: PhantomData,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+#[repr(C)]
+pub struct Delta {
+    pub message: Message,
+    pub sequence_number: i32,
+}
+
+#[derive(Clone, Debug)]
+#[repr(C)]
+pub struct VoiceData<'a> {
+    pub message: Message,
+    pub len: i32,
+    pub data: *const u8,
+    _phantom: PhantomData<&'a [u8]>,
+}
+
+impl<'a> VoiceData<'a> {
+    pub fn new(data: &'a [u8]) -> Self {
+        let message = Message {
+            reliable: false,
+            own_data: false,
+        };
+
+        Self {
+            message,
+            len: data.len() as i32,
+            data: data.as_ptr(),
+            _phantom: PhantomData,
         }
     }
 }

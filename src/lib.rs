@@ -10,12 +10,9 @@
 #![feature(ptr_metadata)]
 
 use crate::global::Global;
-use core::ptr;
 use elysium_dl::Library;
-use elysium_math::Vec3;
-use elysium_sdk::{Flow, Frame};
+use elysium_sdk::Frame;
 use std::path::Path;
-use std::sync::atomic::AtomicI32;
 use std::thread;
 use std::time::Duration;
 
@@ -24,7 +21,6 @@ pub use elysium_state as state;
 pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
-pub mod client;
 pub mod command;
 pub mod console;
 pub mod consts;
@@ -36,7 +32,6 @@ pub mod hooks2;
 pub mod interfaces;
 pub mod islice;
 pub mod item_kind;
-pub mod libraries;
 pub mod library;
 pub mod managed;
 pub mod material;
@@ -77,7 +72,7 @@ unsafe extern "C" fn bootstrap() {
 #[inline]
 fn main() {
     // wait for serverbrowser.so to load as it is the last to load.
-    frosting::println!("waiting for `serverbrowser_client.so` to load");
+    println!("elysium | waiting for \x1b[38;5;2m`serverbrowser_client.so`\x1b[m to load");
 
     loop {
         if Library::exists("./bin/linux64/serverbrowser_client.so") {
@@ -87,18 +82,19 @@ fn main() {
         thread::sleep(Duration::from_millis(500));
     }
 
-    frosting::println!("`serverbrowser_client.so` loaded");
-    frosting::println!("looking for libray: libGL.so.1");
+    println!("elysium | \x1b[38;5;2m`serverbrowser_client.so`\x1b[m loaded, continuing...");
+    
+    frosting::println!("looking for libray: \x1b[38;5;2m`libGL.so.1`\x1b[m");
 
     let gl = match elysium_gl::Gl::open() {
         Some(gl) => gl,
         None => {
-            frosting::println!("failed to load GL, aborting");
+            frosting::println!("\x1b[38;5;1mfailed to load GL, aborting\x1b[m");
             return;
         }
     };
 
-    frosting::println!("loaded GL: {:016x?}", gl);
+    frosting::println!("loaded GL: \x1b[38;5;3m{:016x?}\x1b[m", gl);
 
     unsafe {
         let gl_context = elysium_gl::Context::new(|symbol| gl.get_proc_address(symbol).cast());
@@ -107,17 +103,17 @@ fn main() {
         state::set_gl(gl);
     }
 
-    frosting::println!("looking for libray: libSDL-2.0.so.0");
+    frosting::println!("looking for libray: \x1b[38;5;2m`libSDL-2.0.so.0`\x1b[m");
 
     let sdl = match elysium_sdl::Sdl::open() {
         Some(sdl) => sdl,
         None => {
-            frosting::println!("failed to load SDL, aborting");
+            frosting::println!("\x1b[38;5;1mfailed to load SDL, aborting\x1b[m");
             return;
         }
     };
 
-    frosting::println!("loaded SDL: {:016x?}", sdl);
+    frosting::println!("loaded SDL: \x1b[38;5;3m{:016x?}\x1b[m", sdl);
     frosting::println!("looking for symbol: `SDL_GL_SwapWindow`");
 
     let swap_window = match unsafe { sdl.swap_window() } {
@@ -159,8 +155,6 @@ fn main() {
 
     let global = Global::init().expect("global");
     let global2 = global.clone();
-    let global3 = global.clone();
-    let choked = AtomicI32::new(0);
 
     global.on_frame(move |frame| {
         match frame {
@@ -179,7 +173,7 @@ fn main() {
                 vars.html_motd.write(true);
                 vars.freeze_cam.write(true);
                 vars.panorama_blur.write(true);
-                
+
                 // p100
                 vars.hud.write(false);
 
@@ -215,7 +209,7 @@ fn main() {
                 // phsyics
                 vars.physics_timescale.write(0.5);
             }
-            _ => {},
+            _ => {}
         }
 
         let input = unsafe { &*elysium_state::input().cast::<elysium_sdk::Input>() };
@@ -308,49 +302,5 @@ fn main() {
                 _ => {}
             }
         }
-    });
-
-    global.on_move(move |mut movement| {
-        let engine = unsafe { &*elysium_state::engine().cast::<elysium_sdk::Engine>() };
-        let network_channel = unsafe { &*engine.get_network_channel() };
-        let choked_packets = network_channel.choked_packets;
-        let level_name = engine.get_level_name();
-        let view_angle = engine.get_view_angle();
-        let vectors = movement.vectors;
-        let punch = movement.local_player.aim_punch_angle() * Vec3::splat(2.0);
-        let original_vectors = movement.vectors;
-        let side = (movement.tick_count * 2 - 1) as f32;
-
-        let address = network_channel.get_address();
-        // segfaults btw
-        // let name = network_channel.get_name();
-        let avg_outgoing = network_channel.get_latency(Flow::Outgoing);
-        let avg_incoming = network_channel.get_latency(Flow::Incoming);
-
-        println!("level_name = {level_name:?}");
-        println!("address = {address:?}");
-        // println!("name = {name:?}");
-        println!("avg_outgoing = {avg_outgoing:?}");
-        println!("avg_incoming = {avg_incoming:?}");
-        println!("choked_packets = {choked_packets:?}");
-
-        if movement.send_packet {
-            unsafe {
-                *elysium_state::view_angle() = movement.view;
-
-                let cached_players = &mut *elysium_state::players();
-                let index = movement.local_player.index();
-                let bones = &mut cached_players[index as usize].bones;
-                let mut local_player_bones = elysium_state::local::bones();
-
-                ptr::copy_nonoverlapping(
-                    bones.as_ptr(),
-                    local_player_bones.as_mut_ptr(),
-                    providence_model::MAX_BONES,
-                );
-            }
-        }
-
-        movement
     });
 }

@@ -74,12 +74,3 @@ pub unsafe extern "C" fn hook<'a>(
         //global.draw_model_execute_original(this, context, state, info, bone_to_world);
     }*/
 }
-
-const COLORS: [[f32; 4]; 6] = [
-    [1.0, 0.0, 0.0, 1.0],
-    [1.0, 1.0, 0.0, 1.0],
-    [0.0, 1.0, 0.0, 1.0],
-    [0.0, 1.0, 1.0, 1.0],
-    [0.0, 0.0, 1.0, 1.0],
-    [1.0, 0.0, 1.0, 1.0],
-];

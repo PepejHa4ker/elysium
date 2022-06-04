@@ -1,8 +1,4 @@
-use crate::consts::library;
-use crate::Result;
 use daisy_chain::{Chain, ChainIter};
-use libc::{RTLD_LOCAL, RTLD_NOLOAD, RTLD_NOW};
-use libloading::os::unix;
 use std::marker::PhantomData;
 use std::{fmt, ptr};
 
@@ -16,18 +12,21 @@ pub struct Interface<'a> {
 }
 
 impl<'a> Interface<'a> {
+    #[inline]
     pub fn new(&self) -> *mut () {
         let new = self.new;
 
         unsafe { new() }
     }
 
+    #[inline]
     pub fn name(&self) -> &str {
         self.name.map(spirit::Str::as_str).unwrap_or("")
     }
 }
 
 impl<'a> fmt::Debug for Interface<'a> {
+    #[inline]
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("Interface")
             .field("new", &self.new)
@@ -48,40 +47,28 @@ pub struct Interfaces<'a> {
 }
 
 impl<'a> Interfaces<'a> {
+    #[inline]
     pub const unsafe fn from_ptr(head: *mut Interface<'a>) -> Self {
         let inner = Chain::from_ptr(head, next as Next<'a>);
 
         Self { inner }
     }
 
+    #[inline]
     pub const fn iter(&'a self) -> InterfaceIter<'a> {
         let inner = self.inner.iter();
 
         InterfaceIter { inner }
     }
 
-    pub fn get(&'a self, name: &str) -> *mut () {
+    #[inline]
+    pub fn get(&'a self, target: &str) -> *mut () {
         for interface in self.iter() {
-            let interface_name = interface.name();
+            let name = interface.name();
 
-            // SAFETY: end index is always valid.
-            if unsafe { interface_name.get_unchecked(..interface_name.len().saturating_sub(3)) }
-                == name
-            {
-                let new = interface.new();
+            //println!("dump interfaces: \x1b[38;5;2m{:?}\x1b[m", name);
 
-                return new;
-            }
-        }
-
-        ptr::null_mut()
-    }
-
-    pub fn get_exact(&'a self, name: &str) -> *mut () {
-        for interface in self.iter() {
-            let interface_name = interface.name();
-
-            if interface_name == name {
+            if name.starts_with(target) {
                 let new = interface.new();
 
                 return new;
@@ -93,8 +80,9 @@ impl<'a> Interfaces<'a> {
 }
 
 impl<'a> fmt::Debug for Interfaces<'a> {
+    #[inline]
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_fmt(format_args!("{:?}", self.inner))
+        fmt::Debug::fmt(&self.inner, fmt)
     }
 }
 
@@ -105,115 +93,36 @@ pub struct InterfaceIter<'a> {
 impl<'a> Iterator for InterfaceIter<'a> {
     type Item = &'a Interface<'a>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next()
     }
 }
 
-/// Library wrapper for opening source interfaces easier
-pub struct Library {
-    lib: unix::Library,
-}
+use elysium_dl::Library;
 
-impl Library {
-    /// Open a library by `name`
-    ///
-    /// Flags used during dlopen: RTLD_NOLOAD | RTLD_NOW | RTLD_LOCAL
-    pub fn new(name: &str) -> Result<Self, libloading::Error> {
-        let ptr = unsafe {
-            unix::Library::open(Some(&name), RTLD_NOLOAD | RTLD_NOW | RTLD_LOCAL)?.into_raw()
-        };
+#[inline]
+pub fn load_interfaces() -> elysium_sdk::Interfaces {
+    unsafe {
+        elysium_sdk::Interfaces::from_loader(|interface_kind| {
+            let library_kind = interface_kind.library();
+            let library = match Library::open(library_kind.as_nul_str()) {
+                Some(library) => library,
+                None => panic!("Failed to load library: {library_kind:?}"),
+            };
 
-        let lib = unsafe { unix::Library::from_raw(ptr) };
+            let interfaces = match library.symbol("s_pInterfaceRegs\0") {
+                Some(interfaces) => interfaces.as_ptr(),
+                None => panic!("Failed to find interfaces within library: {library_kind:?}"),
+            };
 
-        Ok(Library { lib })
-    }
+            let interfaces = interfaces.cast::<*mut Interface<'_>>();
+            let interfaces = Interfaces::from_ptr(*interfaces);
+            let interface = interfaces.get(interface_kind.as_str());
 
-    pub fn client() -> Result<Self, libloading::Error> {
-        Self::new(library::CLIENT)
-    }
+            println!("loaded interface \x1b[38;5;2m{interface_kind:?}\x1b[m (\x1b[38;5;2m{:?}\x1b[m) within \x1b[38;5;2m{library_kind:?}\x1b[m (\x1b[38;5;2m{:?}\x1b[m) at \x1b[38;5;3m{interface:?}\x1b[m", interface_kind.as_str(), library_kind.as_str());
 
-    pub fn engine() -> Result<Self, libloading::Error> {
-        Self::new(library::ENGINE)
-    }
-
-    pub fn fs_stdio() -> Result<Self, libloading::Error> {
-        Self::new(library::FS_STDIO)
-    }
-
-    pub fn inputsystem() -> Result<Self, libloading::Error> {
-        Self::new(library::INPUTSYSTEM)
-    }
-
-    pub fn localize() -> Result<Self, libloading::Error> {
-        Self::new(library::LOCALIZE)
-    }
-
-    pub fn matchmaking() -> Result<Self, libloading::Error> {
-        Self::new(library::MATCHMAKING)
-    }
-
-    pub fn materialsystem() -> Result<Self, libloading::Error> {
-        Self::new(library::MATERIALSYSTEM)
-    }
-
-    pub fn panorama() -> Result<Self, libloading::Error> {
-        Self::new(library::PANORAMA)
-    }
-
-    pub fn sdl() -> Result<Self, libloading::Error> {
-        Self::new(library::SDL)
-    }
-
-    pub fn serverbrowser() -> Result<Self, libloading::Error> {
-        Self::new(library::SERVERBROWSER)
-    }
-
-    pub fn vguimatsurface() -> Result<Self, libloading::Error> {
-        Self::new(library::VGUIMATSURFACE)
-    }
-
-    pub fn vgui2() -> Result<Self, libloading::Error> {
-        Self::new(library::VGUI2)
-    }
-
-    pub fn vphysics() -> Result<Self, libloading::Error> {
-        Self::new(library::VPHYSICS)
-    }
-
-    pub unsafe fn get<T>(&self, symbol: &[u8]) -> *const T {
-        if let Ok(symbol) = self.lib.get::<T>(symbol) {
-            symbol.into_raw() as *const T
-        } else {
-            ptr::null()
-        }
-    }
-
-    pub fn interfaces(&self) -> Option<Interfaces<'_>> {
-        let symbol = unsafe { self.get::<*mut Interface<'_>>(library::INTERFACES.as_bytes()) };
-
-        if symbol.is_null() {
-            return None;
-        }
-
-        let interfaces = unsafe { Interfaces::from_ptr(*symbol) };
-
-        Some(interfaces)
-    }
-
-    pub fn get_interface(&self, interface: &str) -> *mut () {
-        if let Some(interfaces) = self.interfaces() {
-            interfaces.get(interface)
-        } else {
-            ptr::null_mut()
-        }
-    }
-
-    pub fn get_exact_interface(&self, interface: &str) -> *mut () {
-        if let Some(interfaces) = self.interfaces() {
-            interfaces.get_exact(interface)
-        } else {
-            ptr::null_mut()
-        }
+            interface
+        })
     }
 }

@@ -50,3 +50,17 @@ pub unsafe fn str_from_ptr<'a>(ptr: *const u8) -> &'a str {
 
     string
 }
+
+#[inline]
+pub unsafe fn str_from_ptr_nullable<'a>(ptr: *const u8) -> &'a str {
+    if ptr.is_null() {
+        ""
+    } else {
+        str_from_ptr(ptr)
+    }
+}
+
+#[inline]
+pub unsafe fn slice_from_i32<'a, T>(data: *const T, len: i32) -> &'a [T] {
+    slice::from_raw_parts(data, len as usize)
+}

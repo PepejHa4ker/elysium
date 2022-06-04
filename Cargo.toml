@@ -15,12 +15,6 @@ path = "crates/daisy_chain"
 [dependencies.findshlibs]
 version = "0.10"
 
-[dependencies.libc]
-version = "0.2"
-
-[dependencies.libloading]
-version = "0.7"
-
 [dependencies.parking_lot]
 version = "0.11"
 

@@ -80,23 +80,6 @@ impl Bone {
     pub const fn as_ptr(&self) -> *const u8 {
         self as *const Self as *const u8
     }
-
-    fn name<'a>(&'a self) -> &'a Str {
-        unsafe { Str::new(self.as_ptr().offset(self.name_offset as isize).cast()) }
-    }
-
-    unsafe fn procedural(&self) -> *const () {
-        match self.procedural_offset {
-            0 => ptr::null(),
-            offset => self.as_ptr().offset(offset as isize).cast(),
-        }
-    }
-
-    unsafe fn get_surface_prop(&self) -> *const i8 {
-        self.as_ptr()
-            .offset(self.surface_prop_offset as isize)
-            .cast()
-    }
 }
 
 #[derive(Debug)]

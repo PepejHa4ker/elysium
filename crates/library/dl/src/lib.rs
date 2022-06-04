@@ -3,7 +3,6 @@
 use libloading::os::unix;
 use std::ffi::OsStr;
 use std::fmt;
-use std::marker::PhantomData;
 use std::os::unix::ffi::OsStrExt;
 
 const FLAGS: libc::c_int = libc::RTLD_NOLOAD /* dont load the library if it isnt already resident */
@@ -12,12 +11,11 @@ const FLAGS: libc::c_int = libc::RTLD_NOLOAD /* dont load the library if it isnt
 const FLAGS_GLOBAL: libc::c_int = libc::RTLD_NOW | unix::RTLD_GLOBAL;
 
 /// Convenience wrapper for `libloading::os::unix::Library`.
-pub struct Library<'a> {
+pub struct Library {
     library: unix::Library,
-    _phantom: PhantomData<&'a ()>,
 }
 
-impl<'a> Library<'a> {
+impl Library {
     /// Copy the inner library handle.
     #[inline]
     fn copied(&self) -> unix::Library {
@@ -43,9 +41,8 @@ impl<'a> Library<'a> {
     {
         // SAFETY: a null terminator is appended if it isnt present.
         let library = unsafe { unix::Library::open(Some(library), FLAGS).ok()? };
-        let _phantom = PhantomData;
 
-        Some(Self { library, _phantom })
+        Some(Self { library })
     }
 
     /// Open the library, `library`.
@@ -56,9 +53,8 @@ impl<'a> Library<'a> {
     {
         // SAFETY: a null terminator is appended if it isnt present.
         let library = unsafe { unix::Library::open(Some(library), FLAGS_GLOBAL).ok()? };
-        let _phantom = PhantomData;
 
-        Some(Self { library, _phantom })
+        Some(Self { library })
     }
 
     /// Checks if the library, `library`, is resident.
@@ -74,14 +70,13 @@ impl<'a> Library<'a> {
     #[inline]
     pub fn this() -> Self {
         let library = unix::Library::this();
-        let _phantom = PhantomData;
 
-        Self { library, _phantom }
+        Self { library }
     }
 
     /// Load the symbol, `symbol`.
     #[inline]
-    pub fn symbol<S>(&self, symbol: S) -> Option<Symbol<'a>>
+    pub fn symbol<S>(&self, symbol: S) -> Option<Symbol>
     where
         S: AsRef<OsStr>,
     {
@@ -96,7 +91,6 @@ impl<'a> Library<'a> {
             } else {
                 Some(Symbol {
                     address: address.cast(),
-                    _phantom: PhantomData,
                 })
             }
         } else {
@@ -105,20 +99,19 @@ impl<'a> Library<'a> {
     }
 }
 
-impl<'a> fmt::Debug for Library<'a> {
+impl fmt::Debug for Library {
     #[inline]
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(&self.as_ptr(), fmt)
     }
 }
 
-/// A symbol with a lifetime.
-pub struct Symbol<'a> {
+/// A symbol.
+pub struct Symbol {
     address: *const (),
-    _phantom: PhantomData<&'a ()>,
 }
 
-impl<'a> Symbol<'a> {
+impl Symbol {
     /// Returns the symbols address.
     #[inline]
     pub fn as_ptr(&self) -> *const () {

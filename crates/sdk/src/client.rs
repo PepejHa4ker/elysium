@@ -1,12 +1,32 @@
 use crate::{vtable_export, vtable_validate};
+use core::mem;
 use frosting::ffi::vtable;
 use frosting::option;
 
+pub use class::Class;
+pub use classes::Classes;
+pub use property::Property;
+pub use table::Table;
+
+mod class;
+mod classes;
+mod property;
+mod table;
+
 #[repr(C)]
 struct VTable {
-    _unknown0: vtable::Pad<8>,
-    get_all_classes: unsafe extern "C" fn(this: *const Client) -> *const (),
-    _unknown1: vtable::Pad<29>,
+    _pad0: vtable::Pad<8>,
+    get_all_classes: unsafe extern "C" fn(this: *const Client) -> *mut Class,
+    _pad1: vtable::Pad<1>,
+    hud_process_input: unsafe extern "C" fn(),
+    hud_update: unsafe extern "C" fn(),
+    _pad2: vtable::Pad<4>,
+    activate_mouse: unsafe extern "C" fn(),
+    _pad3: vtable::Pad<8>,
+    create_move:
+        unsafe extern "C" fn(this: *const (), sample_time: f32, command: *const ()) -> bool,
+    _pad4: vtable::Pad<11>,
+    frame_stage_notify: unsafe extern "C" fn(this: *const (), frame: i32) -> bool,
     dispatch_user_message: unsafe extern "C" fn(
         this: *const Client,
         message_kind: i32,
@@ -18,6 +38,11 @@ struct VTable {
 
 vtable_validate! {
     get_all_classes => 8,
+    hud_process_input => 10,
+    hud_update => 11,
+    activate_mouse => 16,
+    create_move => 25,
+    frame_stage_notify => 37,
     dispatch_user_message => 38,
 }
 
@@ -28,8 +53,11 @@ pub struct Client {
 }
 
 impl Client {
-    vtable_export! {
-        get_all_classes() -> *const (),
+    #[inline]
+    pub fn get_all_classes(&self) -> Classes<'_> {
+        let classes = unsafe { (self.vtable.get_all_classes)(self) };
+
+        Classes::new(classes)
     }
 
     #[inline]
@@ -53,5 +81,61 @@ impl Client {
                 data,
             )
         }
+    }
+
+    #[inline]
+    pub fn client_mode(&self) -> *const u8 {
+        let hud_process_input = self.vtable.hud_process_input as *const u8;
+        let call_get_client_mode = unsafe { hud_process_input.byte_add(11) };
+
+        println!("call client_mode = {:02X?}", unsafe {
+            call_get_client_mode.cast::<[u8; 5]>().read()
+        });
+
+        let get_client_mode = unsafe { elysium_mem::to_absolute(call_get_client_mode, 1, 5) };
+        let get_client_mode =
+            unsafe { mem::transmute::<_, unsafe extern "C" fn() -> *const u8>(get_client_mode) };
+
+        unsafe { (get_client_mode)() }
+    }
+
+    #[inline]
+    pub fn create_move_address(&self) -> *const u8 {
+        self.vtable.create_move as *const u8
+    }
+
+    #[inline]
+    pub fn frame_stage_notify_address(&self) -> *const u8 {
+        self.vtable.frame_stage_notify as *const u8
+    }
+
+    #[inline]
+    pub fn globals(&self) -> *const u8 {
+        let hud_update = self.vtable.hud_update as *const u8;
+        let lea_globals = unsafe { hud_update.byte_add(13) };
+
+        println!("lea_globals = {:02X?}", unsafe {
+            lea_globals.cast::<[u8; 7]>().read()
+        });
+
+        let globals = unsafe { elysium_mem::to_absolute(lea_globals, 3, 7) };
+        let globals = unsafe { *globals.cast::<*const u8>() };
+
+        globals
+    }
+
+    #[inline]
+    pub fn input(&self) -> *const u8 {
+        let activate_mouse = self.vtable.activate_mouse as *const u8;
+        let lea_input = unsafe { activate_mouse.byte_add(3) };
+
+        println!("lea_input = {:02X?}", unsafe {
+            lea_input.cast::<[u8; 5]>().read()
+        });
+
+        let input = unsafe { elysium_mem::to_absolute(lea_input, 1, 5) };
+        let input = unsafe { **input.cast::<*const *const u8>() };
+
+        input
     }
 }

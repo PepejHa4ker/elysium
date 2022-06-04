@@ -49,11 +49,11 @@ pub(crate) mod macros;
 
 /// The GL library itself.
 #[repr(C)]
-pub struct Gl<'gl> {
-    library: Library<'gl>,
+pub struct Gl {
+    library: Library,
 }
 
-impl<'a> Gl<'a> {
+impl Gl {
     /// Load GL, specifically `libGL.so.1`.
     #[inline]
     pub fn open() -> Option<Self> {
@@ -67,7 +67,10 @@ impl<'a> Gl<'a> {
     where
         S: AsRef<OsStr>,
     {
-        frosting::println!("loading symbol: {:?}", symbol.as_ref());
+        println!(
+            "elysium-gl: looking for symbol: \x1b[38;5;2m{:?}\x1b[m",
+            symbol.as_ref()
+        );
 
         let address = self.glx_get_proc_address(&symbol);
 
@@ -75,14 +78,16 @@ impl<'a> Gl<'a> {
             return address;
         }
 
-        frosting::println!("glXGetProcAddress returned null");
+        println!("elysium-gl: \x1b[38;5;1mglXGetProcAddress returned null\x1b[m");
 
-        match self.library.symbol(symbol) {
+        match self.library.symbol(symbol.as_ref()) {
             Some(address) => address.as_ptr() as _,
             None => {
-                frosting::println!("dlsym returned null");
-
-                ptr::null_mut()
+                println!("elysium-gl: \x1b[38;5;1mdlsym returned null, aborting\x1b[m");
+                panic!(
+                    "elysium-gl: unable to find requested symbol: {:?}",
+                    symbol.as_ref()
+                );
             }
         }
     }
@@ -110,7 +115,7 @@ impl<'a> Gl<'a> {
     }
 }
 
-impl<'a> fmt::Debug for Gl<'a> {
+impl fmt::Debug for Gl {
     #[inline]
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(&self.library, fmt)

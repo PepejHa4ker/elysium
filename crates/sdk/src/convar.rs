@@ -72,7 +72,7 @@ pub struct Var<T> {
     /// blah blah static
     vtable: *const VTable<T>,
     _pad0: Pad<40>,
-    pub change_callback: *const unsafe extern "C" fn(),
+    pub change_callback: Option<unsafe extern "C" fn()>,
     pub parent: *const Var<()>,
     pub default_value: *const u8,
     pub string: *const u8,
@@ -190,7 +190,9 @@ macro_rules! vars {
                 L: FnMut(&str) -> *const ()
             {
                 $(
-                    let $name = &*loader($string).cast::<Var<$type>>();
+                    let $name = &mut *loader($string).cast::<Var<$type>>().as_mut();
+
+                    //$name.change_callback = None;
                 )*
 
                 Self { $($name,)* }
@@ -221,7 +223,7 @@ vars! {
     lag_comp: f32 => "cl_lagcompensation",
     max_interp_ratio: f32 => "sv_client_max_interp_ratio",
     max_lag_comp: f32 => "sv_maxunlag",
-    max_update_rate: f32 => "cl_maxupdaterate",
+    //max_update_rate: f32 => "cl_maxupdaterate",
     min_interp_ratio: f32 => "sv_client_min_interp_ratio",
     model_stats: i32 => "r_drawmodelstatsoverlay",
     panorama_blur: bool => "@panorama_disable_blur",

@@ -1,5 +1,5 @@
-use crate::client::{Client, Table};
 use core::mem::MaybeUninit;
+use elysium_sdk::client::{Client, Table};
 use providence_networked::{Class, Entry};
 
 #[derive(Debug)]
@@ -81,7 +81,7 @@ pub struct Networked {
 impl Networked {
     pub fn from_client(client: &Client) -> Self {
         let mut this: Self = unsafe { MaybeUninit::zeroed().assume_init() };
-        let top_level = client.classes();
+        let top_level = client.get_all_classes();
 
         // Iterate classes.
         for class in top_level.iter() {
@@ -157,7 +157,7 @@ fn insert_entry(this: &mut Networked, class: Class, entry: Entry, offset: usize)
 /// Iterate the networked tables.
 fn iterate_table(this: &mut Networked, table: &'static Table, class: Class, base_offset: usize) {
     // TODO: impl iterator for ISlice
-    for property in table.properties.as_slice().iter() {
+    for property in table.properties().iter() {
         if let Some(sub_table) = property.data_table() {
             // Recurse sub-tables.
             iterate_table(

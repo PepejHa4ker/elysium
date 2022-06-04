@@ -34,12 +34,19 @@ pub type CreateMoveFn =
     unsafe extern "C" fn(this: *const (), sample_time: f32, command: *const ()) -> bool;
 
 /// `CL_Move` signature.
-pub type ClMoveFn =
-    unsafe extern "C" fn(accumulated_extra_samples: f32, final_tick: bool);
+pub type ClMoveFn = unsafe extern "C" fn(accumulated_extra_samples: f32, final_tick: bool);
 
 /// `CL_SendMove` signature.
-pub type ClSendMoveFn =
-    unsafe extern "C" fn();
+pub type ClSendMoveFn = unsafe extern "C" fn();
+
+/// `WriteUserCmd` signature
+pub type WriteUserCommandFn = unsafe extern "C" fn(
+    slot: i32,
+    buffer: *const u8,
+    from: i32,
+    to: i32,
+    new_command: bool,
+) -> bool;
 
 /// `SDL_GL_SwapWindow` signature.
 pub type SwapWindowFn = unsafe extern "C" fn(sdl_window: *mut sdl2_sys::SDL_Window);
@@ -48,8 +55,8 @@ pub type SwapWindowFn = unsafe extern "C" fn(sdl_window: *mut sdl2_sys::SDL_Wind
 pub type PollEventFn = unsafe extern "C" fn(sdl_event: *mut sdl2_sys::SDL_Event) -> i32;
 
 struct State {
-    gl_library: SharedOption<elysium_gl::Gl<'static>>,
-    sdl_library: SharedOption<elysium_sdl::Sdl<'static>>,
+    gl_library: SharedOption<elysium_gl::Gl>,
+    sdl_library: SharedOption<elysium_sdl::Sdl>,
 
     gl_context: Shared<elysium_gl::Context>,
 
@@ -63,6 +70,7 @@ struct State {
     cl_send_move: SharedOption<ClSendMoveFn>,
     swap_window: SharedOption<SwapWindowFn>,
     poll_event: SharedOption<PollEventFn>,
+    write_user_command: SharedOption<WriteUserCommandFn>,
 
     materials: Materials,
 
@@ -103,6 +111,7 @@ static STATE: ManuallyDrop<State> = ManuallyDrop::new(State {
     cl_send_move: SharedOption::none(),
     poll_event: SharedOption::none(),
     swap_window: SharedOption::none(),
+    write_user_command: SharedOption::none(),
 
     materials: Materials::new(),
 
@@ -122,13 +131,13 @@ static STATE: ManuallyDrop<State> = ManuallyDrop::new(State {
 
 /// Returns a reference to the `libGL` loader.
 #[inline]
-pub unsafe fn gl() -> &'static mut elysium_gl::Gl<'static> {
+pub unsafe fn gl() -> &'static mut elysium_gl::Gl {
     STATE.gl_library.as_mut()
 }
 
 /// Set the `libGL` loader.
 #[inline]
-pub fn set_gl(library: elysium_gl::Gl<'static>) {
+pub fn set_gl(library: elysium_gl::Gl) {
     unsafe {
         STATE.gl_library.write(library);
     }
@@ -136,13 +145,13 @@ pub fn set_gl(library: elysium_gl::Gl<'static>) {
 
 /// Returns a reference to the `libSDL` loader.
 #[inline]
-pub fn sdl() -> &'static mut elysium_sdl::Sdl<'static> {
+pub fn sdl() -> &'static mut elysium_sdl::Sdl {
     unsafe { STATE.sdl_library.as_mut() }
 }
 
 /// Set the `libSDL` loader.
 #[inline]
-pub fn set_sdl(library: elysium_sdl::Sdl<'static>) {
+pub fn set_sdl(library: elysium_sdl::Sdl) {
     unsafe {
         STATE.sdl_library.write(library);
     }
@@ -299,6 +308,28 @@ pub unsafe fn cl_move(accumulated_extra_samples: f32, final_tick: bool) {
 pub fn set_cl_move(cl_move: ClMoveFn) {
     unsafe {
         STATE.cl_move.write(cl_move);
+    }
+}
+
+/// Calls the original `WriteUserCommand`.
+#[inline]
+pub unsafe fn write_user_command(
+    slot: i32,
+    buffer: *const u8,
+    from: i32,
+    to: i32,
+    new_command: bool,
+) -> bool {
+    let write_user_command = *STATE.write_user_command.as_mut();
+
+    write_user_command(slot, buffer, from, to, new_command)
+}
+
+/// Set the original `WriteUserCommand`.
+#[inline]
+pub fn set_write_user_command(write_user_command: WriteUserCommandFn) {
+    unsafe {
+        STATE.write_user_command.write(write_user_command);
     }
 }
 

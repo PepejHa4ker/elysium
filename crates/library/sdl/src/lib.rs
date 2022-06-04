@@ -6,11 +6,11 @@ use elysium_dl::Library;
 use std::fmt;
 
 /// The SDL library.
-pub struct Sdl<'a> {
-    library: Library<'a>,
+pub struct Sdl {
+    library: Library,
 }
 
-impl<'a> Sdl<'a> {
+impl Sdl {
     /// Load SDL, specifically `libSDL2-2.0.so.0`.
     #[inline]
     pub fn open() -> Option<Self> {
@@ -56,7 +56,7 @@ impl<'a> Sdl<'a> {
     }
 }
 
-impl<'a> fmt::Debug for Sdl<'a> {
+impl fmt::Debug for Sdl {
     #[inline]
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(&self.library, fmt)

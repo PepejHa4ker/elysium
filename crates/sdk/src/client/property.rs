@@ -1,18 +1,16 @@
 use super::Table;
+use crate::{ffi, Pad};
 use core::fmt;
 use core::ptr::NonNull;
-use elysium_sdk::Pad;
-
-// TODO: I hate this entire file.
+use elysium_math::Vec3;
 
 #[repr(C)]
 pub union VariantData {
-    pub float: f32,
-    pub int: i32,
-    pub string: Option<&'static spirit::Str>,
-    pub data: *const usize,
-    pub vector: [f32; 3],
-    pub int64: i64,
+    pub as_data: *const u8,
+    pub as_f32: f32,
+    pub as_i32: i32,
+    pub as_i64: i64,
+    pub as_vec3: Vec3,
 }
 
 #[non_exhaustive]
@@ -23,6 +21,7 @@ pub struct Variant {
 }
 
 impl fmt::Debug for Variant {
+    #[inline]
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_struct("Variant")
             .field("data", &"<union>")
@@ -57,8 +56,7 @@ pub enum PropertyKind {
 #[non_exhaustive]
 #[repr(C)]
 pub struct Property {
-    /// TODO: Find better solution.
-    pub name: Option<&'static spirit::Str>,
+    pub name: *const u8,
     pub kind: PropertyKind,
     pub flags: i32,
     pub string_len: i32,
@@ -70,14 +68,21 @@ pub struct Property {
     pub offset: i32,
     pub element_stride: i32,
     pub elements: i32,
-    pub parent_array_prop_name: Option<&'static spirit::Str>,
+    pub parent_array_prop_name: *const u8,
 }
 
 impl Property {
-    pub fn name(&self) -> &'static str {
-        self.name.map(|name| name.as_str()).unwrap_or("")
+    #[inline]
+    pub fn name(&self) -> &str {
+        unsafe { ffi::str_from_ptr_nullable(self.name) }
     }
 
+    #[inline]
+    pub fn parent_array_prop_name(&self) -> &str {
+        unsafe { ffi::str_from_ptr_nullable(self.parent_array_prop_name) }
+    }
+
+    #[inline]
     pub fn data_table(&self) -> Option<&'static Table> {
         if self.kind == PropertyKind::DataTable {
             self.data_table
@@ -88,6 +93,7 @@ impl Property {
 }
 
 impl fmt::Debug for Property {
+    #[inline]
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_struct("Property")
             .field("name", &self.name())

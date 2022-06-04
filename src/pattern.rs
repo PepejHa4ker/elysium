@@ -51,14 +51,21 @@ pub const ON_POST_RESTORE_DATA: Pattern<60> =
 /// xref `"CL_Move"` in `VPROF` macro
 ///
 /// [engine/cl_main.cpp](https://github.com/VSES/SourceEngine2007/blob/master/se2007/engine/cl_main.cpp)
-pub const CL_MOVE: Pattern<132> =
-    Pattern::new("55 48 89 E5 41 57 41 56 41 89 FE 41 55 41 54 53 48 81 EC 98 01 00 00 F3 0F 11 85 5C FE FF FF");
+pub const CL_MOVE: Pattern<132> = Pattern::new(
+    "55 48 89 E5 41 57 41 56 41 89 FE 41 55 41 54 53 48 81 EC 98 01 00 00 F3 0F 11 85 5C FE FF FF",
+);
 
 /// xref `CL_Move`
 ///
 /// [engine/host.cpp](https://github.com/VSES/SourceEngine2007/blob/master/se2007/engine/host.cpp)
 pub const HOST_RUN_FRAME_INPUT: Pattern<164> =
     Pattern::new("55 48 89 E5 41 57 66 41 0F 7E C7 41 56 41 55 41 89 FD 41 54 53 48 83 EC 08 48 8B 1D C8 25 94 00 44 8B 83 0C 10 00 00");
+
+/// xref `"WriteUsercmd: from=%d to=%d\"`
+///
+/// [game/shared/usercmd.cpp](https://github.com/VSES/SourceEngine2007/blob/master/se2007/game/shared/usercmd.cpp)
+pub const WRITE_USER_COMMAND: Pattern<88> =
+    Pattern::new("55 89 E5 57 56 53 83 EC 2C A1 DC 8E 53 01 8B 7D 08 8B 75 0C");
 
 /// non-owning range over some memory
 #[derive(Clone, Copy, Debug)]

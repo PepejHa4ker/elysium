@@ -11,6 +11,8 @@
 #![feature(const_try)]
 #![feature(generic_const_exprs)]
 #![feature(maybe_uninit_uninit_array)]
+#![feature(pointer_byte_offsets)]
+#![feature(ptr_const_cast)]
 
 pub use animation_layer::AnimationLayer;
 pub use animation_state::AnimationState;
@@ -23,6 +25,7 @@ pub use frame::Frame;
 pub use id::SteamId;
 pub use input::Input;
 pub use input_system::InputSystem;
+pub use interfaces::{InterfaceKind, Interfaces, LibraryKind};
 pub use material::MaterialKind;
 pub use network::{Flow, NetworkChannel};
 pub use pad::Pad;
@@ -42,14 +45,13 @@ mod animation_layer;
 mod animation_state;
 mod beam;
 mod class;
-mod client;
 mod engine;
 mod entry;
 mod frame;
 mod input_system;
+mod interfaces;
 mod macros;
 mod material;
-mod network;
 mod pad;
 mod panorama;
 mod render;
@@ -62,9 +64,12 @@ mod utl_vec;
 mod var;
 mod weapon;
 
+pub mod client;
 pub mod convar;
+pub mod entity;
 pub mod ffi;
 pub mod id;
 pub mod input;
+pub mod network;
 pub mod player_model;
 pub mod trace;

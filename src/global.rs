@@ -1,12 +1,9 @@
-use crate::client::Client;
-use crate::command::Command;
 use crate::console::Console;
 use crate::entity::{EntityList, Player};
 use crate::globals::Globals;
 use crate::hooks;
 use crate::hooks::Hook;
 use crate::interfaces::Interfaces;
-use crate::libraries::Libraries;
 use crate::model::{DrawModelState, ModelInfo, ModelRender, ModelRenderInfo};
 use crate::movement::Movement;
 use crate::networked::Networked;
@@ -14,6 +11,7 @@ use crate::physics::Physics;
 use crate::Result;
 use core::ptr;
 use elysium_math::{Matrix3x4, Vec3};
+use elysium_sdk::Client;
 use elysium_sdk::Frame;
 use providence_model::Bones;
 use std::lazy::SyncOnceCell;
@@ -25,17 +23,12 @@ pub type OnMove = Box<dyn Fn(Movement) -> Movement + 'static>;
 
 static GLOBAL: SyncOnceCell<Global> = SyncOnceCell::new();
 
-use std::collections::HashMap;
-
 #[repr(C)]
 pub struct CachedPlayer {
     bones: Bones,
 }
 
 pub struct GlobalRef {
-    // The games libraries.
-    libraries: Libraries,
-
     // Source interfaces.
     pub interfaces: Interfaces,
 
@@ -55,8 +48,6 @@ pub struct GlobalRef {
     tick: AtomicU32,
     last_command_has_been_predicted: AtomicBool,
 
-    // Function hooks.
-    create_move: Hook,
     frame_stage_notify: Hook,
     draw_model_execute: Hook,
 
@@ -64,9 +55,6 @@ pub struct GlobalRef {
     //       Don't allocate a new Box<> in frame_stage_notify::hook.
     // Reference to the local player
     local_player: Box<Option<Player>>,
-
-    // Player cache.
-    players: HashMap<i32, CachedPlayer>,
 }
 
 #[derive(Clone)]
@@ -77,18 +65,11 @@ unsafe impl Sync for GlobalRef {}
 
 impl Global {
     pub fn init() -> Result<Self> {
-        let libraries = Libraries::new()?;
-        let interfaces = Interfaces::new(&libraries);
+        let interfaces = Interfaces::new();
         let networked = Networked::from_client(&interfaces.client);
 
-        let mut create_move = Hook::new(
-            interfaces.client.create_move_ptr(),
-            hooks::create_move::hook as *const (),
-            true,
-        );
-
         let mut frame_stage_notify = Hook::new(
-            interfaces.client.frame_stage_notify_ptr(),
+            interfaces.client.frame_stage_notify_address().cast(),
             hooks::frame_stage_notify::hook as *const (),
             true,
         );
@@ -102,10 +83,6 @@ impl Global {
             true,
         );
 
-        create_move.apply_protected();
-
-        println!("Hooked create_move.");
-
         frame_stage_notify.apply_protected();
 
         println!("Hooked frame_stage_notify.");
@@ -115,7 +92,6 @@ impl Global {
         println!("Hooked draw_model_execute.");
 
         let this = Self(Arc::new(GlobalRef {
-            libraries,
             interfaces,
 
             // Placeholder callbacks.
@@ -131,11 +107,8 @@ impl Global {
             last_command_has_been_predicted: AtomicBool::new(false),
 
             // Hooks!
-            create_move,
             frame_stage_notify,
             draw_model_execute,
-
-            players: HashMap::new(),
 
             local_player: Box::new(None),
         }));
@@ -192,10 +165,6 @@ impl Global {
             .store(predicted, Ordering::SeqCst);
     }
 
-    pub fn libraries(&self) -> &Libraries {
-        &self.0.libraries
-    }
-
     pub fn interfaces(&self) -> &Interfaces {
         &self.0.interfaces
     }
@@ -242,22 +211,6 @@ impl Global {
 
     pub(crate) fn on_move_ptr(&self) -> *mut OnMove {
         &self.0.on_move as *const OnMove as *mut OnMove
-    }
-
-    pub(crate) fn create_move_original_ptr(&self) -> *mut hooks::create_move::Signature {
-        &self.0.create_move.original as *const *const () as *const hooks::create_move::Signature
-            as *mut hooks::create_move::Signature
-    }
-
-    pub(crate) fn create_move_original(
-        &self,
-        this: *const (),
-        input_sample_time: f32,
-        command: &mut Command,
-    ) -> bool {
-        let original = unsafe { *self.create_move_original_ptr() };
-
-        unsafe { original(this, input_sample_time, command) }
     }
 
     pub(crate) fn frame_stage_notify_original_ptr(
@@ -311,24 +264,12 @@ impl Global {
         unsafe { *self.aim_punch_angle_ptr() }
     }
 
-    pub(crate) fn set_aim_punch_angle(&self, angle: Vec3) {
-        unsafe {
-            *self.aim_punch_angle_ptr() = angle;
-        }
-    }
-
     pub(crate) fn view_punch_angle_ptr(&self) -> *mut Vec3 {
         unsafe { &mut *(&*self.0.view_punch_angle as *const Vec3 as *mut Vec3) }
     }
 
     pub(crate) fn view_punch_angle(&self) -> Vec3 {
         unsafe { *self.view_punch_angle_ptr() }
-    }
-
-    pub(crate) fn set_view_punch_angle(&self, angle: Vec3) {
-        unsafe {
-            *self.view_punch_angle_ptr() = angle;
-        }
     }
 
     /// set frame stage notify hook

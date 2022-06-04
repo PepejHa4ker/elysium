@@ -21,12 +21,15 @@ pub unsafe extern "C" fn hook(this: *const (), frame: i32) {
     let on_frame = &*global.on_frame_ptr();
 
     // TODO: investigate if invalid variants really occur!
-    if matches!(frame, 0..=6) {
+    if matches!(frame, -1..=7) {
         let frame = mem::transmute(frame);
 
         on_frame(frame);
     } else {
-        frosting::println!("refused to call on_frame as frame is not a valid variant");
+        frosting::println!(
+            "refused to call on_frame as frame is not a valid variant {:?}",
+            frame
+        );
     }
 
     global.frame_stage_notify_original(this, frame);
