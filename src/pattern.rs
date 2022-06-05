@@ -6,34 +6,6 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 
-/*pub const ITEM_SYSTEM: Pattern<5> = Pattern::new("E8 ?? ?? ?? ?? 4D 63 EC");
-
-pub const WEAPON_SYSTEM: Pattern<5> = Pattern::new("48 8B 58 10 48 8B 07 FF 10");
-
-pub const SEND_CLANTAG: Pattern<5> = Pattern::new("55 48 89 E5 41 55 49 89 FD 41 54 BF");
-
-pub const SET_PLAYER_READY: Pattern<5> =
-    Pattern::new("55 48 89 F7 48 8D 35 ?? ?? ?? ?? 48 89 E5 E8 ?? ?? ?? ?? 85 C0");
-
-pub const RADAR_IS_HLTV_CHECK: Pattern<5> = Pattern::new("84 C0 74 50 31 F6");
-
-pub const INIT_KEY_VALUES: Pattern<5> = Pattern::new("81 27 00 00 00 ff 55 31 c0 48 89 e5 5d");
-
-pub const LOAD_FROM_BUFFER: Pattern<5> =
-    Pattern::new("55 48 89 E5 41 57 41 56 41 55 41 54 49 89 D4 53 48 81 EC ?? ?? ?? ?? 48 85");
-
-pub const SET_NAMED_SKYBOX: Pattern<5> = Pattern::new("55 4C 8D 05 ?? ?? ?? ?? 48 89 E5 41");
-
-pub const LINE_GOES_THROUGH_SMOKE: Pattern<5> =
-    Pattern::new("55 48 89 E5 41 56 41 55 41 54 53 48 83 EC 30 66 0F D6 45 D0");
-
-pub const MOVE_DATA: Pattern<5> = Pattern::new("48 8b 0d ?? ?? ?? ?? 4c 89 ea");
-
-pub const MOVE_HELPER: Pattern<5> = Pattern::new("00 48 89 3d ?? ?? ?? ?? c3");
-
-pub const PREDICTION_SEED: Pattern<5> =
-    Pattern::new("48 8B 05 ?? ?? ?? ?? 8B 38 E8 ?? ?? ?? ?? 89 C7");*/
-
 pub const ANIMATION_LAYERS: Pattern<80> =
     Pattern::new("55 48 89 E5 41 56 41 55 41 89 F5 41 54 53 48 89 FB 8B");
 
@@ -64,8 +36,8 @@ pub const HOST_RUN_FRAME_INPUT: Pattern<164> =
 /// xref `"WriteUsercmd: from=%d to=%d\"`
 ///
 /// [game/shared/usercmd.cpp](https://github.com/VSES/SourceEngine2007/blob/master/se2007/game/shared/usercmd.cpp)
-pub const WRITE_USER_COMMAND: Pattern<88> =
-    Pattern::new("55 89 E5 57 56 53 83 EC 2C A1 DC 8E 53 01 8B 7D 08 8B 75 0C");
+pub const WRITE_USER_COMMAND: Pattern<68> =
+    Pattern::new("55 48 89 E5 41 56 41 55 4C 8D 35 B1 19 17 02");
 
 /// non-owning range over some memory
 #[derive(Clone, Copy, Debug)]
@@ -167,8 +139,9 @@ impl Libraries {
                 return;
             }
 
-            // were only interested in the library names themselves
+            // we're only interested in the library names themselves
             let library_name = Path::new(library_name.as_ref());
+
             let library_name = match library_name.file_name() {
                 Some(library_name) => library_name,
                 None => return,
@@ -199,10 +172,6 @@ impl Libraries {
         self.write().insert(library_name, base_address, len);
     }
 
-    /*fn get(&self, library_name: &str) -> Option<Range> {
-        self.read().get(library_name)
-    }*/
-
     pub unsafe fn offset_of<const N: usize>(
         &self,
         library_name: &str,
@@ -215,9 +184,10 @@ impl Libraries {
         &self,
         library_name: &str,
         pattern: &Pattern<N>,
+        name: &str,
     ) -> Option<*const u8> {
         self.read().address_of(library_name, pattern).map(|address| {
-            println!("found pattern \x1b[38;5;2m{pattern:?}\x1b[m within {library_name} at {address:?}");
+            println!("elysium | found pattern \x1b[38;5;2m{pattern:?}\x1b[m (\x1b[38;5;2m{name}\x1b[m) within \x1b[38;5;2m{library_name}\x1b[m at \x1b[38;5;3m{address:?}\x1b[m");
 
             address
         })

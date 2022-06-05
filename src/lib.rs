@@ -84,7 +84,7 @@ fn main() {
     let interfaces = library::load_interfaces();
     let console: &'static Console = unsafe { &*interfaces.convar.cast() };
 
-    console.write("welcome to elysium");
+    console.write("welcome to elysium\n");
 
     let vars = unsafe {
         Vars::from_loader(|name| {
@@ -113,6 +113,72 @@ fn main() {
     let swap_window = unsafe { sdl.swap_window().expect("SDL_GL_SwapWindow") };
     let poll_event = unsafe { sdl.poll_event().expect("SDL_PollEvent") };
 
+    let patterns = pattern::Libraries::new();
+    let animation_layers = unsafe {
+        let address = patterns
+            .address_of(
+                "client_client.so",
+                &pattern::ANIMATION_LAYERS,
+                "animation_layers",
+            )
+            .expect("animation layers");
+
+        address.byte_add(35).cast::<u32>().read()
+    };
+
+    let animation_state = unsafe {
+        let address = patterns
+            .address_of(
+                "client_client.so",
+                &pattern::ANIMATION_STATE,
+                "animation_state",
+            )
+            .expect("animation state");
+
+        address.byte_add(52).cast::<u32>().read()
+    };
+
+    let host_run_frame_input = unsafe {
+        let address = patterns
+            .address_of(
+                "engine_client.so",
+                &pattern::HOST_RUN_FRAME_INPUT,
+                "host_run_frame_input",
+            )
+            .expect("host run frame input");
+
+        address
+    };
+
+    let cl_move = unsafe {
+        let cl_move = patterns
+            .address_of("engine_client.so", &pattern::CL_MOVE, "cl_move")
+            .expect("cl move");
+
+        let cl_move: elysium_state::ClMoveFn = core::mem::transmute(cl_move);
+
+        elysium_state::set_cl_move(cl_move);
+
+        cl_move
+    };
+
+    let write_user_command = unsafe {
+        let write_user_command = patterns
+            .address_of(
+                "client_client.so",
+                &pattern::WRITE_USER_COMMAND,
+                "write_user_command",
+            )
+            .expect("write user command");
+
+        let write_user_command: elysium_state::WriteUserCommandFn =
+            core::mem::transmute(write_user_command);
+
+        elysium_state::set_write_user_command(write_user_command);
+
+        write_user_command
+    };
+
     unsafe {
         let gl_context = elysium_gl::Context::new(|symbol| gl.get_proc_address(symbol).cast());
         let swap_window = swap_window as *mut state::SwapWindowFn;
@@ -130,5 +196,51 @@ fn main() {
         state::set_poll_event(poll_event.replace(hooks2::poll_event));
 
         println!("elysium | hooked \x1b[38;5;2mSDL_PollEvent\x1b[m");
+
+        // e8 <relative>  call  CL_Move
+        // 0x005929d3 - 0x00592910 = 195
+        {
+            let cl_move_hook = crate::hooks2::cl_move as usize as *const u8;
+
+            println!(
+                "cl_move_hook = {:02X?}",
+                cl_move_hook.cast::<[u8; 7]>().read()
+            );
+
+            let call_cl_move = host_run_frame_input.byte_offset(195);
+
+            println!(
+                "call cl_move (host_run_frame_input + 195) = {:02X?}",
+                call_cl_move.cast::<[u8; 5]>().read()
+            );
+
+            // obtain rip
+            let rip = call_cl_move.byte_offset(5);
+
+            // calulate relative
+            let relative = cl_move_hook.byte_offset_from(rip);
+
+            println!("cl_move_hook relative = {relative:?}");
+
+            // remove protection
+            let protection = elysium_mem::unprotect(call_cl_move);
+
+            // replace relative
+            let original = call_cl_move
+                .byte_offset(1)
+                .cast::<i32>()
+                .as_mut()
+                .replace(relative as i32);
+
+            println!("cl_move_hook relative (original) = {original:?}");
+
+            // restore protection
+            elysium_mem::protect(call_cl_move, protection);
+
+            println!(
+                "call cl_move (host_run_frame_input + 195) (new) = {:02X?}",
+                call_cl_move.cast::<[u8; 5]>().read()
+            );
+        }
     }
 }
