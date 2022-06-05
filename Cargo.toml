@@ -99,6 +99,9 @@ path = "crates/sdk"
 [dependencies.sdl2-sys]
 version = "0.35"
 
+[profile.release]
+lto = "fat"
+
 [workspace]
 members = [
     "crates/iced/gl",

@@ -68,7 +68,7 @@ impl Gl {
         S: AsRef<OsStr>,
     {
         println!(
-            "elysium-gl: looking for symbol: \x1b[38;5;2m{:?}\x1b[m",
+            "elysium-gl | looking for symbol \x1b[38;5;2m{:?}\x1b[m",
             symbol.as_ref()
         );
 
@@ -78,14 +78,15 @@ impl Gl {
             return address;
         }
 
-        println!("elysium-gl: \x1b[38;5;1mglXGetProcAddress returned null\x1b[m");
+        println!("elysium-gl | \x1b[38;5;1mglXGetProcAddress returned null\x1b[m");
 
         match self.library.symbol(symbol.as_ref()) {
             Some(address) => address.as_ptr() as _,
             None => {
-                println!("elysium-gl: \x1b[38;5;1mdlsym returned null, aborting\x1b[m");
+                println!("elysium-gl | \x1b[38;5;1mdlsym returned null, aborting\x1b[m");
+
                 panic!(
-                    "elysium-gl: unable to find requested symbol: {:?}",
+                    "elysium-gl | unable to find requested symbol {:?}",
                     symbol.as_ref()
                 );
             }

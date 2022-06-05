@@ -99,6 +99,8 @@ impl Networked {
 
 /// Insert an entry we have interest in into our map.
 fn insert_entry(this: &mut Networked, class: Class, entry: Entry, offset: usize) {
+    println!("\x1b[38;5;2m{class:?}\x1b[m \x1b[38;5;2m{entry:?}\x1b[m");
+
     match (class, entry) {
         // base_animating
         (Class::BaseAnimating, Entry::ClientSideAnimation) => {

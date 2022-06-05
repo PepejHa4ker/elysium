@@ -1,4 +1,5 @@
 use daisy_chain::{Chain, ChainIter};
+use elysium_dl::Library;
 use std::marker::PhantomData;
 use std::{fmt, ptr};
 
@@ -99,8 +100,6 @@ impl<'a> Iterator for InterfaceIter<'a> {
     }
 }
 
-use elysium_dl::Library;
-
 #[inline]
 pub fn load_interfaces() -> elysium_sdk::Interfaces {
     unsafe {
@@ -120,7 +119,7 @@ pub fn load_interfaces() -> elysium_sdk::Interfaces {
             let interfaces = Interfaces::from_ptr(*interfaces);
             let interface = interfaces.get(interface_kind.as_str());
 
-            println!("loaded interface \x1b[38;5;2m{interface_kind:?}\x1b[m (\x1b[38;5;2m{:?}\x1b[m) within \x1b[38;5;2m{library_kind:?}\x1b[m (\x1b[38;5;2m{:?}\x1b[m) at \x1b[38;5;3m{interface:?}\x1b[m", interface_kind.as_str(), library_kind.as_str());
+            println!("elysium | loaded interface \x1b[38;5;2m{interface_kind:?}\x1b[m (\x1b[38;5;2m{:?}\x1b[m) within \x1b[38;5;2m{library_kind:?}\x1b[m (\x1b[38;5;2m{:?}\x1b[m) at \x1b[38;5;3m{interface:?}\x1b[m", interface_kind.as_str(), library_kind.as_str());
 
             interface
         })

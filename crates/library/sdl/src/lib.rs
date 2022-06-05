@@ -27,8 +27,6 @@ impl Sdl {
     /// ```
     #[inline]
     pub unsafe fn swap_window(&self) -> Option<*const ()> {
-        frosting::println!("resolving absolute address of `SDL_GL_SwapWindow` from JMP /4");
-
         let symbol = self.library.symbol("SDL_GL_SwapWindow\0")?;
         let base = symbol.as_ptr();
         let relative = base.byte_add(2).cast::<i32>().read() as isize;
@@ -45,8 +43,6 @@ impl Sdl {
     /// ```
     #[inline]
     pub unsafe fn poll_event(&self) -> Option<*const ()> {
-        frosting::println!("resolving absolute address of `SDL_PollEvent` from JMP /4");
-
         let symbol = self.library.symbol("SDL_PollEvent\0")?;
         let base = symbol.as_ptr();
         let relative = base.byte_add(2).cast::<i32>().read() as isize;

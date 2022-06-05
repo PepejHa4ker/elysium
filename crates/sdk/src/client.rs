@@ -112,13 +112,23 @@ impl Client {
     #[inline]
     pub fn globals(&self) -> *const u8 {
         let hud_update = self.vtable.hud_update as *const u8;
-        let lea_globals = unsafe { hud_update.byte_add(13) };
+        let rip = unsafe { hud_update.byte_add(13) };
 
         println!("lea_globals = {:02X?}", unsafe {
-            lea_globals.cast::<[u8; 7]>().read()
+            rip.cast::<[u8; 7]>().read()
         });
 
-        let globals = unsafe { elysium_mem::to_absolute(lea_globals, 3, 7) };
+        // e5 ?? ?? | ?? ?? ?? ??
+        let relative = unsafe { rip.byte_add(3).cast::<i32>().read() as isize };
+
+        println!("relative = {relative:?}");
+
+        let globals = unsafe { elysium_mem::to_absolute(rip, relative, 7) };
+
+        println!("globals = {:02X?}", unsafe {
+            globals.cast::<[u8; 7]>().read()
+        });
+
         let globals = unsafe { *globals.cast::<*const u8>() };
 
         globals
@@ -127,13 +137,15 @@ impl Client {
     #[inline]
     pub fn input(&self) -> *const u8 {
         let activate_mouse = self.vtable.activate_mouse as *const u8;
-        let lea_input = unsafe { activate_mouse.byte_add(3) };
+        let rip = unsafe { activate_mouse.byte_add(3) };
 
-        println!("lea_input = {:02X?}", unsafe {
-            lea_input.cast::<[u8; 5]>().read()
+        println!("call_input = {:02X?}", unsafe {
+            rip.cast::<[u8; 5]>().read()
         });
 
-        let input = unsafe { elysium_mem::to_absolute(lea_input, 1, 5) };
+        // e5 ?? ?? ?? ??
+        let relative = unsafe { rip.byte_add(1).cast::<i32>().read() as isize };
+        let input = unsafe { elysium_mem::to_absolute(rip, relative, 5) };
         let input = unsafe { **input.cast::<*const *const u8>() };
 
         input

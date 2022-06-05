@@ -216,6 +216,10 @@ impl Libraries {
         library_name: &str,
         pattern: &Pattern<N>,
     ) -> Option<*const u8> {
-        self.read().address_of(library_name, pattern)
+        self.read().address_of(library_name, pattern).map(|address| {
+            println!("found pattern \x1b[38;5;2m{pattern:?}\x1b[m within {library_name} at {address:?}");
+
+            address
+        })
     }
 }

@@ -227,17 +227,7 @@ impl Player {
 
     // Returns a "fixed" aim punch angle.
     pub fn aim_punch_angle(&self) -> Vec3 {
-        let global = Global::handle();
-
-        if let Some(local_player) = global.local_player() {
-            if self == local_player {
-                global.aim_punch_angle()
-            } else {
-                self.actual_aim_punch_angle()
-            }
-        } else {
-            self.actual_aim_punch_angle()
-        }
+        self.actual_aim_punch_angle()
     }
 
     // Set the aim punch angle.
@@ -262,17 +252,7 @@ impl Player {
 
     // Returns a "fixed" view punch angle.
     pub fn view_punch_angle(&self) -> Vec3 {
-        let global = Global::handle();
-
-        if let Some(local_player) = global.local_player() {
-            if self == local_player {
-                global.view_punch_angle()
-            } else {
-                self.actual_view_punch_angle()
-            }
-        } else {
-            self.actual_view_punch_angle()
-        }
+        self.actual_view_punch_angle()
     }
 
     // Set the real view punch angle.

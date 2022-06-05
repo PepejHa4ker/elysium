@@ -1,5 +1,5 @@
 use crate::console::Console;
-use crate::entity::EntityList;
+//use crate::entity::EntityList;
 use crate::globals::Globals;
 use crate::material::Materials;
 use crate::model::{ModelInfo, ModelRender};
@@ -12,8 +12,7 @@ use elysium_sdk::Client;
 pub struct Interfaces {
     pub console: &'static Console,
     pub client: &'static Client,
-    pub globals: &'static Globals,
-    pub entity_list: EntityList,
+    //pub globals: &'static Globals,
     pub model_render: ModelRender,
     pub model_info: ModelInfo,
     pub physics: Physics,
@@ -28,13 +27,10 @@ pub struct Interfaces {
 impl Interfaces {
     pub fn new() -> Self {
         unsafe {
-            let interfaces = crate::library::load_interfaces();
 
-            println!("console");
-            let console: &'static Console = &*interfaces.convar.cast();
 
             // to be updated
-            println!("client");
+            //println!("client");
             let client = &*interfaces.client.cast::<elysium_sdk::Client>();
             let entity_list = EntityList::new(interfaces.entity_list as _).unwrap();
             let model_render = ModelRender::new(interfaces.model_render as _).unwrap();
@@ -42,24 +38,20 @@ impl Interfaces {
             let physics = Physics::new(interfaces.physics as _).unwrap();
             let materials = Materials::new(interfaces.material as _).unwrap();
 
-            println!("engine");
+            //println!("engine");
             let engine = interfaces.engine;
             let trace = interfaces.trace;
             //println!("client mode");
             //let client_mode = client.client_mode() as *mut ();
-            println!("globals");
-            let globals = &*(client.globals() as *const Globals);
-            println!("input");
-            let input = client.input();
+            //println!("globals");
+            //let globals = &*(client.globals() as *const Globals);
+            //println!("{globals:?}");
+            //println!("input");
+            //let input = client.input();
 
             elysium_state::set_engine(engine.cast());
             elysium_state::set_trace(trace.cast());
-            elysium_state::set_input(input.cast());
-
-            println!(
-                "Searching for pattern {:?} (animation_layers) in `client_client.so'",
-                pattern::ANIMATION_LAYERS
-            );
+            //elysium_state::set_input(input.cast());
 
             let patterns = pattern::Libraries::new();
             let animation_layers = {
@@ -69,11 +61,6 @@ impl Interfaces {
                     .add(35) as *const u32)
             };
 
-            println!(
-                "Searching for pattern {:?} (animation_state) in `client_client.so'",
-                pattern::ANIMATION_STATE
-            );
-
             let animation_state = {
                 *(patterns
                     .address_of("client_client.so", &pattern::ANIMATION_STATE)
@@ -81,21 +68,11 @@ impl Interfaces {
                     .add(52) as *const u32)
             };
 
-            println!(
-                "Searching for pattern {:?} (host_run_frame_input) in `engine_client.so'",
-                pattern::HOST_RUN_FRAME_INPUT
-            );
-
             let host_run_frame_input = {
                 patterns
                     .address_of("engine_client.so", &pattern::HOST_RUN_FRAME_INPUT)
                     .unwrap_or(ptr::null())
             };
-
-            println!(
-                "Searching for pattern {:?} (cl_move) in `engine_client.so'",
-                pattern::CL_MOVE
-            );
 
             // refer to patterns.rs
             let cl_move = {
@@ -109,11 +86,6 @@ impl Interfaces {
 
                 cl_move
             };
-
-            println!(
-                "Searching for pattern {:?} (write_user_command) in `client_client.so'",
-                pattern::WRITE_USER_COMMAND
-            );
 
             // refer to patterns.rs
             let write_user_command = {
@@ -209,18 +181,10 @@ impl Interfaces {
 
             println!("cl_sendmove = {cl_sendmove:?}");
 
-            let vars = Vars::from_loader(|name| {
-                let address = console.var(name);
-
-                println!("convar {:?} -> {:?}", name, address);
-
-                address
-            });
-
             Self {
                 console,
                 client,
-                globals,
+                //globals,
                 entity_list,
                 model_render,
                 model_info,

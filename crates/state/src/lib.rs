@@ -175,13 +175,11 @@ pub fn set_gl_context(context: elysium_gl::Context) {
 #[inline]
 pub fn menu(context: &elysium_gl::Context, viewport: Viewport) -> &'static mut Menu {
     if is_menu_none() {
-        frosting::println!("state::menu is None, initialising...");
-
         unsafe {
             STATE.menu.write(Menu::new(context, viewport));
         }
 
-        frosting::println!("state::menu initialised");
+        println!("elysium | menu has been initialised");
     }
 
     unsafe { menu_unchecked() }
