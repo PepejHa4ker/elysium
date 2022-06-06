@@ -136,18 +136,14 @@ impl Client {
 
     #[inline]
     pub fn input(&self) -> *const u8 {
-        let activate_mouse = self.vtable.activate_mouse as *const u8;
-        let rip = unsafe { activate_mouse.byte_add(3) };
+        unsafe {
+            let activate_mouse = self.vtable.activate_mouse as *const u8;
+            let input = elysium_mem::to_absolute_with_offset(activate_mouse, 3, 7)
+                .cast::<*const *const u8>()
+                .read()
+                .read();
 
-        println!("call_input = {:02X?}", unsafe {
-            rip.cast::<[u8; 5]>().read()
-        });
-
-        // e5 ?? ?? ?? ??
-        let relative = unsafe { rip.byte_add(1).cast::<i32>().read() as isize };
-        let input = unsafe { elysium_mem::to_absolute(rip, relative, 5) };
-        let input = unsafe { **input.cast::<*const *const u8>() };
-
-        input
+            input
+        }
     }
 }

@@ -18,6 +18,19 @@ pub unsafe fn to_absolute<T>(base: *const T, addr: isize, size: usize) -> *const
         .byte_add(size)
 }
 
+unsafe fn offset_of<T>(base: *const T) -> isize {
+    base.cast::<i32>().read() as isize
+}
+
+/// magic
+#[inline]
+pub unsafe fn to_absolute_with_offset<T>(base: *const T, offset: usize, len: usize) -> *const T {
+    let offset_address = base.byte_add(offset);
+    let offset = offset_of(offset_address);
+
+    base.byte_offset(offset).byte_add(len)
+}
+
 /// Set protection for the page of the given pointer.
 #[inline]
 pub unsafe fn protect<T>(ptr: *const T, protection: i32) {

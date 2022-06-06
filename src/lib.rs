@@ -8,10 +8,11 @@
 #![feature(pointer_byte_offsets)]
 #![feature(ptr_const_cast)]
 #![feature(ptr_metadata)]
+#![feature(naked_functions)]
 
 use elysium_dl::Library;
 use elysium_sdk::convar::Vars;
-use elysium_sdk::Console;
+use elysium_sdk::{Client, Console, Input};
 use std::path::Path;
 use std::thread;
 use std::time::Duration;
@@ -21,20 +22,16 @@ pub use elysium_state as state;
 pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
-pub mod command;
 pub mod consts;
-//pub mod entity;
 pub mod globals;
 pub mod hooks;
 pub mod hooks2;
-//pub mod interfaces;
 pub mod item_kind;
 pub mod library;
 pub mod managed;
 pub mod material;
 pub mod model;
 pub mod move_kind;
-//pub mod movement;
 pub mod networked;
 pub mod pattern;
 pub mod physics;
@@ -83,6 +80,8 @@ fn main() {
 
     let interfaces = library::load_interfaces();
     let console: &'static Console = unsafe { &*interfaces.convar.cast() };
+    let client: &'static Client = unsafe { &*interfaces.client.cast() };
+    let input = client.input();
 
     console.write("welcome to elysium\n");
 
@@ -95,6 +94,54 @@ fn main() {
             address
         })
     };
+
+    // misc
+    vars.cheats.write(true);
+
+    // annoying
+    vars.auto_help.write(false);
+    vars.show_help.write(false);
+
+    // these disable when true
+    vars.engine_sleep.write(true);
+    vars.html_motd.write(true);
+    vars.freeze_cam.write(true);
+    vars.panorama_blur.write(true);
+
+    // p100
+    vars.hud.write(false);
+
+    // shadows
+    vars.csm.write(false);
+    vars.csm_shadows.write(false);
+    vars.feet_shadows.write(false);
+    vars.prop_shadows.write(false);
+    vars.rope_shadows.write(false);
+    vars.shadows.write(false);
+    vars.skybox3d.write(false);
+    vars.viewmodel_shadows.write(false);
+    vars.world_shadows.write(false);
+
+    // useless objects
+    vars.ropes.write(false);
+    vars.sprites.write(false);
+
+    // translucent things
+    //vars.translucent_renderables.write(false);
+    //vars.translucent_world.write(false);
+    vars.water_fog.write(false);
+
+    // overlay
+    vars.underwater_overlay.write(false);
+
+    // effects
+    vars.blood.write(false);
+    vars.decals.write(false);
+    vars.jiggle_bones.write(false);
+    vars.rain.write(false);
+
+    // phsyics
+    vars.physics_timescale.write(0.5);
 
     let gl = elysium_gl::Gl::open().expect("libGL");
 
@@ -163,7 +210,7 @@ fn main() {
     };
 
     let write_user_command = unsafe {
-        let write_user_command = patterns
+        let address = patterns
             .address_of(
                 "client_client.so",
                 &pattern::WRITE_USER_COMMAND,
@@ -171,12 +218,26 @@ fn main() {
             )
             .expect("write user command");
 
-        let write_user_command: elysium_state::WriteUserCommandFn =
-            core::mem::transmute(write_user_command);
+        let write_user_command: elysium_state::WriteUserCommandFn = core::mem::transmute(address);
 
         elysium_state::set_write_user_command(write_user_command);
 
         write_user_command
+    };
+
+    let write_user_command_delta_to_buffer = unsafe {
+        let address = patterns
+            .address_of(
+                "client_client.so",
+                &pattern::WRITE_USER_COMMAND_DELTA_TO_BUFFER,
+                "write_user_command_delta_to_buffer",
+            )
+            .expect("write user command delta to buffer");
+
+        let write_user_command_delta_to_buffer: elysium_state::WriteUserCommandFn =
+            core::mem::transmute(address);
+
+        write_user_command_delta_to_buffer
     };
 
     unsafe {
@@ -196,6 +257,8 @@ fn main() {
         state::set_poll_event(poll_event.replace(hooks2::poll_event));
 
         println!("elysium | hooked \x1b[38;5;2mSDL_PollEvent\x1b[m");
+
+        state::set_input(input);
 
         // e8 <relative>  call  CL_Move
         // 0x005929d3 - 0x00592910 = 195
@@ -226,13 +289,13 @@ fn main() {
             let protection = elysium_mem::unprotect(call_cl_move);
 
             // replace relative
-            let original = call_cl_move
-                .byte_offset(1)
-                .cast::<i32>()
-                .as_mut()
-                .replace(relative as i32);
+            /*let original = call_cl_move
+            .byte_offset(1)
+            .cast::<i32>()
+            .as_mut()
+            .replace(relative as i32);*/
 
-            println!("cl_move_hook relative (original) = {original:?}");
+            //println!("cl_move_hook relative (original) = {original:?}");
 
             // restore protection
             elysium_mem::protect(call_cl_move, protection);
@@ -241,6 +304,29 @@ fn main() {
                 "call cl_move (host_run_frame_input + 195) (new) = {:02X?}",
                 call_cl_move.cast::<[u8; 5]>().read()
             );
+        }
+
+        {
+            #[repr(C, packed)]
+            struct Jmp4 {
+                jmp: u8,
+                rel: i32,
+            }
+
+            let hook = hooks2::write_user_command_delta_to_buffer as *const u8;
+            let base = write_user_command_delta_to_buffer as *const u8;
+            let rip = base.byte_add(5);
+            let rel = (hook as *const u8).byte_offset_from(rip) as i32;
+            let jmp = Jmp4 { jmp: 0xE9, rel };
+
+            // remove protection
+            let protection = elysium_mem::unprotect(base);
+
+            // write jmp
+            base.as_mut().cast::<Jmp4>().write(jmp);
+
+            // restore protection
+            elysium_mem::protect(base, protection);
         }
     }
 }

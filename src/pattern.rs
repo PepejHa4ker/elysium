@@ -39,6 +39,10 @@ pub const HOST_RUN_FRAME_INPUT: Pattern<164> =
 pub const WRITE_USER_COMMAND: Pattern<68> =
     Pattern::new("55 48 89 E5 41 56 41 55 4C 8D 35 B1 19 17 02");
 
+/// xref `WriteUsercmd`
+pub const WRITE_USER_COMMAND_DELTA_TO_BUFFER: Pattern<72> =
+    Pattern::new("55 48 8D 05 38 BC 68 01 41 89 F2 48 89 E5 41 57");
+
 /// non-owning range over some memory
 #[derive(Clone, Copy, Debug)]
 pub struct Range {

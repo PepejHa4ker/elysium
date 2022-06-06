@@ -47,6 +47,11 @@ pub struct Interfaces<'a> {
     inner: Chain<Interface<'a>, Next<'a>>,
 }
 
+#[inline]
+fn is_exact(target: &str) -> bool {
+    target.chars().rev().take(3).all(char::is_numeric)
+}
+
 impl<'a> Interfaces<'a> {
     #[inline]
     pub const unsafe fn from_ptr(head: *mut Interface<'a>) -> Self {
@@ -64,15 +69,21 @@ impl<'a> Interfaces<'a> {
 
     #[inline]
     pub fn get(&'a self, target: &str) -> *mut () {
+        let cmp = if is_exact(target) {
+            |name: &str, target: &str| name == target
+        } else {
+            |name: &str, target: &str| {
+                let name = unsafe { name.get_unchecked(0..name.len().saturating_sub(3)) };
+
+                name == target
+            }
+        };
+
         for interface in self.iter() {
             let name = interface.name();
 
-            //println!("dump interfaces: \x1b[38;5;2m{:?}\x1b[m", name);
-
-            if name.starts_with(target) {
-                let new = interface.new();
-
-                return new;
+            if cmp(name, target) {
+                return interface.new();
             }
         }
 
@@ -110,13 +121,13 @@ pub fn load_interfaces() -> elysium_sdk::Interfaces {
                 None => panic!("Failed to load library: {library_kind:?}"),
             };
 
-            let interfaces = match library.symbol("s_pInterfaceRegs\0") {
+            let symbol = match library.symbol("s_pInterfaceRegs\0") {
                 Some(interfaces) => interfaces.as_ptr(),
                 None => panic!("Failed to find interfaces within library: {library_kind:?}"),
             };
 
-            let interfaces = interfaces.cast::<*mut Interface<'_>>();
-            let interfaces = Interfaces::from_ptr(*interfaces);
+            let symbol = symbol.cast::<*mut Interface<'_>>();
+            let interfaces = Interfaces::from_ptr(*symbol);
             let interface = interfaces.get(interface_kind.as_str());
 
             println!("elysium | loaded interface \x1b[38;5;2m{interface_kind:?}\x1b[m (\x1b[38;5;2m{:?}\x1b[m) within \x1b[38;5;2m{library_kind:?}\x1b[m (\x1b[38;5;2m{:?}\x1b[m) at \x1b[38;5;3m{interface:?}\x1b[m", interface_kind.as_str(), library_kind.as_str());

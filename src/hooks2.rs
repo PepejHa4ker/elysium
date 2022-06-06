@@ -87,3 +87,51 @@ pub unsafe extern "C" fn poll_event(sdl_event: *mut sdl2_sys::SDL_Event) -> i32 
 pub unsafe extern "C" fn cl_move(_accumulated_extra_samples: f32, _final_tick: bool) {
     return;
 }
+
+use core::mem::MaybeUninit;
+use elysium_math::Vec3;
+use elysium_sdk::network::Move;
+use elysium_sdk::{Command, Input};
+
+#[inline(never)]
+pub unsafe extern "C" fn write_user_command_delta_to_buffer(
+    _this: *const u8,
+    slot: i32,
+    buffer: *mut u8,
+    from: i32,
+    to: i32,
+    new_command: u8,
+) -> bool {
+    let mut zero_command = MaybeUninit::<Command>::zeroed();
+    let zero_command = zero_command.as_mut_ptr();
+    let input = &*state::input().cast::<Input>();
+
+    let from_command = if from == -1 {
+        zero_command
+    } else {
+        let from_command = input.get_user_command(slot, from).as_mut();
+
+        if from_command.is_null() {
+            zero_command
+        } else {
+            from_command
+        }
+    };
+
+    let to_command = input.get_user_command(slot, to).as_mut();
+    let to_command = if to_command.is_null() {
+        zero_command
+    } else {
+        to_command
+    };
+
+    println!("from_command = {:?}", &*from_command);
+    println!("to_command = {:?}", &*to_command);
+
+    let from_command = from_command.cast();
+    let to_command = to_command.as_const().cast();
+
+    elysium_state::write_user_command(buffer, to_command, from_command);
+
+    true
+}

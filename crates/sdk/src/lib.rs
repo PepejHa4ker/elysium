@@ -24,7 +24,7 @@ pub use engine::{Engine, PlayerInfo};
 pub use entry::Entry;
 pub use frame::Frame;
 pub use id::SteamId;
-pub use input::Input;
+pub use input::{Command, Input};
 pub use input_system::InputSystem;
 pub use interfaces::{InterfaceKind, Interfaces, LibraryKind};
 pub use material::MaterialKind;

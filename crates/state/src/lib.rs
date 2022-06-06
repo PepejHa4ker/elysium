@@ -40,13 +40,8 @@ pub type ClMoveFn = unsafe extern "C" fn(accumulated_extra_samples: f32, final_t
 pub type ClSendMoveFn = unsafe extern "C" fn();
 
 /// `WriteUserCmd` signature
-pub type WriteUserCommandFn = unsafe extern "C" fn(
-    slot: i32,
-    buffer: *const u8,
-    from: i32,
-    to: i32,
-    new_command: bool,
-) -> bool;
+pub type WriteUserCommandFn =
+    unsafe extern "C" fn(buffer: *mut u8, from: *const u8, to: *mut u8) -> bool;
 
 /// `SDL_GL_SwapWindow` signature.
 pub type SwapWindowFn = unsafe extern "C" fn(sdl_window: *mut sdl2_sys::SDL_Window);
@@ -311,16 +306,10 @@ pub fn set_cl_move(cl_move: ClMoveFn) {
 
 /// Calls the original `WriteUserCommand`.
 #[inline]
-pub unsafe fn write_user_command(
-    slot: i32,
-    buffer: *const u8,
-    from: i32,
-    to: i32,
-    new_command: bool,
-) -> bool {
+pub unsafe fn write_user_command(buffer: *mut u8, from: *const u8, to: *mut u8) -> bool {
     let write_user_command = *STATE.write_user_command.as_mut();
 
-    write_user_command(slot, buffer, from, to, new_command)
+    write_user_command(buffer, from, to)
 }
 
 /// Set the original `WriteUserCommand`.

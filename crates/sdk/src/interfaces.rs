@@ -56,7 +56,7 @@ libraries! {
 }
 
 macro_rules! interfaces {
-    ($(($ident:ident, $field:ident) => (LibraryKind::$library:ident, $string:literal)),*) => {
+    ($(($ident:ident, $field:ident) => ($library:ident, $string:literal)),*) => {
         /// interface
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]
         #[non_exhaustive]
@@ -126,29 +126,35 @@ macro_rules! interfaces {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum InterfaceMatch {
+    Exact,
+    Partial,
+}
+
 interfaces! {
-    (Client, client) => (LibraryKind::Client, "VClient"),
-    (ConVar, convar) => (LibraryKind::Material, "VEngineCvar"),
-    (Debug, debug) => (LibraryKind::Engine, "VDebugOverlay"),
-    (Effects, effects) => (LibraryKind::Engine, "VEngineEffects"),
-    (Engine, engine) => (LibraryKind::Engine, "VEngineClient"),
-    (EntityList, entity_list) => (LibraryKind::Client, "VClientEntityList"),
-    (Events, events) => (LibraryKind::Engine, "GAMEEVENTSMANAGER002"),
-    (Filesystem, filesystem) => (LibraryKind::Filesystem, "VFileSystem"),
-    (InputInternal, input_internal) => (LibraryKind::VGui, "VGUI_InputInternal"),
-    (InputSystem, input_system) => (LibraryKind::Input, "InputSystemVersion"),
-    (Kinds, kinds) => (LibraryKind::Matchmaking, "VENGINE_GAMETYPES_VERSION002"),
-    (Localize, localize) => (LibraryKind::Localize, "Localize_"),
-    (Material, material) => (LibraryKind::Material, "VMaterialSystem"),
-    (ModelInfo, model_info) => (LibraryKind::Engine, "VModelInfoClient"),
-    (ModelRender, model_render) => (LibraryKind::Engine, "VEngineModel"),
-    (Movement, movement) => (LibraryKind::Client, "GameMovement"),
-    (Panel, panel) => (LibraryKind::VGui, "VGUI_Panel"),
-    (Panorama, panorama) => (LibraryKind::Panorama, "PanoramaUIEngine001"),
-    (Physics, physics) => (LibraryKind::Physics, "VPhysicsSurfaceProps"),
-    (Prediction, prediction) => (LibraryKind::Client, "VClientPrediction001"),
-    (Sound, sound) => (LibraryKind::Engine, "IEngineSoundClient"),
-    (Surface, surface) => (LibraryKind::Surface, "VGUI_Surface"),
-    (Trace, trace) => (LibraryKind::Engine, "EngineTraceClient"),
-    (VGui, vgui) => (LibraryKind::Engine, "VEngineVGui")
+    (Client, client) => (Client, "VClient"),
+    (ConVar, convar) => (Material, "VEngineCvar"),
+    (Debug, debug) => (Engine, "VDebugOverlay"),
+    (Effects, effects) => (Engine, "VEngineEffects"),
+    (Engine, engine) => (Engine, "VEngineClient"),
+    (EntityList, entity_list) => (Client, "VClientEntityList"),
+    (Events, events) => (Engine, "GAMEEVENTSMANAGER002"),
+    (Filesystem, filesystem) => (Filesystem, "VFileSystem"),
+    (InputInternal, input_internal) => (VGui, "VGUI_InputInternal"),
+    (InputSystem, input_system) => (Input, "InputSystemVersion"),
+    (Kinds, kinds) => (Matchmaking, "VENGINE_GAMETYPES_VERSION002"),
+    (Localize, localize) => (Localize, "Localize_"),
+    (Material, material) => (Material, "VMaterialSystem"),
+    (ModelInfo, model_info) => (Engine, "VModelInfoClient"),
+    (ModelRender, model_render) => (Engine, "VEngineModel"),
+    (Movement, movement) => (Client, "GameMovement"),
+    (Panel, panel) => (VGui, "VGUI_Panel"),
+    (Panorama, panorama) => (Panorama, "PanoramaUIEngine001"),
+    (Physics, physics) => (Physics, "VPhysicsSurfaceProps"),
+    (Prediction, prediction) => (Client, "VClientPrediction001"),
+    (Sound, sound) => (Engine, "IEngineSoundClient"),
+    (Surface, surface) => (Surface, "VGUI_Surface"),
+    (Trace, trace) => (Engine, "EngineTraceClient"),
+    (VGui, vgui) => (Engine, "VEngineVGui")
 }
