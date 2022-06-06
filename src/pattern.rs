@@ -1,4 +1,4 @@
-use core::ptr;
+use core::slice;
 use findshlibs::{Segment, SharedLibrary, TargetSharedLibrary};
 use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use providence_pattern::Pattern;
@@ -55,8 +55,8 @@ impl Range {
         Self { base_address, len }
     }
 
-    pub const unsafe fn as_slice(&self) -> &[u8] {
-        &*ptr::from_raw_parts(self.base_address as *const (), self.len)
+    pub unsafe fn as_slice(&self) -> &[u8] {
+        slice::from_raw_parts(self.base_address, self.len)
     }
 
     pub unsafe fn offset_of<const N: usize>(&self, pattern: &Pattern<N>) -> Option<usize> {

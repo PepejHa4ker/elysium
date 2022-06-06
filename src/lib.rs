@@ -1,18 +1,11 @@
-#![feature(const_maybe_uninit_zeroed)]
-#![feature(const_mut_refs)]
-#![feature(const_trait_impl)]
-#![feature(extern_types)]
-#![feature(once_cell)]
 #![feature(maybe_uninit_array_assume_init)]
 #![feature(maybe_uninit_uninit_array)]
 #![feature(pointer_byte_offsets)]
 #![feature(ptr_const_cast)]
-#![feature(ptr_metadata)]
-#![feature(naked_functions)]
 
 use elysium_dl::Library;
 use elysium_sdk::convar::Vars;
-use elysium_sdk::{Client, Console, Input};
+use elysium_sdk::{Client, Console};
 use std::path::Path;
 use std::thread;
 use std::time::Duration;
@@ -28,13 +21,9 @@ pub mod hooks;
 pub mod hooks2;
 pub mod item_kind;
 pub mod library;
-pub mod managed;
-pub mod material;
-pub mod model;
 pub mod move_kind;
 pub mod networked;
 pub mod pattern;
-pub mod physics;
 
 // this is called by glibc after the library is loaded into a process
 #[link_section = ".init_array"]

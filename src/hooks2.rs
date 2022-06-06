@@ -89,8 +89,6 @@ pub unsafe extern "C" fn cl_move(_accumulated_extra_samples: f32, _final_tick: b
 }
 
 use core::mem::MaybeUninit;
-use elysium_math::Vec3;
-use elysium_sdk::network::Move;
 use elysium_sdk::{Command, Input};
 
 #[inline(never)]
@@ -100,7 +98,7 @@ pub unsafe extern "C" fn write_user_command_delta_to_buffer(
     buffer: *mut u8,
     from: i32,
     to: i32,
-    new_command: u8,
+    _new_command: u8,
 ) -> bool {
     let mut zero_command = MaybeUninit::<Command>::zeroed();
     let zero_command = zero_command.as_mut_ptr();
