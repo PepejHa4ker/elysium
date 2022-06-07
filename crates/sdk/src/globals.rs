@@ -17,9 +17,3 @@ pub struct Globals {
     pub is_client: bool,
     pub is_remote_client: bool,
 }
-
-impl Globals {
-    pub unsafe fn from_raw(ptr: *const ()) -> &'static Self {
-        &*(ptr as *const Self)
-    }
-}

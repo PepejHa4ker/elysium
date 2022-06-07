@@ -152,7 +152,7 @@ macro_rules! vars {
 
             /// returns the actual game variable this maps to
             #[inline]
-            const fn as_nul_str(&self) -> &'static str {
+            pub const fn as_nul_str(&self) -> &'static str {
                 match self {
                     $(
                         VarKind::$name => concat!($string, "\0"),
@@ -166,6 +166,12 @@ macro_rules! vars {
                 let string = self.as_nul_str();
 
                 unsafe { string.get_unchecked(0..string.len().saturating_sub(1)) }
+            }
+
+            /// returne a pointer to the var
+            #[inline]
+            pub const fn as_ptr(&self) -> *const u8 {
+                self.as_nul_str().as_ptr()
             }
         }
 
@@ -185,14 +191,20 @@ macro_rules! vars {
         impl Vars {
             /// load all config variables
             #[inline]
-            pub unsafe fn from_loader<L>(mut loader: L) -> Self
+            pub fn from_loader<L>(mut loader: L) -> Self
             where
-                L: FnMut(&str) -> *const ()
+                L: FnMut(VarKind) -> *const ()
             {
                 $(
-                    let $name = &mut *loader($string).cast::<Var<$type>>().as_mut();
+                    let $name = {
+                        let var = loader(VarKind::$name).cast::<Var<$type>>().as_mut();
 
-                    //$name.change_callback = None;
+                        if var.is_null() {
+                            panic!(concat!("config variable `", stringify!($name), "` is null"));
+                        }
+
+                        unsafe { &mut *var }
+                    };
                 )*
 
                 Self { $($name,)* }

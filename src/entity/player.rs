@@ -1,6 +1,5 @@
 use super::{Entity, Weapon};
 use crate::global::Global;
-use crate::managed::handle;
 use crate::model::Model;
 use core::cmp;
 use elysium_math::Vec3;

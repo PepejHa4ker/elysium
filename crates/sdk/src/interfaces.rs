@@ -126,12 +126,6 @@ macro_rules! interfaces {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum InterfaceMatch {
-    Exact,
-    Partial,
-}
-
 interfaces! {
     (Client, client) => (Client, "VClient"),
     (ConVar, convar) => (Material, "VEngineCvar"),

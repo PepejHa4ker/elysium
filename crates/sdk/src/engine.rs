@@ -85,9 +85,6 @@ pub struct Engine {
 
 impl Engine {
     vtable_export! {
-        /// returns the local player's index
-        local_player_index() -> i32,
-
         /// returns the maximum amount of clients
         get_max_clients() -> i32,
 
@@ -102,6 +99,12 @@ impl Engine {
 
         /// returns the network channel
         get_network_channel() -> *const NetworkChannel,
+    }
+
+    /// returns the local player's index
+    #[inline]
+    pub fn local_player_index(&self) -> usize {
+        unsafe { (self.vtable.local_player_index)(self) as usize }
     }
 
     /// returns the screen size

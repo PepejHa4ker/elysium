@@ -1,6 +1,6 @@
 use core::mem::MaybeUninit;
 use elysium_sdk::client::{Client, Table};
-use providence_networked::{Class, Entry};
+use elysium_sdk::{Class, Entry};
 
 #[derive(Debug)]
 pub struct BaseAnimating {
@@ -79,7 +79,8 @@ pub struct Networked {
 }
 
 impl Networked {
-    pub fn from_client(client: &Client) -> Self {
+    #[inline]
+    pub fn new(client: &Client) -> Self {
         let mut this: Self = unsafe { MaybeUninit::zeroed().assume_init() };
         let top_level = client.get_all_classes();
 
@@ -98,8 +99,10 @@ impl Networked {
 }
 
 /// Insert an entry we have interest in into our map.
+#[inline]
 fn insert_entry(this: &mut Networked, class: Class, entry: Entry, offset: usize) {
-    println!("\x1b[38;5;2m{class:?}\x1b[m \x1b[38;5;2m{entry:?}\x1b[m");
+    // TODO: some nice way to log
+    //println!("elysium | networked \x1b[38;5;2m{class:?}\x1b[m variable \x1b[38;5;2m{entry:?}\x1b[m offset \x1b[38;5;3m{offset:0x?}\x1b[m");
 
     match (class, entry) {
         // base_animating
@@ -157,6 +160,7 @@ fn insert_entry(this: &mut Networked, class: Class, entry: Entry, offset: usize)
 }
 
 /// Iterate the networked tables.
+#[inline]
 fn iterate_table(this: &mut Networked, table: &'static Table, class: Class, base_offset: usize) {
     // TODO: impl iterator for ISlice
     for property in table.properties().iter() {

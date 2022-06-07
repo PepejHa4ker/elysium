@@ -27,9 +27,9 @@ macro_rules! local {
             }
 
             #[inline]
-            pub fn $set(material: $ty) {
+            pub fn $set(value: $ty) {
                 unsafe {
-                    STATE.local.$get.write(material);
+                    STATE.local.$get.write(value);
                 }
             }
         )*
@@ -38,13 +38,15 @@ macro_rules! local {
 
 local! {
     (aim_punch_angle, set_aim_punch_angle): Shared<Vec3> = Shared::new(Vec3::zero());
-    (player, set_player): SharedOption<NonNull<usize>> = SharedOption::none();
+    (player, set_player): SharedOption<NonNull<u8>> = SharedOption::none();
     (bones, set_bones): Shared<Bones> = Shared::new(Bones::zero());
-    (weapon, set_weapon): SharedOption<NonNull<usize>> = SharedOption::none();
+    (weapon, set_weapon): SharedOption<NonNull<u8>> = SharedOption::none();
     (magazine_ammo, set_magazine_ammo): Shared<i32> = Shared::new(0);
     (total_ammo, set_total_ammo): Shared<i32> = Shared::new(0);
     (health, set_health): Shared<i32> = Shared::new(0);
     (view_angle, set_view_angle): Shared<Vec3> = Shared::new(Vec3::zero());
+    (shot_view_angle, set_shot_view_angle): Shared<Vec3> = Shared::new(Vec3::zero());
+    (use_shot_view_angle, set_use_shot_view_angle): Shared<f32> = Shared::new(0.0);
     (view_punch_angle, set_view_punch_angle): Shared<Vec3> = Shared::new(Vec3::zero());
 }
 
@@ -52,4 +54,12 @@ local! {
 #[inline]
 pub fn is_player_none() -> bool {
     STATE.local.player.is_none()
+}
+
+/// Reset local player
+#[inline]
+pub fn set_player_none() {
+    unsafe {
+        STATE.local.player.take();
+    }
 }

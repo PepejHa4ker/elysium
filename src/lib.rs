@@ -2,27 +2,31 @@
 #![feature(maybe_uninit_uninit_array)]
 #![feature(pointer_byte_offsets)]
 #![feature(ptr_const_cast)]
+// src/entity.rs
+#![feature(const_ptr_offset_from)]
 
 use elysium_dl::Library;
 use elysium_sdk::convar::Vars;
 use elysium_sdk::{Client, Console};
 use std::path::Path;
-use std::thread;
 use std::time::Duration;
+use std::{mem, thread};
 
 pub use elysium_state as state;
 
 pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
+pub use entity::Entity;
+pub use networked::Networked;
+
+mod entity;
+mod networked;
+
 pub mod consts;
-pub mod globals;
 pub mod hooks;
-pub mod hooks2;
 pub mod item_kind;
 pub mod library;
-pub mod move_kind;
-pub mod networked;
 pub mod pattern;
 
 // this is called by glibc after the library is loaded into a process
@@ -70,19 +74,22 @@ fn main() {
     let interfaces = library::load_interfaces();
     let console: &'static Console = unsafe { &*interfaces.convar.cast() };
     let client: &'static Client = unsafe { &*interfaces.client.cast() };
+    let globals = client.globals();
     let input = client.input();
 
     console.write("welcome to elysium\n");
 
-    let vars = unsafe {
-        Vars::from_loader(|name| {
-            let address = console.var(name);
+    let vars = Vars::from_loader(|var_kind| {
+        let var_nul_name = var_kind.as_nul_str();
+        let var_name = var_kind.as_str();
+        let address = console.var(var_nul_name);
 
-            println!("elysium | config variable \x1b[38;5;2m{name}\x1b[m found at \x1b[38;5;3m{address:?}\x1b[m");
+        println!("elysium | config variable \x1b[38;5;2m{var_name}\x1b[m found at \x1b[38;5;3m{address:?}\x1b[m");
 
-            address
-        })
-    };
+        address
+    });
+
+    let networked = Networked::new(client);
 
     // misc
     vars.cheats.write(true);
@@ -191,9 +198,9 @@ fn main() {
             .address_of("engine_client.so", &pattern::CL_MOVE, "cl_move")
             .expect("cl move");
 
-        let cl_move: elysium_state::ClMoveFn = core::mem::transmute(cl_move);
+        let cl_move: state::hooks::ClMove = mem::transmute(cl_move);
 
-        elysium_state::set_cl_move(cl_move);
+        state::hooks::set_cl_move(cl_move);
 
         cl_move
     };
@@ -207,9 +214,9 @@ fn main() {
             )
             .expect("write user command");
 
-        let write_user_command: elysium_state::WriteUserCommandFn = core::mem::transmute(address);
+        let write_user_command: state::hooks::WriteUserCommand = mem::transmute(address);
 
-        elysium_state::set_write_user_command(write_user_command);
+        state::hooks::set_write_user_command(write_user_command);
 
         write_user_command
     };
@@ -223,56 +230,63 @@ fn main() {
             )
             .expect("write user command delta to buffer");
 
-        let write_user_command_delta_to_buffer: elysium_state::WriteUserCommandFn =
-            core::mem::transmute(address);
+        let write_user_command_delta_to_buffer: state::hooks::WriteUserCommand =
+            mem::transmute(address);
 
         write_user_command_delta_to_buffer
     };
 
     unsafe {
         let gl_context = elysium_gl::Context::new(|symbol| gl.get_proc_address(symbol).cast());
-        let swap_window = swap_window as *mut state::SwapWindowFn;
-        let poll_event = poll_event as *mut state::PollEventFn;
+        let swap_window = swap_window as *mut state::hooks::SwapWindow;
+        let poll_event = poll_event as *mut state::hooks::PollEvent;
 
         state::set_gl(gl);
         state::set_sdl(sdl);
 
         state::set_gl_context(gl_context);
 
-        state::set_swap_window(swap_window.replace(hooks2::swap_window));
+        state::set_networked(mem::transmute(networked));
 
+        state::set_engine(interfaces.engine);
+        state::set_entity_list(interfaces.entity_list);
+        state::set_globals(globals);
+        state::set_input(input);
+
+        state::hooks::set_swap_window(swap_window.replace(hooks::swap_window));
         println!("elysium | hooked \x1b[38;5;2mSDL_GL_SwapWindow\x1b[m");
 
-        state::set_poll_event(poll_event.replace(hooks2::poll_event));
-
+        state::hooks::set_poll_event(poll_event.replace(hooks::poll_event));
         println!("elysium | hooked \x1b[38;5;2mSDL_PollEvent\x1b[m");
 
-        state::set_input(input);
+        {
+            let address = client
+                .frame_stage_notify_address()
+                .as_mut()
+                .cast::<state::hooks::FrameStageNotify>();
+
+            // remove protection
+            let protection = elysium_mem::unprotect(address);
+
+            state::hooks::set_frame_stage_notify(address.replace(hooks::frame_stage_notify));
+
+            println!("elysium | hooked \x1b[38;5;2mFrameStageNotify\x1b[m");
+
+            // restore protection
+            elysium_mem::protect(address, protection);
+        }
 
         // e8 <relative>  call  CL_Move
         // 0x005929d3 - 0x00592910 = 195
         {
-            let cl_move_hook = crate::hooks2::cl_move as usize as *const u8;
-
-            println!(
-                "cl_move_hook = {:02X?}",
-                cl_move_hook.cast::<[u8; 7]>().read()
-            );
-
+            let cl_move_hook = hooks::cl_move as usize as *const u8;
             let call_cl_move = host_run_frame_input.byte_offset(195);
-
-            println!(
-                "call cl_move (host_run_frame_input + 195) = {:02X?}",
-                call_cl_move.cast::<[u8; 5]>().read()
-            );
 
             // obtain rip
             let rip = call_cl_move.byte_offset(5);
 
             // calulate relative
             let relative = cl_move_hook.byte_offset_from(rip);
-
-            println!("cl_move_hook relative = {relative:?}");
 
             // remove protection
             let protection = elysium_mem::unprotect(call_cl_move);
@@ -288,11 +302,6 @@ fn main() {
 
             // restore protection
             elysium_mem::protect(call_cl_move, protection);
-
-            println!(
-                "call cl_move (host_run_frame_input + 195) (new) = {:02X?}",
-                call_cl_move.cast::<[u8; 5]>().read()
-            );
         }
 
         {
@@ -302,7 +311,7 @@ fn main() {
                 rel: i32,
             }
 
-            let hook = hooks2::write_user_command_delta_to_buffer as *const u8;
+            let hook = hooks::write_user_command_delta_to_buffer as *const u8;
             let base = write_user_command_delta_to_buffer as *const u8;
             let rip = base.byte_add(5);
             let rel = (hook as *const u8).byte_offset_from(rip) as i32;
@@ -313,6 +322,7 @@ fn main() {
 
             // write jmp
             base.as_mut().cast::<Jmp4>().write(jmp);
+            println!("elysium | hooked \x1b[38;5;2mWriteUsercmdDeltaToBuffer\x1b[m");
 
             // restore protection
             elysium_mem::protect(base, protection);

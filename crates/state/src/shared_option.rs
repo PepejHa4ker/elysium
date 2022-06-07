@@ -35,4 +35,9 @@ impl<T> SharedOption<T> {
     pub const unsafe fn write(&self, value: T) {
         self.0.write(Some(value));
     }
+
+    #[inline]
+    pub const unsafe fn take(&self) -> Option<T> {
+        self.0.as_mut().take()
+    }
 }

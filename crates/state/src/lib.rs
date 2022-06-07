@@ -12,6 +12,7 @@ use core::ptr;
 use core::ptr::NonNull;
 use elysium_math::Vec3;
 use elysium_menu::Menu;
+use hooks::Hooks;
 use iced_elysium_gl::Viewport;
 use iced_native::{Point, Size};
 use local::Local;
@@ -26,28 +27,9 @@ mod shared_box;
 mod shared_option;
 
 pub mod cache;
+pub mod hooks;
 pub mod local;
 pub mod material;
-
-/// `CreateMove` signature.
-pub type CreateMoveFn =
-    unsafe extern "C" fn(this: *const (), sample_time: f32, command: *const ()) -> bool;
-
-/// `CL_Move` signature.
-pub type ClMoveFn = unsafe extern "C" fn(accumulated_extra_samples: f32, final_tick: bool);
-
-/// `CL_SendMove` signature.
-pub type ClSendMoveFn = unsafe extern "C" fn();
-
-/// `WriteUserCmd` signature
-pub type WriteUserCommandFn =
-    unsafe extern "C" fn(buffer: *mut u8, from: *const u8, to: *mut u8) -> bool;
-
-/// `SDL_GL_SwapWindow` signature.
-pub type SwapWindowFn = unsafe extern "C" fn(sdl_window: *mut sdl2_sys::SDL_Window);
-
-/// `SDL_PollEvent` signature.
-pub type PollEventFn = unsafe extern "C" fn(sdl_event: *mut sdl2_sys::SDL_Event) -> i32;
 
 struct State {
     gl_library: SharedOption<elysium_gl::Gl>,
@@ -60,14 +42,11 @@ struct State {
     cursor_position: Shared<Point>,
     window_size: Shared<Size<u32>>,
 
-    create_move: SharedOption<CreateMoveFn>,
-    cl_move: SharedOption<ClMoveFn>,
-    cl_send_move: SharedOption<ClSendMoveFn>,
-    swap_window: SharedOption<SwapWindowFn>,
-    poll_event: SharedOption<PollEventFn>,
-    write_user_command: SharedOption<WriteUserCommandFn>,
+    hooks: Hooks,
 
     materials: Materials,
+
+    networked: Shared<[u8; 248]>,
 
     local: Local,
 
@@ -79,6 +58,12 @@ struct State {
 
     /// type-erased reference to the game engine interface
     engine: SharedOption<NonNull<u8>>,
+
+    /// type-erased reference to the game entity list interface
+    entity_list: SharedOption<NonNull<u8>>,
+
+    /// type-erased reference to the games globals
+    globals: SharedOption<NonNull<u8>>,
 
     /// type-erased reference to the input interface
     input: SharedOption<NonNull<u8>>,
@@ -101,14 +86,11 @@ static STATE: ManuallyDrop<State> = ManuallyDrop::new(State {
     cursor_position: Shared::new(Point::new(0.0, 0.0)),
     window_size: Shared::new(Size::new(0, 0)),
 
-    create_move: SharedOption::none(),
-    cl_move: SharedOption::none(),
-    cl_send_move: SharedOption::none(),
-    poll_event: SharedOption::none(),
-    swap_window: SharedOption::none(),
-    write_user_command: SharedOption::none(),
+    hooks: Hooks::new(),
 
     materials: Materials::new(),
+
+    networked: Shared::new([0; 248]),
 
     local: Local::new(),
 
@@ -119,6 +101,8 @@ static STATE: ManuallyDrop<State> = ManuallyDrop::new(State {
     view_angle: Shared::new(Vec3::splat(0.0)),
 
     engine: SharedOption::none(),
+    entity_list: SharedOption::none(),
+    globals: SharedOption::none(),
     input: SharedOption::none(),
     network_channel: SharedOption::none(),
     trace: SharedOption::none(),
@@ -234,90 +218,10 @@ pub fn update_window_size(size: Size<u32>) {
     }
 }
 
-/// Calls the original `SDL_GL_SwapWindow`.
-#[inline]
-pub unsafe fn swap_window(window: *mut sdl2_sys::SDL_Window) {
-    let swap_window = *STATE.swap_window.as_mut();
-
-    swap_window(window)
-}
-
-/// Set the original `SDL_GL_SwapWindow`.
-#[inline]
-pub fn set_swap_window(swap_window: SwapWindowFn) {
-    unsafe {
-        STATE.swap_window.write(swap_window);
-    }
-}
-
-/// Calls the original `SDL_PollEvent`.
-#[inline]
-pub unsafe fn poll_event(event: *mut sdl2_sys::SDL_Event) -> i32 {
-    let poll_event = *STATE.poll_event.as_mut();
-
-    poll_event(event)
-}
-
-/// Set the original `SDL_PollEvent`.
-#[inline]
-pub fn set_poll_event(poll_event: PollEventFn) {
-    unsafe {
-        STATE.poll_event.write(poll_event);
-    }
-}
-
 /// Returns a reference to the player cache.
 #[inline]
 pub unsafe fn players() -> &'static mut Players {
     STATE.players.as_mut()
-}
-
-/// Calls the original `CreateMove`.
-#[inline]
-pub unsafe fn create_move(this: *const (), sample_time: f32, command: *const ()) -> bool {
-    let create_move = *STATE.create_move.as_mut();
-
-    create_move(this, sample_time, command)
-}
-
-/// Set the original `CreateMove`.
-#[inline]
-pub fn set_create_move(create_move: CreateMoveFn) {
-    unsafe {
-        STATE.create_move.write(create_move);
-    }
-}
-
-/// Calls the original `ClMove`.
-#[inline]
-pub unsafe fn cl_move(accumulated_extra_samples: f32, final_tick: bool) {
-    let cl_move = *STATE.cl_move.as_mut();
-
-    cl_move(accumulated_extra_samples, final_tick)
-}
-
-/// Set the original `ClMove`.
-#[inline]
-pub fn set_cl_move(cl_move: ClMoveFn) {
-    unsafe {
-        STATE.cl_move.write(cl_move);
-    }
-}
-
-/// Calls the original `WriteUserCommand`.
-#[inline]
-pub unsafe fn write_user_command(buffer: *mut u8, from: *const u8, to: *mut u8) -> bool {
-    let write_user_command = *STATE.write_user_command.as_mut();
-
-    write_user_command(buffer, from, to)
-}
-
-/// Set the original `WriteUserCommand`.
-#[inline]
-pub fn set_write_user_command(write_user_command: WriteUserCommandFn) {
-    unsafe {
-        STATE.write_user_command.write(write_user_command);
-    }
 }
 
 /// Return's a reference to engine prediction time.
@@ -355,6 +259,18 @@ pub unsafe fn set_engine(engine: *const u8) {
 }
 
 #[inline]
+pub unsafe fn entity_list() -> *const u8 {
+    STATE.entity_list.as_mut().as_ptr()
+}
+
+#[inline]
+pub unsafe fn set_entity_list(entity_list: *const u8) {
+    STATE
+        .entity_list
+        .write(NonNull::new_unchecked(entity_list.as_mut()));
+}
+
+#[inline]
 pub unsafe fn input() -> *const u8 {
     STATE.input.as_mut().as_ptr()
 }
@@ -377,6 +293,18 @@ pub unsafe fn set_network_channel(network_channel: *const u8) {
 }
 
 #[inline]
+pub unsafe fn globals() -> *const u8 {
+    STATE.globals.as_mut().as_ptr()
+}
+
+#[inline]
+pub unsafe fn set_globals(globals: *const u8) {
+    STATE
+        .globals
+        .write(NonNull::new_unchecked(globals.as_mut()));
+}
+
+#[inline]
 pub unsafe fn trace() -> *const u8 {
     STATE.trace.as_mut().as_ptr()
 }
@@ -384,4 +312,14 @@ pub unsafe fn trace() -> *const u8 {
 #[inline]
 pub unsafe fn set_trace(trace: *const u8) {
     STATE.trace.write(NonNull::new_unchecked(trace.as_mut()));
+}
+
+#[inline]
+pub unsafe fn networked() -> *const [u8; 248] {
+    STATE.networked.as_mut()
+}
+
+#[inline]
+pub unsafe fn set_networked(networked: [u8; 248]) {
+    STATE.networked.write(networked);
 }
