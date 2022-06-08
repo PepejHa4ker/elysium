@@ -31,7 +31,7 @@ struct VTable {
     _unknown2: vtable::Pad<2>,
     local_player_index: unsafe extern "C" fn(this: *const Engine) -> i32,
     _unknown3: vtable::Pad<5>,
-    get_view_angle: unsafe extern "C" fn(this: *const Engine, angle: *mut Vec3),
+    view_angle: unsafe extern "C" fn(this: *const Engine, angle: *mut Vec3),
     set_view_angle: unsafe extern "C" fn(this: *const Engine, angle: *const Vec3),
     get_max_clients: unsafe extern "C" fn(this: *const Engine) -> i32,
     _unknown4: vtable::Pad<5>,
@@ -63,7 +63,7 @@ vtable_validate! {
     get_player_info => 8,
     get_player_for_user_id => 9,
     local_player_index => 12,
-    get_view_angle => 18,
+    view_angle => 18,
     set_view_angle => 19,
     get_max_clients => 20,
     is_in_game => 26,
@@ -147,11 +147,11 @@ impl Engine {
 
     /// get the view angle
     #[inline]
-    pub fn get_view_angle(&self) -> Vec3 {
+    pub fn view_angle(&self) -> Vec3 {
         unsafe {
             let mut view_angle = MaybeUninit::uninit();
 
-            (self.vtable.get_view_angle)(self, view_angle.as_mut_ptr());
+            (self.vtable.view_angle)(self, view_angle.as_mut_ptr());
 
             view_angle.assume_init()
         }

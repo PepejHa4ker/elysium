@@ -1,4 +1,4 @@
-use crate::{object_validate, vtable_validate};
+use crate::vtable_validate;
 use frosting::ffi::vtable;
 
 #[derive(Debug)]

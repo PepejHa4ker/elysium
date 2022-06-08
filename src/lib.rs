@@ -21,7 +21,7 @@ pub use entity::Entity;
 pub use networked::Networked;
 
 mod entity;
-mod networked;
+pub mod networked;
 
 pub mod consts;
 pub mod hooks;
@@ -247,34 +247,12 @@ fn main() {
         state::set_gl_context(gl_context);
 
         state::set_networked(mem::transmute(networked));
+        state::set_vars(mem::transmute(vars));
 
         state::set_engine(interfaces.engine);
         state::set_entity_list(interfaces.entity_list);
         state::set_globals(globals);
         state::set_input(input);
-
-        state::hooks::set_swap_window(swap_window.replace(hooks::swap_window));
-        println!("elysium | hooked \x1b[38;5;2mSDL_GL_SwapWindow\x1b[m");
-
-        state::hooks::set_poll_event(poll_event.replace(hooks::poll_event));
-        println!("elysium | hooked \x1b[38;5;2mSDL_PollEvent\x1b[m");
-
-        {
-            let address = client
-                .frame_stage_notify_address()
-                .as_mut()
-                .cast::<state::hooks::FrameStageNotify>();
-
-            // remove protection
-            let protection = elysium_mem::unprotect(address);
-
-            state::hooks::set_frame_stage_notify(address.replace(hooks::frame_stage_notify));
-
-            println!("elysium | hooked \x1b[38;5;2mFrameStageNotify\x1b[m");
-
-            // restore protection
-            elysium_mem::protect(address, protection);
-        }
 
         // e8 <relative>  call  CL_Move
         // 0x005929d3 - 0x00592910 = 195
@@ -303,6 +281,46 @@ fn main() {
             // restore protection
             elysium_mem::protect(call_cl_move, protection);
         }
+
+        {
+            let address = client
+                .create_move_address()
+                .as_mut()
+                .cast::<state::hooks::CreateMove>();
+
+            // remove protection
+            let protection = elysium_mem::unprotect(address);
+
+            state::hooks::set_create_move(address.replace(hooks::create_move));
+
+            println!("elysium | hooked \x1b[38;5;2mCreateMove\x1b[m");
+
+            // restore protection
+            elysium_mem::protect(address, protection);
+        }
+
+        {
+            let address = client
+                .frame_stage_notify_address()
+                .as_mut()
+                .cast::<state::hooks::FrameStageNotify>();
+
+            // remove protection
+            let protection = elysium_mem::unprotect(address);
+
+            state::hooks::set_frame_stage_notify(address.replace(hooks::frame_stage_notify));
+
+            println!("elysium | hooked \x1b[38;5;2mFrameStageNotify\x1b[m");
+
+            // restore protection
+            elysium_mem::protect(address, protection);
+        }
+
+        state::hooks::set_swap_window(swap_window.replace(hooks::swap_window));
+        println!("elysium | hooked \x1b[38;5;2mSDL_GL_SwapWindow\x1b[m");
+
+        state::hooks::set_poll_event(poll_event.replace(hooks::poll_event));
+        println!("elysium | hooked \x1b[38;5;2mSDL_PollEvent\x1b[m");
 
         {
             #[repr(C, packed)]

@@ -12,25 +12,30 @@ pub struct Vec3 {
 }
 
 impl Vec3 {
+    #[inline]
     pub const fn as_ptr(&self) -> *const f32 {
         ptr::addr_of!(self.x)
     }
 
+    #[inline]
     pub const fn as_mut_ptr(&mut self) -> *mut f32 {
         ptr::addr_of_mut!(self.x)
     }
 
     /// Create a new `Vec3` from x, y coordinates.
+    #[inline]
     pub const fn from_xy(x: f32, y: f32) -> Vec3 {
         Vec3 { x, y, z: 0.0 }
     }
 
     /// Create a new `Vec3` from x, y, and z coordinates.
+    #[inline]
     pub const fn from_xyz(x: f32, y: f32, z: f32) -> Vec3 {
         Vec3 { x, y, z }
     }
 
     /// Create a new `Vec3` from x, y, and z coordinates, discarding w.
+    #[inline]
     pub const fn from_xyzw(x: f32, y: f32, z: f32, w: f32) -> Vec3 {
         let _ = w;
 
@@ -38,12 +43,14 @@ impl Vec3 {
     }
 
     /// Create a new `Vec3` from an array.
+    #[inline]
     pub const fn from_array(array: [f32; 3]) -> Vec3 {
         let [x, y, z] = array;
 
         Vec3 { x, y, z }
     }
 
+    #[inline]
     pub fn from_angle(angle: Vec3) -> Vec3 {
         let meth::Vec2 { x, y } = angle.to_vec2().to_radians();
 
@@ -53,7 +60,33 @@ impl Vec3 {
         Vec3::from_xyz(x_cos * y_cos, x_cos * y_sin, -x_sin)
     }
 
+    #[inline]
+    pub fn vector_angle(vector: Vec3) -> Self {
+        let mut pitch = 0.0;
+        let mut yaw = 0.0;
+
+        if !(vector.x != 0.0 || vector.y != 0.0) {
+            pitch = if vector.z > 0.0 { 270.0 } else { 90.0 };
+            yaw = 0.0;
+        } else {
+            pitch = (-vector.z).atan2(vector.magnitude2d()).to_degrees();
+
+            if pitch < 0.0 {
+                pitch += 360.0;
+            }
+
+            yaw = vector.y.atan2(vector.x).to_degrees();
+
+            if yaw < 0.0 {
+                yaw += 360.0;
+            }
+        }
+
+        Self::from_xy(pitch, yaw)
+    }
+
     /// Vector to angle.
+    #[inline]
     pub fn to_angle(self) -> Vec3 {
         let Vec3 { x, y, z } = self;
 
@@ -64,16 +97,40 @@ impl Vec3 {
         Vec3::from_xyz(x, y, z)
     }
 
-    pub const fn with_normalized_pitch(mut self) -> Vec3 {
-        self.x = Real::clamp(self.x, 89.0, 89.0);
+    #[inline]
+    pub fn to_dir(self) -> Self {
+        Self::from_xy(self.x, self.y)
+    }
+
+    #[inline]
+    pub fn normalize(mut self) -> Self {
+        let magnitude = self.magnitude();
+
+        if magnitude != 0.0 {
+            self.x = self.x / magnitude;
+            self.y = self.y / magnitude;
+            self.z = self.z / magnitude;
+        } else {
+            self.x = 0.0;
+            self.y = 0.0;
+            self.z = 1.0;
+        }
+
         self
     }
 
-    pub const fn with_normalized_yaw(mut self) -> Vec3 {
+    #[inline]
+    pub fn normalize_angle(mut self) -> Self {
+        while self.x > 89.0 {
+            self.x -= 180.0;
+        }
+        while self.x < -89.0 {
+            self.x += 180.0;
+        }
+
         while self.y > 180.0 {
             self.y -= 360.0;
         }
-
         while self.y < -180.0 {
             self.y += 360.0;
         }
@@ -81,46 +138,20 @@ impl Vec3 {
         self
     }
 
-    pub const fn with_normalized_roll(mut self) -> Vec3 {
+    #[inline]
+    pub fn clamp_angle(mut self) -> Self {
+        self.x = self.x.clamp(-89.0, 89.0);
+        self.y = self.y.clamp(-180.0, 180.0);
         self.z = 0.0;
         self
     }
 
-    pub const fn normalize(self) -> Vec3 {
-        self.with_normalized_pitch()
-            .with_normalized_yaw()
-            .with_normalized_roll()
+    #[inline]
+    pub fn sanitize_angle(self) -> Self {
+        self.normalize_angle().clamp_angle()
     }
 
-    pub const fn with_clamped_pitch(mut self) -> Vec3 {
-        self.x = Real::clamp(self.x, -89.0, 89.0);
-        self
-    }
-
-    pub const fn with_clamped_yaw(mut self) -> Vec3 {
-        self.y = Real::clamp(self.y, -180.0, 180.0);
-        self
-    }
-
-    pub const fn with_clamped_roll(mut self) -> Vec3 {
-        self.z = 0.0;
-        self
-    }
-
-    pub const fn clamp(self) -> Vec3 {
-        self.with_clamped_pitch()
-            .with_clamped_yaw()
-            .with_clamped_roll()
-    }
-
-    pub const fn normalize_in_place(&mut self) {
-        *self = self.normalize();
-    }
-
-    pub const fn clamp_in_place(&mut self) {
-        *self = self.clamp();
-    }
-
+    #[inline]
     pub fn angle_vector(&self) -> (Vec3, Vec3, Vec3) {
         let angle = self.to_vec().to_radians();
         let (sin_pitch, cos_pitch) = angle.x.sin_cos();
@@ -146,6 +177,7 @@ impl Vec3 {
         (forward, right, up)
     }
 
+    #[inline]
     pub const fn splat(value: f32) -> Vec3 {
         Vec3 {
             x: value,
@@ -155,73 +187,89 @@ impl Vec3 {
     }
 
     /// Create a new `Vec3` with all coordinates set to zero.
+    #[inline]
     pub const fn zero() -> Vec3 {
         Vec3::splat(0.0)
     }
 
     /// Create a new `Vec3` with all coordinates set to one.
+    #[inline]
     pub const fn one() -> Vec3 {
         Vec3::splat(1.0)
     }
 
+    #[inline]
     pub const fn distance(self, other: Vec3) -> f32 {
         self.to_vec().distance(other.to_vec())
     }
 
+    #[inline]
     pub const fn distance_squared(self, other: Vec3) -> f32 {
         self.to_vec().distance_squared(other.to_vec())
     }
 
+    #[inline]
     pub const fn distance2d(self, other: Vec3) -> f32 {
         self.to_vec2().distance(other.to_vec2())
     }
 
+    #[inline]
     pub const fn distance2d_squared(self, other: Vec3) -> f32 {
         self.to_vec2().distance_squared(other.to_vec2())
     }
 
+    #[inline]
     pub const fn dot(self, other: Vec3) -> f32 {
         self.to_vec().dot(other.to_vec())
     }
 
     /// Calculate the magnitude (length).
+    #[inline]
     pub const fn magnitude(self) -> f32 {
         self.to_vec().magnitude()
     }
 
     /// Calculate the magnitude (length) without squaring.
+    #[inline]
     pub const fn magnitude_squared(self) -> f32 {
         self.to_vec().magnitude_squared()
     }
 
     /// Calculate the magnitude (length) of y and x.
+    #[inline]
     pub const fn magnitude2d(self) -> f32 {
         self.to_vec2().magnitude()
     }
 
     /// Calculate the magnitude (length) of y and x without squaring.
+    #[inline]
     pub const fn magnitude2d_squared(self) -> f32 {
         self.to_vec2().magnitude_squared()
     }
 
+    #[inline]
     pub const fn is_finite(self) -> bool {
         self.x.is_finite() && self.y.is_finite() && self.z.is_finite()
     }
 
+    #[inline]
     pub const fn is_normal(self) -> bool {
         self.x.is_normal() && self.y.is_normal() && self.z.is_normal()
     }
 
+    #[inline]
     const fn from_vec(vec: meth::Vec3<f32>) -> Vec3 {
         Vec3::from_array(vec.to_array())
     }
 
+    #[inline]
     const fn to_vec(self) -> meth::Vec3<f32> {
         let Vec3 { x, y, z } = self;
 
         meth::Vec3::from_array([x, y, z])
     }
 
+    #[inline]
     const fn to_vec2(self) -> meth::Vec2<f32> {
         let Vec3 { x, y, .. } = self;
 

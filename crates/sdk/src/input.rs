@@ -27,7 +27,7 @@ pub struct Command {
     pub vtable: *const (),
     pub command: i32,
     pub tick_count: i32,
-    pub view: Vec3,
+    pub view_angle: Vec3,
     pub aim_direction: Vec3,
     pub movement: Vec3,
     pub state: i32,

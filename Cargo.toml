@@ -96,6 +96,9 @@ git = "https://github.com/iced-rs/iced"
 [dependencies.elysium-sdk]
 path = "crates/sdk"
 
+[dependencies.libm]
+git = "https://github.com/elysian6969/libm"
+
 [dependencies.sdl2-sys]
 version = "0.35"
 

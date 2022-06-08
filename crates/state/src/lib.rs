@@ -48,6 +48,8 @@ struct State {
 
     networked: Shared<[u8; 248]>,
 
+    vars: Shared<[u8; 360]>,
+
     local: Local,
 
     players: Shared<Players>,
@@ -91,6 +93,8 @@ static STATE: ManuallyDrop<State> = ManuallyDrop::new(State {
     materials: Materials::new(),
 
     networked: Shared::new([0; 248]),
+
+    vars: Shared::new([0; 360]),
 
     local: Local::new(),
 
@@ -322,4 +326,14 @@ pub unsafe fn networked() -> *const [u8; 248] {
 #[inline]
 pub unsafe fn set_networked(networked: [u8; 248]) {
     STATE.networked.write(networked);
+}
+
+#[inline]
+pub unsafe fn vars() -> *const [u8; 360] {
+    STATE.vars.as_mut()
+}
+
+#[inline]
+pub unsafe fn set_vars(vars: [u8; 360]) {
+    STATE.vars.write(vars);
 }

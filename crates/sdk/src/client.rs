@@ -1,4 +1,4 @@
-use crate::vtable_validate;
+use crate::{vtable_validate, ClientMode};
 use core::mem;
 use frosting::ffi::vtable;
 use frosting::option;
@@ -80,16 +80,25 @@ impl Client {
     }
 
     #[inline]
-    pub fn client_mode(&self) -> *const u8 {
+    pub fn client_mode(&self) -> *const ClientMode {
         unsafe {
-            type ClientMode = unsafe extern "C" fn() -> *const u8;
+            type ClientModeFn = unsafe extern "C" fn() -> *const ClientMode;
 
             let hud_process_input = self.vtable.hud_process_input as *const u8;
             let call_client_mode = hud_process_input.byte_add(11);
             let client_mode = elysium_mem::to_absolute_with_offset(call_client_mode, 1, 5);
-            let client_mode: ClientMode = mem::transmute(client_mode);
+            let client_mode: ClientModeFn = mem::transmute(client_mode);
 
             client_mode()
+        }
+    }
+
+    #[inline]
+    pub fn create_move_address(&self) -> *const u8 {
+        unsafe {
+            let client_mode = &*self.client_mode();
+
+            client_mode.create_move_address()
         }
     }
 

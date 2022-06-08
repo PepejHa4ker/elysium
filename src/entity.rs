@@ -1,6 +1,6 @@
 use crate::{state, Networked};
 use elysium_math::{Matrix3x4, Vec3};
-use elysium_sdk::entity::{EntityId, Networkable, Renderable};
+use elysium_sdk::entity::{EntityId, MoveKind, Networkable, Renderable};
 use elysium_sdk::{object_validate, vtable_validate};
 use frosting::ffi::vtable;
 
@@ -74,8 +74,25 @@ impl Entity {
         unsafe { (self.vtable.is_player)(self) }
     }
 
+    /// only for base_entitys
+    #[inline]
+    fn render_mode_address(&self) -> *const u8 {
+        unsafe {
+            let this = (self as *const Self).cast::<u8>();
+            let networked = &*state::networked().cast::<Networked>();
+
+            this.byte_add(networked.base_entity.render_mode)
+        }
+    }
+
+    #[inline]
+    pub fn move_kind(&self) -> i32 {
+        unsafe { *self.render_mode_address().byte_add(1).cast() }
+    }
+
     /// only for base_players
-    fn is_dead_ptr(&self) -> *const u8 {
+    #[inline]
+    fn is_dead_address(&self) -> *const u8 {
         unsafe {
             let this = (self as *const Self).cast::<u8>();
             let networked = &*state::networked().cast::<Networked>();
@@ -85,7 +102,30 @@ impl Entity {
     }
 
     /// only for base_players
+    #[inline]
     pub fn view_angle(&self) -> &mut Vec3 {
-        unsafe { &mut *self.is_dead_ptr().byte_add(4).as_mut().cast() }
+        unsafe { &mut *self.is_dead_address().byte_add(4).as_mut().cast() }
+    }
+
+    /// only for base_players
+    #[inline]
+    pub fn velocity(&self) -> Vec3 {
+        unsafe {
+            let this = (self as *const Self).cast::<u8>();
+            let networked = &*state::networked().cast::<Networked>();
+
+            *this.byte_add(networked.base_player.velocity).cast()
+        }
+    }
+
+    /// only for players
+    #[inline]
+    pub fn flags(&self) -> i32 {
+        unsafe {
+            let this = (self as *const Self).cast::<u8>();
+            let networked = &*state::networked().cast::<Networked>();
+
+            *this.byte_add(networked.player.flags).cast()
+        }
     }
 }

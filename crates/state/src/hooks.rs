@@ -48,10 +48,10 @@ macro_rules! hooks {
 }
 
 hooks! {
-    (create_move, set_create_move, CreateMove)(this: *const (), sample_time: f32, command: *const ()) -> bool,
+    (create_move, set_create_move, CreateMove)(this: *const u8, sample_time: f32, command: *mut u8) -> bool,
     (cl_move, set_cl_move, ClMove)(accumulated_extra_samples: f32, final_tick: bool) -> (),
     (cl_send_move, set_cl_send_move, ClSendMove)() -> (),
-    (frame_stage_notify, set_frame_stage_notify, FrameStageNotify)(this: *const (), frame: i32) -> (),
+    (frame_stage_notify, set_frame_stage_notify, FrameStageNotify)(this: *const u8, frame: i32) -> (),
     (write_user_command, set_write_user_command, WriteUserCommand)(buffer: *mut u8, from: *const u8, to: *const u8) -> bool,
     (swap_window, set_swap_window, SwapWindow)(sdl_window: *mut sdl2_sys::SDL_Window) -> (),
     (poll_event, set_poll_event, PollEvent)(sdl_event: *mut sdl2_sys::SDL_Event) -> i32

@@ -5,6 +5,8 @@ use core::mem;
 use core::mem::MaybeUninit;
 use core::ptr::NonNull;
 use elysium_math::Vec3;
+use elysium_sdk::convar::Vars;
+use elysium_sdk::entity::MoveKind;
 use elysium_sdk::{Command, Engine, EntityList, Frame, Globals, Input};
 use iced_elysium_gl::Viewport;
 use iced_native::Size;
@@ -85,18 +87,133 @@ pub unsafe extern "C" fn poll_event(sdl_event: *mut sdl2_sys::SDL_Event) -> i32 
     result
 }
 
-/// `CL_Move` hook.
-#[inline(never)]
-pub unsafe extern "C" fn cl_move(_accumulated_extra_samples: f32, _final_tick: bool) {
-    return;
+const IN_BULLRUSH: i32 = 1 << 22;
+const IN_JUMP: i32 = 1 << 1;
+const ON_GROUND: i32 = 1 << 0;
+
+fn fix_movement(command: &mut Command, original_view_angle: Vec3, original_movement: Vec3) {
+    let f1 = if original_view_angle.y < 0.0 {
+        360.0 + original_view_angle.y
+    } else {
+        original_view_angle.y
+    };
+
+    let f2 = if command.view_angle.y < 0.0 {
+        360.0 + command.view_angle.y
+    } else {
+        command.view_angle.y
+    };
+
+    let mut delta_view_angle = if f2 < f1 {
+        (f2 - f1).abs()
+    } else {
+        360.0 - (f1 - f2).abs()
+    };
+
+    delta_view_angle = 360.0 - delta_view_angle;
+
+    let (sin, cos) = delta_view_angle.to_radians().sin_cos();
+    let (sin_90, cos_90) = (delta_view_angle + 90.0).to_radians().sin_cos();
+
+    command.movement.x = cos * original_movement.x + cos_90 * original_movement.y;
+    command.movement.y = sin * original_movement.x + sin_90 * original_movement.y;
 }
 
+/// `CreateMove` hook.
 #[inline(never)]
-pub unsafe extern "C" fn frame_stage_notify(this: *const (), frame: i32) {
+pub unsafe extern "C" fn create_move(
+    this: *const u8,
+    input_sample_time: f32,
+    command: *mut u8,
+) -> bool {
+    state::hooks::create_move(this, input_sample_time, command);
+
+    let command = &mut *command.cast::<Command>();
+
+    if command.tick_count == 0 || state::local::is_player_none() {
+        return false;
+    }
+
+    let local = &*state::local::player().as_ptr().cast::<Entity>();
+
+    if matches!(local.move_kind(), 8 | 9) {
+        return false;
+    }
+
+    if (command.state & IN_JUMP) != 0 {
+        if (local.flags() & ON_GROUND) != 0 {
+        } else {
+            command.state &= !IN_JUMP;
+        }
+    }
+
+    if (local.flags() & ON_GROUND) == 0 {
+        let side = if command.command % 2 != 0 { 1.0 } else { -1.0 };
+        let velocity = local.velocity();
+        let magnitude = velocity.magnitude2d();
+        let ideal_strafe = (15.0 / magnitude).atan().to_degrees().clamp(0.0, 90.0);
+        let mut wish_angle = command.view_angle;
+        let strafe_dir = command.movement.to_dir();
+        let strafe_dir_yaw_offset = strafe_dir.y.atan2(strafe_dir.x).to_degrees();
+
+        wish_angle.y -= strafe_dir_yaw_offset;
+
+        let mut wish_angle = wish_angle.sanitize_angle();
+        let yaw_delta = libm::remainderf(wish_angle.y - state::local::old_yaw(), 360.0);
+        let abs_yaw_delta = yaw_delta.abs();
+
+        state::local::set_old_yaw(wish_angle.y);
+
+        let vars = &*state::vars().cast::<Vars>();
+        let horizontal_speed = vars.horizontal_speed.read();
+
+        if abs_yaw_delta <= ideal_strafe || abs_yaw_delta >= 30.0 {
+            let velocity_dir = Vec3::vector_angle(velocity);
+            let velocity_yaw_delta = libm::remainderf(wish_angle.y - velocity_dir.y, 360.0);
+            let retrack = (30.0 / magnitude).atan().to_degrees().clamp(0.0, 90.0) * 2.0;
+
+            if velocity_yaw_delta <= retrack || magnitude <= 15.0 {
+                if -retrack <= velocity_yaw_delta || magnitude <= 15.0 {
+                    wish_angle.y += side * ideal_strafe;
+                    command.movement.y = horizontal_speed * side;
+                } else {
+                    wish_angle.y = velocity_dir.y - retrack;
+                    command.movement.y = horizontal_speed;
+                }
+            } else {
+                wish_angle.y = velocity_dir.y + retrack;
+                command.movement.y = -horizontal_speed;
+            }
+        } else if yaw_delta > 0.0 {
+            command.movement.y = -horizontal_speed;
+        } else if yaw_delta < 0.0 {
+            command.movement.y = horizontal_speed
+        }
+
+        command.movement.x = 0.0;
+
+        fix_movement(command, wish_angle, command.movement);
+    }
+
+    command.state |= IN_BULLRUSH;
+
+    state::local::set_view_angle(command.view_angle);
+
+    false
+}
+
+/// `CL_Move` hook.
+#[inline(never)]
+pub unsafe extern "C" fn cl_move(_accumulated_extra_samples: f32, _final_tick: bool) {}
+
+#[inline(never)]
+pub unsafe extern "C" fn frame_stage_notify(this: *const u8, frame: i32) {
     let engine = &*state::engine().cast::<Engine>();
     let entity_list = &*state::entity_list().cast::<EntityList>();
     let globals = &*state::globals().cast::<Globals>();
     let input = &*state::input().cast::<Input>();
+
+    *state::view_angle() = engine.view_angle();
 
     let frame: Frame = mem::transmute(frame);
     let index = engine.local_player_index();
@@ -129,7 +246,7 @@ pub unsafe extern "C" fn frame_stage_notify(this: *const (), frame: i32) {
                     }
 
                     // rotate view model
-                    entity.view_angle().z = 15.0;
+                    //entity.view_angle().z = 15.0;
                 }
             }
             _ => {

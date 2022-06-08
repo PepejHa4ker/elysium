@@ -44,9 +44,10 @@ local! {
     (magazine_ammo, set_magazine_ammo): Shared<i32> = Shared::new(0);
     (total_ammo, set_total_ammo): Shared<i32> = Shared::new(0);
     (health, set_health): Shared<i32> = Shared::new(0);
-    (view_angle, set_view_angle): Shared<Vec3> = Shared::new(Vec3::zero());
+    (old_yaw, set_old_yaw): Shared<f32> = Shared::new(0.0);
     (shot_view_angle, set_shot_view_angle): Shared<Vec3> = Shared::new(Vec3::zero());
     (use_shot_view_angle, set_use_shot_view_angle): Shared<f32> = Shared::new(0.0);
+    (view_angle, set_view_angle): Shared<Vec3> = Shared::new(Vec3::zero());
     (view_punch_angle, set_view_punch_angle): Shared<Vec3> = Shared::new(Vec3::zero());
 }
 
