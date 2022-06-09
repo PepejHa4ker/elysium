@@ -6,7 +6,7 @@ use core::mem::MaybeUninit;
 use core::ptr::NonNull;
 use elysium_math::Vec3;
 use elysium_sdk::convar::Vars;
-use elysium_sdk::entity::MoveKind;
+use elysium_sdk::entity::{MoveKind, ObserverMode};
 use elysium_sdk::{Command, Engine, EntityList, Frame, Globals, Input, View};
 use iced_elysium_gl::Viewport;
 use iced_native::Size;
@@ -69,6 +69,9 @@ pub unsafe extern "C" fn poll_event(sdl_event: *mut sdl2_sys::SDL_Event) -> i32 
                     key_code: keyboard::KeyCode::Insert,
                     ..
                 }) => state::toggle_menu(),
+                Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Other(4))) => {
+                    state::local::toggle_thirdperson()
+                }
                 Event::Mouse(mouse::Event::CursorMoved { position }) => {
                     state::update_cursor_position(*position)
                 }
@@ -119,25 +122,22 @@ fn fix_movement(command: &mut Command, original_view_angle: Vec3, original_movem
     command.movement.y = sin * original_movement.x + sin_90 * original_movement.y;
 }
 
-/// `CreateMove` hook.
-#[inline(never)]
-pub unsafe extern "C" fn create_move(
-    this: *const u8,
-    input_sample_time: f32,
-    command: *mut u8,
-) -> bool {
-    state::hooks::create_move(this, input_sample_time, command);
-
-    let command = &mut *command.cast::<Command>();
-
+#[inline]
+unsafe fn do_create_move(command: &mut Command) {
     if command.tick_count == 0 || state::local::is_player_none() {
-        return false;
+        return;
     }
 
     let local = &*state::local::player().as_ptr().cast::<Entity>();
 
+    // can you dont when spectatng
+    if local.observer_mode() != ObserverMode::None {
+        return;
+    }
+
+    // can you dont when on ladder or in noclip
     if matches!(local.move_kind(), 8 | 9) {
-        return false;
+        return;
     }
 
     if (command.state & IN_JUMP) != 0 {
@@ -195,6 +195,20 @@ pub unsafe extern "C" fn create_move(
     }
 
     command.state |= IN_BULLRUSH;
+}
+
+/// `CreateMove` hook.
+#[inline(never)]
+pub unsafe extern "C" fn create_move(
+    this: *const u8,
+    input_sample_time: f32,
+    command: *mut u8,
+) -> bool {
+    state::hooks::create_move(this, input_sample_time, command);
+
+    let command = &mut *command.cast::<Command>();
+
+    do_create_move(command);
 
     state::local::set_view_angle(command.view_angle);
 
@@ -210,7 +224,7 @@ pub unsafe extern "C" fn frame_stage_notify(this: *const u8, frame: i32) {
     let engine = &*state::engine().cast::<Engine>();
     let entity_list = &*state::entity_list().cast::<EntityList>();
     let globals = &*state::globals().cast::<Globals>();
-    let input = &*state::input().cast::<Input>();
+    let input = &mut *state::input().as_mut().cast::<Input>();
     let vars = &*state::vars().cast::<Vars>();
 
     *state::view_angle() = engine.view_angle();
@@ -225,12 +239,18 @@ pub unsafe extern "C" fn frame_stage_notify(this: *const u8, frame: i32) {
 
     if entity.is_null() {
         state::local::set_aim_punch_angle(Vec3::zero());
-        state::local::set_view_punch_angle(Vec3::zero());
         state::local::set_player_none();
+        state::local::set_view_punch_angle(Vec3::zero());
     } else {
         state::local::set_player(NonNull::new_unchecked(entity.as_mut()));
 
         let entity = &*entity.cast::<Entity>();
+
+        if entity.observer_mode().breaks_thirdperson() {
+            input.thirdperson = false;
+        } else {
+            input.thirdperson = state::local::thirdperson();
+        }
 
         match frame {
             Frame::RenderStart => {

@@ -1,6 +1,7 @@
 use crate::{state, Networked};
+use core::mem;
 use elysium_math::{Matrix3x4, Vec3};
-use elysium_sdk::entity::{EntityId, MoveKind, Networkable, Renderable};
+use elysium_sdk::entity::{EntityId, MoveKind, Networkable, ObserverMode, Renderable};
 use elysium_sdk::{object_validate, vtable_validate};
 use frosting::ffi::vtable;
 
@@ -11,11 +12,14 @@ struct VTable {
     origin: unsafe extern "C" fn(this: *const Entity) -> *const Vec3,
     _pad1: vtable::Pad<144>,
     is_player: unsafe extern "C" fn(this: *const Entity) -> bool,
+    _pad2: vtable::Pad<199>,
+    observer_mode: unsafe extern "C" fn(this: *const Entity) -> ObserverMode,
 }
 
 vtable_validate! {
     origin => 12,
     is_player => 157,
+    observer_mode => 357,
 }
 
 #[derive(Debug)]
@@ -127,5 +131,10 @@ impl Entity {
 
             *this.byte_add(networked.player.flags).cast()
         }
+    }
+
+    #[inline]
+    pub fn observer_mode(&self) -> ObserverMode {
+        unsafe { (self.vtable.observer_mode)(self) }
     }
 }

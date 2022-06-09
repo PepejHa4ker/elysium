@@ -45,3 +45,26 @@ pub enum MoveKind {
     Observer = 10,
     Custom = 11,
 }
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(i32)]
+pub enum ObserverMode {
+    None = 0,
+    Deathcam = 1,
+    Freezecam = 2,
+    Fixed = 3,
+    InEye = 4,
+    Chase = 5,
+    Roaming = 6,
+}
+
+impl ObserverMode {
+    /// if the observer mode breaks thirdperson
+    #[inline]
+    pub const fn breaks_thirdperson(&self) -> bool {
+        matches!(
+            self,
+            ObserverMode::InEye | ObserverMode::Chase | ObserverMode::Roaming
+        )
+    }
+}
