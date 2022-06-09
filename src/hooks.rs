@@ -241,6 +241,11 @@ pub unsafe extern "C" fn create_move(
 #[inline(never)]
 pub unsafe extern "C" fn cl_move(_accumulated_extra_samples: f32, _final_tick: bool) {}
 
+/// `CL_SendMove` hook.
+#[inline(never)]
+pub unsafe extern "C" fn cl_send_move(_accumulated_extra_samples: f32, _final_tick: bool) {}
+
+/// `FrameStageNotify` hook.
 #[inline(never)]
 pub unsafe extern "C" fn frame_stage_notify(this: *const u8, frame: i32) {
     let engine = &*state::engine().cast::<Engine>();
@@ -292,7 +297,7 @@ pub unsafe extern "C" fn frame_stage_notify(this: *const u8, frame: i32) {
                     }
 
                     // rotate view model
-                    entity.view_angle().z = -90.0;
+                    entity.view_angle().z = -180.0;
                 }
             }
             _ => {
@@ -307,6 +312,7 @@ pub unsafe extern "C" fn frame_stage_notify(this: *const u8, frame: i32) {
     state::hooks::frame_stage_notify(this, frame as i32);
 }
 
+/// `OverrideView` hook.
 #[inline(never)]
 pub unsafe extern "C" fn override_view(this: *const u8, view: *mut u8) {
     let view = &mut *view.cast::<View>();
@@ -316,6 +322,7 @@ pub unsafe extern "C" fn override_view(this: *const u8, view: *mut u8) {
     state::hooks::override_view(this, (view as *mut View).cast());
 }
 
+/// `WriteUserCommandDeltaToBuffer` hook.
 #[inline(never)]
 pub unsafe extern "C" fn write_user_command_delta_to_buffer(
     _this: *const u8,
