@@ -8,4 +8,5 @@ default-features = false
 version = "0.2"
 
 [dev-dependencies.frosting]
+default-features = false
 git = "https://github.com/elysian6969/frosting.git"

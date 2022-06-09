@@ -7,7 +7,7 @@ use std::{fmt, ptr};
 #[repr(C)]
 pub struct Interface<'a> {
     new: unsafe extern "C" fn() -> *mut (),
-    name: Option<&'a spirit::Str>,
+    name: *const u8,
     next: *mut Interface<'a>,
     _phantom: PhantomData<&'a ()>,
 }
@@ -22,7 +22,7 @@ impl<'a> Interface<'a> {
 
     #[inline]
     pub fn name(&self) -> &str {
-        self.name.map(spirit::Str::as_str).unwrap_or("")
+        unsafe { elysium_sdk::ffi::str_from_ptr_nullable(self.name) }
     }
 }
 

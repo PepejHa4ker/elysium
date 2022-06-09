@@ -141,8 +141,7 @@ pub unsafe extern "C" fn create_move(
     }
 
     if (command.state & IN_JUMP) != 0 {
-        if (local.flags() & ON_GROUND) != 0 {
-        } else {
+        if (local.flags() & ON_GROUND) == 0 {
             command.state &= !IN_JUMP;
         }
     }

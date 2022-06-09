@@ -1,9 +1,0 @@
-[package]
-edition = "2021"
-name = "providence-networked"
-version = "0.0.0"
-
-[dependencies.phf]
-default-features = false
-features = ["macros"]
-version = "0.10"

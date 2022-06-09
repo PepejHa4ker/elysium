@@ -1,4 +1,0 @@
-[package]
-edition = "2021"
-name = "slices"
-version = "0.0.0"

@@ -3,104 +3,89 @@ edition = "2021"
 name = "elysium"
 version = "0.0.0"
 
-[dependencies.palette]
-version = "0.6"
-
-[dependencies.atomic_float]
-version = "0.1"
-
 [dependencies.daisy_chain]
+default-features = false
 path = "crates/daisy_chain"
 
-[dependencies.findshlibs]
-version = "0.10"
-
-[dependencies.parking_lot]
-version = "0.11"
-
-[dependencies.phf]
-features = ["macros"]
-version = "0.10"
-
 [dependencies.elysium-math]
+default-features = false
 path = "crates/math"
 
+[dependencies.elysium-dl]
+default-features = false
+path = "crates/library/dl"
+
+[dependencies.elysium-gl]
+default-features = false
+path = "crates/library/gl"
+
+[dependencies.elysium-input]
+default-features = false
+path = "crates/input"
+
+[dependencies.elysium-mem]
+default-features = false
+path = "crates/mem"
+
+[dependencies.elysium-menu]
+default-features = false
+path = "crates/menu"
+
+[dependencies.elysium-sdk]
+default-features = false
+path = "crates/sdk"
+
+[dependencies.elysium-sdl]
+default-features = false
+path = "crates/library/sdl"
+
+[dependencies.elysium-state]
+default-features = false
+path = "crates/state"
+
+[dependencies.elysium-theme]
+default-features = false
+path = "crates/theme"
+
+[dependencies.findshlibs]
+default-features = false
+version = "0.10"
+
+[dependencies.frosting]
+default-features = false
+git = "https://github.com/elysian6969/frosting.git"
+
+[dependencies.iced_elysium-gl]
+default-features = false
+path = "crates/iced/gl"
+
+[dependencies.iced_native]
+default-features = false
+git = "https://github.com/iced-rs/iced"
+
+[dependencies.libm]
+default-features = false
+git = "https://github.com/elysian6969/libm"
+
+[dependencies.parking_lot]
+default-features = false
+version = "0.11"
+
 [dependencies.providence-model]
+default-features = false
 path = "crates/model"
 
-[dependencies.providence-networked]
-path = "crates/networked"
-
 [dependencies.providence-pattern]
+default-features = false
 path = "crates/pattern"
 
-[dependencies.providence-util]
-path = "crates/util"
-
-[dependencies.rand]
-version = "0.8"
-
-[dependencies.regex]
-version = "1.5"
-
-[dependencies.spirit]
-path = "crates/spirit"
-
-[dependencies.tracing]
+[dependencies.sdl2-sys]
 default-features = false
-features = ["std", "attributes"]
-version = "0.1"
-
-[dependencies.tracing-subscriber]
-default-features = false
-features = ["ansi", "fmt", "env-filter", "std"]
-version = "0.3"
+version = "0.35"
 
 [lib]
 crate-type = ["cdylib"]
 path = "src/lib.rs"
-
-[dependencies.elysium-dl]
-path = "crates/library/dl"
-
-[dependencies.elysium-gl]
-path = "crates/library/gl"
-
-[dependencies.elysium-input]
-path = "crates/input"
-
-[dependencies.elysium-mem]
-path = "crates/mem"
-
-[dependencies.elysium-menu]
-path = "crates/menu"
-
-[dependencies.elysium-sdl]
-path = "crates/library/sdl"
-
-[dependencies.elysium-state]
-path = "crates/state"
-
-[dependencies.elysium-theme]
-path = "crates/theme"
-
-[dependencies.frosting]
-git = "https://github.com/elysian6969/frosting.git"
-
-[dependencies.iced_elysium-gl]
-path = "crates/iced/gl"
-
-[dependencies.iced_native]
-git = "https://github.com/iced-rs/iced"
-
-[dependencies.elysium-sdk]
-path = "crates/sdk"
-
-[dependencies.libm]
-git = "https://github.com/elysian6969/libm"
-
-[dependencies.sdl2-sys]
-version = "0.35"
 
 [profile.release]
 lto = "fat"

@@ -23,9 +23,7 @@ pub use networked::Networked;
 mod entity;
 pub mod networked;
 
-pub mod consts;
 pub mod hooks;
-pub mod item_kind;
 pub mod library;
 pub mod pattern;
 

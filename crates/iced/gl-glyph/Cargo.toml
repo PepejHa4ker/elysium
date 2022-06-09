@@ -22,19 +22,25 @@ license = "MIT"
 repository = "https://github.com/hecrj/glow_glyph"
 
 [dependencies.bytemuck]
+default-features = false
 version = "1.4"
 
 [dependencies.elysium-gl]
+default-features = false
 path = "../../library/gl"
 
 [dependencies.glyph_brush]
+default-features = false
 version = "0.7"
 
 [dependencies.log]
+default-features = false
 version = "0.4"
 
 [dev-dependencies.env_logger]
+default-features = false
 version = "0.8"
 
 [dev-dependencies.glutin]
+default-features = false
 version = "0.28"

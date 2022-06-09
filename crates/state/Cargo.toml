@@ -4,37 +4,49 @@ name = "elysium-state"
 version = "0.0.0"
 
 [dependencies.elysium-dl]
+default-features = false
 path = "../library/dl"
 
 [dependencies.elysium-gl]
+default-features = false
 path = "../library/gl"
 
 [dependencies.elysium-math]
+default-features = false
 path = "../math"
 
 [dependencies.elysium-mem]
+default-features = false
 path = "../mem"
 
 [dependencies.elysium-menu]
+default-features = false
 path = "../menu"
 
 [dependencies.elysium-sdl]
+default-features = false
 path = "../library/sdl"
 
 [dependencies.elysium-theme]
+default-features = false
 path = "../theme"
 
 [dependencies.frosting]
+default-features = false
 git = "https://github.com/elysian6969/frosting.git"
 
 [dependencies.iced_elysium-gl]
+default-features = false
 path = "../iced/gl"
 
 [dependencies.iced_native]
+default-features = false
 git = "https://github.com/iced-rs/iced"
 
 [dependencies.sdl2-sys]
+default-features = false
 version = "0.35"
 
 [dependencies.providence-model]
+default-features = false
 path = "../model"
