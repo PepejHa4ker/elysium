@@ -1,9 +1,11 @@
-use crate::{vtable_validate, Command};
+use crate::{vtable_validate, Command, View};
 use frosting::ffi::vtable;
 
 #[repr(C)]
 struct VTable {
-    _pad0: vtable::Pad<25>,
+    _pad0: vtable::Pad<19>,
+    override_view: unsafe extern "C" fn(this: *const ClientMode, view: *const View),
+    _pad1: vtable::Pad<5>,
     create_move: unsafe extern "C" fn(
         this: *const ClientMode,
         input_sample_time: f32,
@@ -12,6 +14,7 @@ struct VTable {
 }
 
 vtable_validate! {
+    override_view => 19,
     create_move => 25,
 }
 
@@ -31,5 +34,13 @@ impl ClientMode {
             ) -> bool;
 
         create_move.cast()
+    }
+
+    #[inline]
+    pub fn override_view_address(&self) -> *const u8 {
+        let override_view = &self.vtable.override_view
+            as *const unsafe extern "C" fn(this: *const ClientMode, view: *const View);
+
+        override_view.cast()
     }
 }

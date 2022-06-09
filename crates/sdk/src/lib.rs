@@ -44,6 +44,7 @@ pub use utl_mem::UtlMem;
 pub use utl_string::UtlString;
 pub use utl_vec::UtlVec;
 pub use var::{VarEntry, VarMap};
+pub use view::View;
 pub use weapon::{WeaponInfo, WeaponKind};
 
 mod animation_layer;
@@ -71,6 +72,7 @@ mod utl_mem;
 mod utl_string;
 mod utl_vec;
 mod var;
+mod view;
 mod weapon;
 
 pub mod client;

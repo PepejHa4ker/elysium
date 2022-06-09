@@ -1,0 +1,43 @@
+use crate::Pad;
+use elysium_math::Vec3;
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct View {
+    pub x: i32,
+    pub old_x: i32,
+    pub y: i32,
+    pub old_y: i32,
+    pub width: i32,
+    pub old_width: i32,
+    pub height: i32,
+    pub old_height: i32,
+    _pad0: Pad<152>,
+    pub fov: f32,
+    pub view_model_fov: f32,
+    pub origin: Vec3,
+    pub angle: Vec3,
+    pub z_near: f32,
+    pub z_far: f32,
+    pub view_model_z_near: f32,
+    pub view_model_z_far: f32,
+    pub aspect_ratio: f32,
+    pub near_blur_depth: f32,
+    pub near_focus_depth: f32,
+    pub far_focus_depth: f32,
+    pub far_blur_depth: f32,
+    pub near_blur_radius: f32,
+    pub far_blur_radius: f32,
+    pub dof_quality: f32,
+    pub motion_blur_mode: i32,
+    pub shutter_time: f32,
+    pub shutter_open_positions: Vec3,
+    pub shutter_open_angles: Vec3,
+    pub shutter_close_positions: Vec3,
+    pub shutter_close_angles: Vec3,
+    pub off_center_top: f32,
+    pub off_center_bottom: f32,
+    pub off_center_left: f32,
+    pub off_center_right: f32,
+    pub flags: u16,
+}

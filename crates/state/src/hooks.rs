@@ -52,6 +52,7 @@ hooks! {
     (cl_move, set_cl_move, ClMove)(accumulated_extra_samples: f32, final_tick: bool) -> (),
     (cl_send_move, set_cl_send_move, ClSendMove)() -> (),
     (frame_stage_notify, set_frame_stage_notify, FrameStageNotify)(this: *const u8, frame: i32) -> (),
+    (override_view, set_override_view, OverrideView)(this: *const u8, view: *mut u8) -> (),
     (write_user_command, set_write_user_command, WriteUserCommand)(buffer: *mut u8, from: *const u8, to: *const u8) -> bool,
     (swap_window, set_swap_window, SwapWindow)(sdl_window: *mut sdl2_sys::SDL_Window) -> (),
     (poll_event, set_poll_event, PollEvent)(sdl_event: *mut sdl2_sys::SDL_Event) -> i32

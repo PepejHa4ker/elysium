@@ -103,6 +103,15 @@ impl Client {
     }
 
     #[inline]
+    pub fn override_view_address(&self) -> *const u8 {
+        unsafe {
+            let client_mode = &*self.client_mode();
+
+            client_mode.override_view_address()
+        }
+    }
+
+    #[inline]
     pub fn frame_stage_notify_address(&self) -> *const u8 {
         let frame_stage_notify = &self.vtable.frame_stage_notify
             as *const unsafe extern "C" fn(this: *const (), frame: i32) -> bool;

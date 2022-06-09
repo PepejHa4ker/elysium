@@ -290,7 +290,6 @@ fn main() {
             let protection = elysium_mem::unprotect(address);
 
             state::hooks::set_create_move(address.replace(hooks::create_move));
-
             println!("elysium | hooked \x1b[38;5;2mCreateMove\x1b[m");
 
             // restore protection
@@ -307,8 +306,23 @@ fn main() {
             let protection = elysium_mem::unprotect(address);
 
             state::hooks::set_frame_stage_notify(address.replace(hooks::frame_stage_notify));
-
             println!("elysium | hooked \x1b[38;5;2mFrameStageNotify\x1b[m");
+
+            // restore protection
+            elysium_mem::protect(address, protection);
+        }
+
+        {
+            let address = client
+                .override_view_address()
+                .as_mut()
+                .cast::<state::hooks::OverrideView>();
+
+            // remove protection
+            let protection = elysium_mem::unprotect(address);
+
+            state::hooks::set_override_view(address.replace(hooks::override_view));
+            println!("elysium | hooked \x1b[38;5;2mOverrideView\x1b[m");
 
             // restore protection
             elysium_mem::protect(address, protection);

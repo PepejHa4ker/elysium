@@ -7,7 +7,7 @@ use core::ptr::NonNull;
 use elysium_math::Vec3;
 use elysium_sdk::convar::Vars;
 use elysium_sdk::entity::MoveKind;
-use elysium_sdk::{Command, Engine, EntityList, Frame, Globals, Input};
+use elysium_sdk::{Command, Engine, EntityList, Frame, Globals, Input, View};
 use iced_elysium_gl::Viewport;
 use iced_native::Size;
 
@@ -211,12 +211,17 @@ pub unsafe extern "C" fn frame_stage_notify(this: *const u8, frame: i32) {
     let entity_list = &*state::entity_list().cast::<EntityList>();
     let globals = &*state::globals().cast::<Globals>();
     let input = &*state::input().cast::<Input>();
+    let vars = &*state::vars().cast::<Vars>();
 
     *state::view_angle() = engine.view_angle();
 
     let frame: Frame = mem::transmute(frame);
     let index = engine.local_player_index();
     let entity = entity_list.get(index);
+
+    vars.cheats.write(true);
+    vars.panorama_blur.write(true);
+    vars.hud.write(false);
 
     if entity.is_null() {
         state::local::set_aim_punch_angle(Vec3::zero());
@@ -233,8 +238,7 @@ pub unsafe extern "C" fn frame_stage_notify(this: *const u8, frame: i32) {
                     // fix the local player's view_angle when in thirdperson
                     *entity.view_angle() = state::local::view_angle();
                 } else {
-                    // in coordinance with override_view, this will change the view model's position.
-
+                    // in cooperation with override_view, this will change the view model's position.
                     if state::local::use_shot_view_angle() != 0.0 {
                         if state::local::use_shot_view_angle() > globals.current_time {
                             *entity.view_angle() = state::local::shot_view_angle();
@@ -245,7 +249,7 @@ pub unsafe extern "C" fn frame_stage_notify(this: *const u8, frame: i32) {
                     }
 
                     // rotate view model
-                    //entity.view_angle().z = 15.0;
+                    entity.view_angle().z = -90.0;
                 }
             }
             _ => {
@@ -258,6 +262,15 @@ pub unsafe extern "C" fn frame_stage_notify(this: *const u8, frame: i32) {
     }
 
     state::hooks::frame_stage_notify(this, frame as i32);
+}
+
+#[inline(never)]
+pub unsafe extern "C" fn override_view(this: *const u8, view: *mut u8) {
+    let view = &mut *view.cast::<View>();
+
+    view.angle = *state::view_angle();
+
+    state::hooks::override_view(this, (view as *mut View).cast());
 }
 
 #[inline(never)]
