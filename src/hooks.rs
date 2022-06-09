@@ -90,10 +90,18 @@ pub unsafe extern "C" fn poll_event(sdl_event: *mut sdl2_sys::SDL_Event) -> i32 
     result
 }
 
+const IN_FORWARD: i32 = 1 << 3;
+const IN_BACKWARD: i32 = 1 << 4;
+
+// yes.
+const IN_LEFTWARD: i32 = 1 << 7;
+const IN_RIGHTWARD: i32 = 1 << 8;
+
 const IN_BULLRUSH: i32 = 1 << 22;
 const IN_JUMP: i32 = 1 << 1;
 const ON_GROUND: i32 = 1 << 0;
 
+#[inline]
 fn fix_movement(command: &mut Command, original_view_angle: Vec3, original_movement: Vec3) {
     let f1 = if original_view_angle.y < 0.0 {
         360.0 + original_view_angle.y
@@ -120,6 +128,14 @@ fn fix_movement(command: &mut Command, original_view_angle: Vec3, original_movem
 
     command.movement.x = cos * original_movement.x + cos_90 * original_movement.y;
     command.movement.y = sin * original_movement.x + sin_90 * original_movement.y;
+}
+
+// TODO: find out how the fuck to fix the legs being spaz
+//
+// also seems like left/right doesnt work
+#[inline]
+fn leg_animation_walk(command: &mut Command) {
+    command.state ^= IN_FORWARD | IN_BACKWARD | IN_RIGHTWARD | IN_LEFTWARD;
 }
 
 #[inline]
@@ -194,7 +210,14 @@ unsafe fn do_create_move(command: &mut Command) {
         fix_movement(command, wish_angle, command.movement);
     }
 
+    //command.view_angle.y += 180.0;
+    command.view_angle = command.view_angle.sanitize_angle();
+
+    fix_movement(command, *state::view_angle(), command.movement);
+
     command.state |= IN_BULLRUSH;
+
+    leg_animation_walk(command);
 }
 
 /// `CreateMove` hook.
@@ -209,7 +232,6 @@ pub unsafe extern "C" fn create_move(
     let command = &mut *command.cast::<Command>();
 
     do_create_move(command);
-
     state::local::set_view_angle(command.view_angle);
 
     false
@@ -256,14 +278,15 @@ pub unsafe extern "C" fn frame_stage_notify(this: *const u8, frame: i32) {
             Frame::RenderStart => {
                 if input.thirdperson {
                     // fix the local player's view_angle when in thirdperson
-                    *entity.view_angle() = state::local::view_angle();
+                    // btw doing `*entity.view_angle() = angle;` doesn't work lol
+                    entity.set_view_angle(state::local::view_angle());
                 } else {
                     // in cooperation with override_view, this will change the view model's position.
                     if state::local::use_shot_view_angle() != 0.0 {
                         if state::local::use_shot_view_angle() > globals.current_time {
-                            *entity.view_angle() = state::local::shot_view_angle();
+                            entity.set_view_angle(state::local::shot_view_angle());
                         } else {
-                            *entity.view_angle() = *state::view_angle();
+                            entity.set_view_angle(*state::view_angle());
                             state::local::set_use_shot_view_angle(0.0);
                         }
                     }
@@ -275,7 +298,7 @@ pub unsafe extern "C" fn frame_stage_notify(this: *const u8, frame: i32) {
             _ => {
                 if input.thirdperson {
                     // restore to the expected value
-                    *entity.view_angle() = *state::view_angle();
+                    entity.set_view_angle(*state::view_angle());
                 }
             }
         }

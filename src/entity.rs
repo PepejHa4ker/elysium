@@ -96,19 +96,29 @@ impl Entity {
 
     /// only for base_players
     #[inline]
-    fn is_dead_address(&self) -> *const u8 {
-        unsafe {
-            let this = (self as *const Self).cast::<u8>();
-            let networked = &*state::networked().cast::<Networked>();
+    unsafe fn is_dead_address(&self) -> *const u8 {
+        let this = (self as *const Self).cast::<u8>();
+        let networked = &*state::networked().cast::<Networked>();
 
-            this.byte_add(networked.base_player.is_dead)
-        }
+        this.byte_add(networked.base_player.is_dead)
+    }
+
+    #[inline]
+    unsafe fn view_angle_address(&self) -> *mut Vec3 {
+        self.is_dead_address().byte_add(4).as_mut().cast()
     }
 
     /// only for base_players
     #[inline]
     pub fn view_angle(&self) -> &mut Vec3 {
-        unsafe { &mut *self.is_dead_address().byte_add(4).as_mut().cast() }
+        unsafe { &mut *self.view_angle_address() }
+    }
+
+    #[inline]
+    pub fn set_view_angle(&self, angle: Vec3) {
+        unsafe {
+            self.view_angle_address().write(angle);
+        }
     }
 
     /// only for base_players
