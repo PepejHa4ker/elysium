@@ -251,6 +251,7 @@ vars! {
     ropes: bool => "r_drawropes",
     rope_shadows: bool => "cl_csm_rope_shadows",
     shadows: bool => "r_shadows",
+    show_grenade_path: bool => "cl_grenadepreview",
     show_help: bool => "cl_showhelp",
     show_impacts: bool => "sv_showimpacts",
     sprites: bool => "r_drawsprites",

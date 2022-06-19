@@ -24,6 +24,9 @@ pub unsafe extern "C" fn frame_stage_notify(this: *const u8, frame: i32) {
     vars.cheats.write(true);
     vars.developer.write(true);
 
+    // useful
+    vars.show_grenade_path.write(true);
+
     // annoying
     vars.auto_help.write(false);
     vars.show_help.write(false);
@@ -53,8 +56,6 @@ pub unsafe extern "C" fn frame_stage_notify(this: *const u8, frame: i32) {
     vars.sprites.write(false);
 
     // translucent things
-    //vars.translucent_renderables.write(false);
-    //vars.translucent_world.write(false);
     vars.water_fog.write(false);
 
     // overlay

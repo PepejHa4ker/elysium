@@ -40,6 +40,7 @@ struct State {
 
     menu: SharedBox<Menu>,
     menu_open: Shared<bool>,
+    menu_open_lock: Shared<bool>,
     cursor_position: Shared<Point>,
     window_size: Shared<Size<u32>>,
 
@@ -49,7 +50,7 @@ struct State {
 
     networked: Shared<[u8; 248]>,
 
-    vars: Shared<[u8; 384]>,
+    vars: Shared<[u8; 392]>,
 
     local: Local,
 
@@ -86,6 +87,7 @@ static STATE: ManuallyDrop<State> = ManuallyDrop::new(State {
 
     menu: SharedBox::none(),
     menu_open: Shared::new(true),
+    menu_open_lock: Shared::new(false),
     cursor_position: Shared::new(Point::new(0.0, 0.0)),
     window_size: Shared::new(Size::new(0, 0)),
 
@@ -95,7 +97,7 @@ static STATE: ManuallyDrop<State> = ManuallyDrop::new(State {
 
     networked: Shared::new([0; 248]),
 
-    vars: Shared::new([0; 384]),
+    vars: Shared::new([0; 392]),
 
     local: Local::new(),
 
@@ -179,7 +181,17 @@ pub fn is_menu_open() -> bool {
 #[inline]
 pub fn toggle_menu() {
     unsafe {
-        *STATE.menu_open.as_mut() ^= true;
+        if !*STATE.menu_open_lock.as_mut() {
+            *STATE.menu_open_lock.as_mut() = true;
+            *STATE.menu_open.as_mut() ^= true;
+        }
+    }
+}
+
+#[inline]
+pub fn release_toggle_menu() {
+    unsafe {
+        *STATE.menu_open_lock.as_mut() = false;
     }
 }
 
@@ -330,11 +342,11 @@ pub unsafe fn set_networked(networked: [u8; 248]) {
 }
 
 #[inline]
-pub unsafe fn vars() -> *const [u8; 384] {
+pub unsafe fn vars() -> *const [u8; 392] {
     STATE.vars.as_mut()
 }
 
 #[inline]
-pub unsafe fn set_vars(vars: [u8; 384]) {
+pub unsafe fn set_vars(vars: [u8; 392]) {
     STATE.vars.write(vars);
 }

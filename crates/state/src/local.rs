@@ -45,6 +45,7 @@ local! {
     (player, set_player): SharedOption<NonNull<u8>> = SharedOption::none();
     (shot_view_angle, set_shot_view_angle): Shared<Vec3> = Shared::new(Vec3::zero());
     (thirdperson, set_thirdperson): Shared<bool> = Shared::new(false);
+    (thirdperson_lock, set_thirdperson_lock): Shared<bool> = Shared::new(false);
     (total_ammo, set_total_ammo): Shared<i32> = Shared::new(0);
     (use_shot_view_angle, set_use_shot_view_angle): Shared<f32> = Shared::new(0.0);
     (view_angle, set_view_angle): Shared<Vec3> = Shared::new(Vec3::zero());
@@ -70,6 +71,16 @@ pub fn set_player_none() {
 #[inline]
 pub fn toggle_thirdperson() {
     unsafe {
-        *STATE.local.thirdperson.as_mut() ^= true;
+        if !*STATE.local.thirdperson_lock.as_mut() {
+            *STATE.local.thirdperson_lock.as_mut() = true;
+            *STATE.local.thirdperson.as_mut() ^= true;
+        }
+    }
+}
+
+#[inline]
+pub fn release_toggle_thirdperson() {
+    unsafe {
+        *STATE.local.thirdperson_lock.as_mut() = false;
     }
 }
