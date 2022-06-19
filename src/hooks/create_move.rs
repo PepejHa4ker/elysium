@@ -2,7 +2,7 @@ use crate::{state, Entity};
 use elysium_math::Vec3;
 use elysium_sdk::convar::Vars;
 use elysium_sdk::entity::ObserverMode;
-use elysium_sdk::{Command, HitGroup};
+use elysium_sdk::{Command, EntityList, HitGroup};
 
 const IN_FORWARD: i32 = 1 << 3;
 const IN_BACKWARD: i32 = 1 << 4;
@@ -71,32 +71,43 @@ fn scale_damage(
     base_damage
 }
 
+#[allow(dead_code)]
+fn calculate_angle(src: Vec3, dst: Vec3) -> Vec3 {
+    let delta = src - dst;
+    let hypot = (delta.x * delta.x + delta.y * delta.y).sqrt();
+
+    let x = (delta.z / hypot).atan().to_degrees();
+    let mut y = (delta.y / delta.x).atan().to_degrees();
+    let z = 0.0;
+
+    if delta.x >= 0.0 {
+        y += 180.0;
+    }
+
+    Vec3::from_xyz(x, y, z)
+}
+
 #[inline]
-unsafe fn do_create_move(command: &mut Command) {
-    if command.tick_count == 0 || state::local::is_player_none() {
-        return;
-    }
-
-    let local = &*state::local::player().as_ptr().cast::<Entity>();
-
-    // can you dont when spectatng
-    if local.observer_mode() != ObserverMode::None {
-        return;
-    }
-
+unsafe fn do_create_move(command: &mut Command, local: &Entity) {
     // can you dont when on ladder or in noclip
     if matches!(local.move_kind(), 8 | 9) {
         return;
     }
 
-    if (command.state & IN_JUMP) != 0 {
-        if (local.flags() & ON_GROUND) == 0 {
+    let do_jump = (command.state & IN_JUMP) != 0;
+    let on_ground = (local.flags() & ON_GROUND) != 0;
+
+    if do_jump {
+        if !on_ground && !state::local::was_on_ground() {
             command.state &= !IN_JUMP;
         }
     }
 
+    state::local::set_was_on_ground(on_ground);
+
+    let side = if command.command % 2 != 0 { 1.0 } else { -1.0 };
+
     if (local.flags() & ON_GROUND) == 0 {
-        let side = if command.command % 2 != 0 { 1.0 } else { -1.0 };
         let velocity = local.velocity();
         let magnitude = velocity.magnitude2d();
         let ideal_strafe = (15.0 / magnitude).atan().to_degrees().clamp(0.0, 90.0);
@@ -143,12 +154,28 @@ unsafe fn do_create_move(command: &mut Command) {
         fix_movement(command, wish_angle, command.movement);
     }
 
-    //command.view_angle.y += 180.0;
+    command.view_angle.x = 89.0;
+    command.view_angle.y += 180.0 + (52.0 * side);
+    command.view_angle.z += 50.0 * side;
+
     command.view_angle = command.view_angle.sanitize_angle();
 
     fix_movement(command, *state::view_angle(), command.movement);
 
     command.state |= IN_BULLRUSH;
+
+    let entity_list = &*state::entity_list().cast::<EntityList>();
+
+    for i in 1..=64 {
+        let entity = entity_list.get(i);
+
+        // skip invalid
+        if entity.is_null() {
+            continue;
+        }
+
+        //println!("{entity:?}");
+    }
 
     leg_animation_walk(command);
 }
@@ -163,7 +190,18 @@ pub unsafe extern "C" fn create_move(
 
     let command = &mut *command.cast::<Command>();
 
-    do_create_move(command);
+    if command.tick_count == 0 || state::local::is_player_none() {
+        return false;
+    }
+
+    let local = &*state::local::player().as_ptr().cast::<Entity>();
+
+    // can you dont when spectatng
+    if local.observer_mode() != ObserverMode::None {
+        return false;
+    }
+
+    do_create_move(command, local);
     state::local::set_view_angle(command.view_angle);
 
     false

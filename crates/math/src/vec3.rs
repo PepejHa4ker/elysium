@@ -134,6 +134,14 @@ impl Vec3 {
             self.y += 360.0;
         }
 
+        while self.z > 180.0 {
+            self.z -= 360.0;
+        }
+
+        while self.z < -180.0 {
+            self.z += 360.0;
+        }
+
         self
     }
 
@@ -141,7 +149,7 @@ impl Vec3 {
     pub fn clamp_angle(mut self) -> Self {
         self.x = self.x.clamp(-89.0, 89.0);
         self.y = self.y.clamp(-180.0, 180.0);
-        self.z = 0.0;
+        self.z = self.z.clamp(-50.0, 50.0);
         self
     }
 

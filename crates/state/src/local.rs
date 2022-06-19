@@ -42,6 +42,7 @@ local! {
     (health, set_health): Shared<i32> = Shared::new(0);
     (magazine_ammo, set_magazine_ammo): Shared<i32> = Shared::new(0);
     (old_yaw, set_old_yaw): Shared<f32> = Shared::new(0.0);
+    (was_on_ground, set_was_on_ground): Shared<bool> = Shared::new(false);
     (player, set_player): SharedOption<NonNull<u8>> = SharedOption::none();
     (shot_view_angle, set_shot_view_angle): Shared<Vec3> = Shared::new(Vec3::zero());
     (thirdperson, set_thirdperson): Shared<bool> = Shared::new(false);

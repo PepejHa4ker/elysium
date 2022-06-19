@@ -102,21 +102,13 @@ impl Entity {
         this.byte_add(networked.base_player.is_dead)
     }
 
-    #[inline]
-    unsafe fn view_angle_address(&self) -> *mut Vec3 {
-        self.is_dead_address().byte_add(4).as_mut().cast()
-    }
-
     /// only for base_players
     #[inline]
     pub fn view_angle(&self) -> &mut Vec3 {
-        unsafe { &mut *self.view_angle_address() }
-    }
-
-    #[inline]
-    pub fn set_view_angle(&self, angle: Vec3) {
         unsafe {
-            self.view_angle_address().write(angle);
+            let view_angle_address = self.is_dead_address().byte_add(4).as_mut().cast();
+
+            &mut *view_angle_address
         }
     }
 

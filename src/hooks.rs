@@ -7,6 +7,7 @@ pub use poll_event::poll_event;
 pub use swap_window::swap_window;
 pub use write_user_command_delta_to_buffer::write_user_command_delta_to_buffer;
 
+#[allow(dead_code, unused_imports)]
 mod create_move;
 mod frame_stage_notify;
 mod override_view;

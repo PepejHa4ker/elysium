@@ -90,27 +90,28 @@ pub unsafe extern "C" fn frame_stage_notify(this: *const u8, frame: i32) {
             Frame::RenderStart => {
                 if input.thirdperson {
                     // fix the local player's view_angle when in thirdperson
-                    // btw doing `*entity.view_angle() = angle;` doesn't work lol
-                    entity.set_view_angle(state::local::view_angle());
+                    println!("{:?}", state::local::view_angle());
+
+                    *entity.view_angle() = state::local::view_angle();
                 } else {
                     // in cooperation with override_view, this will change the view model's position.
                     if state::local::use_shot_view_angle() != 0.0 {
                         if state::local::use_shot_view_angle() > globals.current_time {
-                            entity.set_view_angle(state::local::shot_view_angle());
+                            *entity.view_angle() = state::local::shot_view_angle();
                         } else {
-                            entity.set_view_angle(*state::view_angle());
+                            *entity.view_angle() = *state::view_angle();
                             state::local::set_use_shot_view_angle(0.0);
                         }
                     }
 
                     // rotate view model
-                    entity.view_angle().z = -180.0;
+                    entity.view_angle().z = -35.0;
                 }
             }
             _ => {
                 if input.thirdperson {
                     // restore to the expected value
-                    entity.set_view_angle(*state::view_angle());
+                    *entity.view_angle() = *state::view_angle();
                 }
             }
         }

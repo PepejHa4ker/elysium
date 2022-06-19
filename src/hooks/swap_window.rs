@@ -36,7 +36,7 @@ pub unsafe extern "C" fn swap_window(sdl_window: *mut sdl2_sys::SDL_Window) {
     }
 
     // disable auto-conversion from/to sRGB
-    context.enable(elysium_gl::FRAMEBUFFER_SRGB);
+    context.disable(elysium_gl::FRAMEBUFFER_SRGB);
 
     // disable alpha blending to not break vgui fonts
     context.disable(elysium_gl::BLEND);
