@@ -132,7 +132,8 @@ macro_rules! vars {
                 #[doc = "`"]
                 #[doc = $string]
                 #[doc = "`"]
-                #[doc(alias = $string)]
+                // doc's alias is the same as it's name, cring
+                //#[doc(alias = $string)]
                 $name,
             )*
         }
@@ -183,7 +184,8 @@ macro_rules! vars {
                 #[doc = "`"]
                 #[doc = $string]
                 #[doc = "`"]
-                #[doc(alias = $string)]
+                // doc's alias is the same as it's name, cring
+                //#[doc(alias = $string)]
                 pub $name: &'static Var<$type>,
             )*
         }
@@ -214,8 +216,9 @@ macro_rules! vars {
 }
 
 vars! {
+    alien_blood: bool => "violence_ablood",
+    allow_developer: bool => "sv_max_allowed_developer",
     auto_help: bool => "cl_autohelp",
-    blood: bool => "violence_hblood",
     cheats: bool => "sv_cheats",
     csm: bool => "cl_csm_enabled",
     csm_shadows: bool => "cl_csm_shadows",
@@ -229,13 +232,14 @@ vars! {
     horizontal_speed: f32 => "cl_sidespeed",
     html_motd: bool => "cl_disablehtmlmotd",
     hud: bool => "cl_drawhud",
+    human_blood: bool => "violence_hblood",
     interp: f32 => "cl_interp",
     interp_ratio: f32 => "cl_interp_ratio",
     jiggle_bones: bool => "r_jiggle_bones",
     lag_comp: f32 => "cl_lagcompensation",
+    developer: bool => "developer",
     max_interp_ratio: f32 => "sv_client_max_interp_ratio",
     max_lag_comp: f32 => "sv_maxunlag",
-    //max_update_rate: f32 => "cl_maxupdaterate",
     min_interp_ratio: f32 => "sv_client_min_interp_ratio",
     model_stats: i32 => "r_drawmodelstatsoverlay",
     panorama_blur: bool => "@panorama_disable_blur",

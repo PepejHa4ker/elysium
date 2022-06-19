@@ -1,3 +1,4 @@
+#![deny(warnings)]
 #![feature(const_mut_refs)]
 #![feature(const_ptr_is_null)]
 

@@ -1,5 +1,6 @@
 //! Global state.
 
+#![deny(warnings)]
 #![feature(const_option)]
 #![feature(const_option_ext)]
 #![feature(const_ptr_write)]
@@ -48,7 +49,7 @@ struct State {
 
     networked: Shared<[u8; 248]>,
 
-    vars: Shared<[u8; 360]>,
+    vars: Shared<[u8; 384]>,
 
     local: Local,
 
@@ -84,7 +85,7 @@ static STATE: ManuallyDrop<State> = ManuallyDrop::new(State {
     gl_context: Shared::new(elysium_gl::Context::NONE),
 
     menu: SharedBox::none(),
-    menu_open: Shared::new(false),
+    menu_open: Shared::new(true),
     cursor_position: Shared::new(Point::new(0.0, 0.0)),
     window_size: Shared::new(Size::new(0, 0)),
 
@@ -94,7 +95,7 @@ static STATE: ManuallyDrop<State> = ManuallyDrop::new(State {
 
     networked: Shared::new([0; 248]),
 
-    vars: Shared::new([0; 360]),
+    vars: Shared::new([0; 384]),
 
     local: Local::new(),
 
@@ -329,11 +330,11 @@ pub unsafe fn set_networked(networked: [u8; 248]) {
 }
 
 #[inline]
-pub unsafe fn vars() -> *const [u8; 360] {
+pub unsafe fn vars() -> *const [u8; 384] {
     STATE.vars.as_mut()
 }
 
 #[inline]
-pub unsafe fn set_vars(vars: [u8; 360]) {
+pub unsafe fn set_vars(vars: [u8; 384]) {
     STATE.vars.write(vars);
 }

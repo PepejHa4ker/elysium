@@ -1,5 +1,5 @@
+#![deny(warnings)]
 #![feature(once_cell)]
-#![feature(const_intrinsic_copy)]
 #![feature(const_mut_refs)]
 #![feature(const_ptr_write)]
 

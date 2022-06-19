@@ -1,3 +1,4 @@
+#![deny(warnings)]
 #![allow(incomplete_features)]
 #![feature(const_convert)]
 #![feature(const_maybe_uninit_uninit_array)]
@@ -26,6 +27,7 @@ pub use entity::EntityList;
 pub use entry::Entry;
 pub use frame::Frame;
 pub use globals::Globals;
+pub use hit_group::HitGroup;
 pub use id::SteamId;
 pub use input::{Command, Input};
 pub use input_system::InputSystem;
@@ -57,6 +59,7 @@ mod engine;
 mod entry;
 mod frame;
 mod globals;
+mod hit_group;
 mod input_system;
 mod interfaces;
 mod item_kind;

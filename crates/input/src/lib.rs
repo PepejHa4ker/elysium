@@ -1,3 +1,5 @@
+#![deny(warnings)]
+
 use iced_native::Event;
 use sdl2_sys::{SDL_Event, SDL_EventType};
 

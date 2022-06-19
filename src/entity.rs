@@ -1,7 +1,6 @@
 use crate::{state, Networked};
-use core::mem;
 use elysium_math::{Matrix3x4, Vec3};
-use elysium_sdk::entity::{EntityId, MoveKind, Networkable, ObserverMode, Renderable};
+use elysium_sdk::entity::{Networkable, ObserverMode, Renderable};
 use elysium_sdk::{object_validate, vtable_validate};
 use frosting::ffi::vtable;
 
@@ -146,5 +145,27 @@ impl Entity {
     #[inline]
     pub fn observer_mode(&self) -> ObserverMode {
         unsafe { (self.vtable.observer_mode)(self) }
+    }
+
+    /// only for players
+    #[inline]
+    pub fn armor(&self) -> i32 {
+        unsafe {
+            let this = (self as *const Self).cast::<u8>();
+            let networked = &*state::networked().cast::<Networked>();
+
+            *this.byte_add(networked.player.armor).cast()
+        }
+    }
+
+    /// only for players
+    #[inline]
+    pub fn has_helmet(&self) -> bool {
+        unsafe {
+            let this = (self as *const Self).cast::<u8>();
+            let networked = &*state::networked().cast::<Networked>();
+
+            *this.byte_add(networked.player.has_helmet).cast()
+        }
     }
 }

@@ -1,7 +1,6 @@
 use core::ops::{Add, Div, Mul, Rem, Sub};
 use core::ops::{AddAssign, DivAssign, MulAssign, RemAssign, SubAssign};
 use core::ptr;
-use meth::Real;
 
 #[derive(Copy, Clone, Default, Debug, PartialEq)]
 #[repr(C)]
@@ -62,8 +61,8 @@ impl Vec3 {
 
     #[inline]
     pub fn vector_angle(vector: Vec3) -> Self {
-        let mut pitch = 0.0;
-        let mut yaw = 0.0;
+        let mut pitch;
+        let mut yaw;
 
         if !(vector.x != 0.0 || vector.y != 0.0) {
             pitch = if vector.z > 0.0 { 270.0 } else { 90.0 };

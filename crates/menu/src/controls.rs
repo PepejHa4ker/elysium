@@ -57,9 +57,9 @@ impl Program for Controls {
 
     #[inline]
     fn view(&mut self) -> Element<Message, Renderer> {
-        /*let text_input = TextInput::new(
+        let text_input = TextInput::new(
             &mut self.input,
-            "Type something...",
+            "sample text sample text",
             &self.input_value,
             Message::InputChanged,
         )
@@ -67,7 +67,7 @@ impl Program for Controls {
         .size(20)
         .style(self.theme);
 
-        let button = Button::new(&mut self.button, Text::new("Submit"))
+        let button = Button::new(&mut self.button, Text::new("inform ccp"))
             .padding(10)
             .on_press(Message::ButtonPressed)
             .style(self.theme);
@@ -86,16 +86,16 @@ impl Program for Controls {
             .width(Length::Fill)
             .height(Length::Units(100))
             .style(self.theme)
-            .push(Text::new("Scroll me!"))
+            .push(Text::new("scroll"))
             .push(Space::with_height(Length::Units(800)))
-            .push(Text::new("You did it!"));
+            .push(Text::new("scrolled"));
 
-        let checkbox = Checkbox::new(self.checkbox_value, "Check me!", Message::CheckboxToggled)
+        let checkbox = Checkbox::new(self.checkbox_value, "checkbox", Message::CheckboxToggled)
             .style(self.theme);
 
         let toggler = Toggler::new(
             self.toggler_value,
-            String::from("Toggle me!"),
+            String::from("togger"),
             Message::TogglerToggled,
         )
         .width(Length::Shrink)
@@ -132,24 +132,13 @@ impl Program for Controls {
             .center_x()
             .center_y()
             .style(self.theme);
-        */
 
-        let crosshair = Container::new(iced_native::widget::Space::new(
-            Length::Units(1),
-            Length::Units(1),
-        ))
-        .width(Length::Units(4))
-        .height(Length::Units(4))
-        .center_x()
-        .center_y()
-        .style(elysium_theme::Crosshair);
-
-        Container::new(crosshair)
+        Container::new(menu)
             .width(Length::Fill)
             .height(Length::Fill)
             .center_x()
             .center_y()
-            .style(elysium_theme::Transparent) //(self.theme))
+            .style(elysium_theme::Overlay(self.theme))
             .into()
     }
 }

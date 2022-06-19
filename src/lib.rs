@@ -1,3 +1,4 @@
+#![deny(warnings)]
 #![feature(maybe_uninit_array_assume_init)]
 #![feature(maybe_uninit_uninit_array)]
 #![feature(pointer_byte_offsets)]
@@ -14,14 +15,12 @@ use std::{mem, thread};
 
 pub use elysium_state as state;
 
-pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
-pub type Result<T, E = Error> = std::result::Result<T, E>;
-
 pub use entity::Entity;
 pub use networked::Networked;
 
 mod entity;
 pub mod networked;
+//mod simulation;
 
 pub mod hooks;
 pub mod library;
@@ -41,7 +40,14 @@ unsafe extern "C" fn bootstrap() {
             let process_path = Path::new(&process_path);
             let process_name = process_path.file_name()?;
 
-            Some(process_name == "csgo_linux64")
+            if process_name == "csgo_linux64" ||
+                // https://github.com/elysian6969/csgo-launcher xoxo
+                process_name == "csgo-launcher"
+            {
+                Some(true)
+            } else {
+                None
+            }
         })
         .unwrap_or(false);
 
@@ -89,54 +95,6 @@ fn main() {
 
     let networked = Networked::new(client);
 
-    // misc
-    vars.cheats.write(true);
-
-    // annoying
-    vars.auto_help.write(false);
-    vars.show_help.write(false);
-
-    // these disable when true
-    vars.engine_sleep.write(true);
-    vars.html_motd.write(true);
-    vars.freeze_cam.write(true);
-    vars.panorama_blur.write(true);
-
-    // p100
-    vars.hud.write(false);
-
-    // shadows
-    vars.csm.write(false);
-    vars.csm_shadows.write(false);
-    vars.feet_shadows.write(false);
-    vars.prop_shadows.write(false);
-    vars.rope_shadows.write(false);
-    vars.shadows.write(false);
-    vars.skybox3d.write(false);
-    vars.viewmodel_shadows.write(false);
-    vars.world_shadows.write(false);
-
-    // useless objects
-    vars.ropes.write(false);
-    vars.sprites.write(false);
-
-    // translucent things
-    //vars.translucent_renderables.write(false);
-    //vars.translucent_world.write(false);
-    vars.water_fog.write(false);
-
-    // overlay
-    vars.underwater_overlay.write(false);
-
-    // effects
-    vars.blood.write(false);
-    vars.decals.write(false);
-    vars.jiggle_bones.write(false);
-    vars.rain.write(false);
-
-    // phsyics
-    vars.physics_timescale.write(0.5);
-
     let gl = elysium_gl::Gl::open().expect("libGL");
 
     println!(
@@ -155,7 +113,7 @@ fn main() {
     let poll_event = unsafe { sdl.poll_event().expect("SDL_PollEvent") };
 
     let patterns = pattern::Libraries::new();
-    let animation_layers = unsafe {
+    let _animation_layers = unsafe {
         let address = patterns
             .address_of(
                 "client_client.so",
@@ -167,7 +125,7 @@ fn main() {
         address.byte_add(35).cast::<u32>().read()
     };
 
-    let animation_state = unsafe {
+    let _animation_state = unsafe {
         let address = patterns
             .address_of(
                 "client_client.so",
@@ -179,7 +137,8 @@ fn main() {
         address.byte_add(52).cast::<u32>().read()
     };
 
-    let host_run_frame_input = unsafe {
+    /* pattern is brokey
+    * let host_run_frame_input = unsafe {
         let address = patterns
             .address_of(
                 "engine_client.so",
@@ -189,9 +148,9 @@ fn main() {
             .expect("host run frame input");
 
         address
-    };
+    };*/
 
-    let cl_move = unsafe {
+    let _cl_move = unsafe {
         let cl_move = patterns
             .address_of("engine_client.so", &pattern::CL_MOVE, "cl_move")
             .expect("cl move");
@@ -203,7 +162,7 @@ fn main() {
         cl_move
     };
 
-    let write_user_command = unsafe {
+    /*let write_user_command = unsafe {
         let address = patterns
             .address_of(
                 "client_client.so",
@@ -232,7 +191,7 @@ fn main() {
             mem::transmute(address);
 
         write_user_command_delta_to_buffer
-    };
+    };*/
 
     unsafe {
         let gl_context = elysium_gl::Context::new(|symbol| gl.get_proc_address(symbol).cast());
@@ -254,7 +213,7 @@ fn main() {
 
         // e8 <relative>  call  CL_Move
         // 0x005929d3 - 0x00592910 = 195
-        {
+        /*{
             let cl_move_hook = hooks::cl_move as usize as *const u8;
             let call_cl_move = host_run_frame_input.byte_offset(195);
 
@@ -278,7 +237,7 @@ fn main() {
 
             // restore protection
             elysium_mem::protect(call_cl_move, protection);
-        }
+        }*/
 
         {
             let address = client
@@ -334,7 +293,7 @@ fn main() {
         state::hooks::set_poll_event(poll_event.replace(hooks::poll_event));
         println!("elysium | hooked \x1b[38;5;2mSDL_PollEvent\x1b[m");
 
-        {
+        /*{
             #[repr(C, packed)]
             struct Jmp4 {
                 jmp: u8,
@@ -356,6 +315,6 @@ fn main() {
 
             // restore protection
             elysium_mem::protect(base, protection);
-        }
+        }*/
     }
 }
