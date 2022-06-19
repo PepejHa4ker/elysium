@@ -16,32 +16,45 @@ const IN_JUMP: i32 = 1 << 1;
 const ON_GROUND: i32 = 1 << 0;
 
 #[inline]
-fn fix_movement(command: &mut Command, original_view_angle: Vec3, original_movement: Vec3) {
-    let f1 = if original_view_angle.y < 0.0 {
-        360.0 + original_view_angle.y
-    } else {
-        original_view_angle.y
-    };
+fn fix_movement(command: &mut Command, wish_angle: Vec3) {
+    let (mut wish_forward, mut wish_right, _wish_up) = wish_angle.angle_vector();
+    let (mut curr_forward, mut curr_right, _curr_up) = command.view_angle.angle_vector();
 
-    let f2 = if command.view_angle.y < 0.0 {
-        360.0 + command.view_angle.y
-    } else {
-        command.view_angle.y
-    };
+    wish_forward.z = 0.0;
+    wish_right.z = 0.0;
+    curr_forward.z = 0.0;
+    curr_right.z = 0.0;
 
-    let mut delta_view_angle = if f2 < f1 {
-        (f2 - f1).abs()
-    } else {
-        360.0 - (f1 - f2).abs()
-    };
+    fn normalize(vec: &mut Vec3) {
+        let radius = (vec.x * vec.x + vec.y * vec.y + vec.z * vec.z).sqrt();
+        let iradius = 1.0 / (radius + f32::EPSILON);
 
-    delta_view_angle = 360.0 - delta_view_angle;
+        vec.x *= iradius;
+        vec.y *= iradius;
+        vec.z *= iradius;
+    }
 
-    let (sin, cos) = delta_view_angle.to_radians().sin_cos();
-    let (sin_90, cos_90) = (delta_view_angle + 90.0).to_radians().sin_cos();
+    normalize(&mut wish_forward);
+    normalize(&mut wish_right);
+    normalize(&mut curr_forward);
+    normalize(&mut curr_right);
 
-    command.movement.x = cos * original_movement.x + cos_90 * original_movement.y;
-    command.movement.y = sin * original_movement.x + sin_90 * original_movement.y;
+    fn get_dir(movement: Vec3, forward: Vec3, right: Vec3) -> Vec3 {
+        let x = forward.x * movement.x + right.x * movement.y;
+        let y = forward.y * movement.x + right.y * movement.y;
+
+        Vec3::from_xy(x, y)
+    }
+
+    let wish_dir = get_dir(command.movement, wish_forward, wish_right);
+    let curr_dir = get_dir(command.movement, curr_forward, curr_right);
+
+    if wish_dir != curr_dir {
+        let denom = curr_right.y * curr_forward.x - curr_right.x * curr_forward.y;
+
+        command.movement.x = (wish_dir.x * curr_right.y - wish_dir.y * curr_right.x) / denom;
+        command.movement.y = (wish_dir.y * curr_forward.x - wish_dir.x * curr_forward.y) / denom;
+    }
 }
 
 // TODO: find out how the fuck to fix the legs being spaz
@@ -105,7 +118,7 @@ unsafe fn do_create_move(command: &mut Command, local: &Entity) {
 
     state::local::set_was_on_ground(on_ground);
 
-    let side = if command.command % 2 != 0 { 1.0 } else { -1.0 };
+    let side = if command.command % 3 != 0 { 1.0 } else { -1.0 };
 
     if (local.flags() & ON_GROUND) == 0 {
         let velocity = local.velocity();
@@ -151,16 +164,16 @@ unsafe fn do_create_move(command: &mut Command, local: &Entity) {
 
         command.movement.x = 0.0;
 
-        fix_movement(command, wish_angle, command.movement);
+        fix_movement(command, wish_angle);
     }
 
     command.view_angle.x = 89.0;
-    command.view_angle.y += 180.0 + (52.0 * side);
-    command.view_angle.z += 50.0 * side;
+    command.view_angle.y += 180.0; // + (52.0 * side);
+    command.view_angle.z += 50.0; // * side;
 
     command.view_angle = command.view_angle.sanitize_angle();
 
-    fix_movement(command, *state::view_angle(), command.movement);
+    fix_movement(command, *state::view_angle());
 
     command.state |= IN_BULLRUSH;
 
@@ -201,7 +214,16 @@ pub unsafe extern "C" fn create_move(
         return false;
     }
 
+    let rbp: *mut *mut bool;
+
+    core::arch::asm!("mov {}, rbp", out(reg) rbp, options(nostack));
+
+    let send_packet = &mut *(*rbp).sub(24);
+
+    *send_packet = command.command % 2 != 0;
+
     do_create_move(command, local);
+
     state::local::set_view_angle(command.view_angle);
 
     false

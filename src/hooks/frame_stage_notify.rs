@@ -90,8 +90,6 @@ pub unsafe extern "C" fn frame_stage_notify(this: *const u8, frame: i32) {
             Frame::RenderStart => {
                 if input.thirdperson {
                     // fix the local player's view_angle when in thirdperson
-                    println!("{:?}", state::local::view_angle());
-
                     *entity.view_angle() = state::local::view_angle();
                 } else {
                     // in cooperation with override_view, this will change the view model's position.
