@@ -91,6 +91,8 @@ pub unsafe extern "C" fn frame_stage_notify(this: *const u8, frame: i32) {
                 if input.thirdperson {
                     // fix the local player's view_angle when in thirdperson
                     *entity.view_angle() = state::local::view_angle();
+                    // other players can't see roll, so why should we?
+                    entity.view_angle().z = 0.0;
                 } else {
                     // in cooperation with override_view, this will change the view model's position.
                     if state::local::use_shot_view_angle() != 0.0 {

@@ -11,8 +11,10 @@ const IN_BACKWARD: i32 = 1 << 4;
 const IN_LEFTWARD: i32 = 1 << 7;
 const IN_RIGHTWARD: i32 = 1 << 8;
 
+const IN_ATTACK: i32 = 1 << 0;
 const IN_BULLRUSH: i32 = 1 << 22;
 const IN_JUMP: i32 = 1 << 1;
+
 const ON_GROUND: i32 = 1 << 0;
 
 #[inline]
@@ -101,22 +103,28 @@ fn calculate_angle(src: Vec3, dst: Vec3) -> Vec3 {
 }
 
 #[inline]
-unsafe fn do_create_move(command: &mut Command, local: &Entity) {
+unsafe fn do_create_move(command: &mut Command, local: &Entity, send_packet: &mut bool) {
     // can you dont when on ladder or in noclip
     if matches!(local.move_kind(), 8 | 9) {
         return;
     }
 
+    if state::local::was_attacking() {
+        command.state &= !IN_ATTACK;
+    }
+
+    let do_attack = (command.state & IN_ATTACK) != 0;
     let do_jump = (command.state & IN_JUMP) != 0;
     let on_ground = (local.flags() & ON_GROUND) != 0;
+
+    state::local::set_was_attacking(do_attack);
+    state::local::set_was_on_ground(on_ground);
 
     if do_jump {
         if !on_ground && !state::local::was_on_ground() {
             command.state &= !IN_JUMP;
         }
     }
-
-    state::local::set_was_on_ground(on_ground);
 
     let side = if command.command % 3 != 0 { 1.0 } else { -1.0 };
 
@@ -167,9 +175,37 @@ unsafe fn do_create_move(command: &mut Command, local: &Entity) {
         fix_movement(command, wish_angle);
     }
 
-    command.view_angle.x = 89.0;
-    command.view_angle.y += 180.0; // + (52.0 * side);
-    command.view_angle.z += 50.0; // * side;
+    // 89.0 = down, -89.0 = up
+    let pitch = command.view_angle.x;
+
+    // 180.0 for backwards
+    let yaw_base = 0.0;
+
+    // roll base
+    let roll_base = 0.0;
+
+    // how much to jitter yaw
+    let jitter_yaw = 0.0;
+
+    // how much to jitter roll
+    let jitter_roll = 50.0;
+
+    // note: remember, desync isnt static, nor can it always be 58.0;
+    let desync = 58.0;
+
+    command.view_angle.x = pitch;
+    command.view_angle.y += yaw_base - desync + (jitter_yaw * side);
+    command.view_angle.z += roll_base + jitter_roll * side;
+
+    if *send_packet {
+        command.view_angle.y += 58.0;
+    } else {
+        command.view_angle.y += 120.0;
+    }
+
+    if do_attack {
+        command.view_angle = *state::view_angle();
+    }
 
     command.view_angle = command.view_angle.sanitize_angle();
 
@@ -222,9 +258,11 @@ pub unsafe extern "C" fn create_move(
 
     *send_packet = command.command % 2 != 0;
 
-    do_create_move(command, local);
+    do_create_move(command, local, send_packet);
 
-    state::local::set_view_angle(command.view_angle);
+    if *send_packet {
+        state::local::set_view_angle(command.view_angle);
+    }
 
     false
 }
