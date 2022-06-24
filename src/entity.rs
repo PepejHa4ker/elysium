@@ -25,8 +25,8 @@ vtable_validate! {
 #[repr(C)]
 pub struct Entity {
     vtable: &'static VTable,
-    renderable: &'static Renderable,
-    networkable: &'static Networkable,
+    renderable: Renderable,
+    networkable: Networkable,
 }
 
 object_validate! {
@@ -37,6 +37,12 @@ object_validate! {
 }
 
 impl Entity {
+    /// the entity's class
+    #[inline]
+    pub fn client_class(&self) -> *const u8 {
+        self.networkable.client_class()
+    }
+
     /// is the entity dormant
     #[inline]
     pub fn is_dormant(&self) -> bool {
@@ -152,6 +158,42 @@ impl Entity {
     #[inline]
     pub fn view_offset(&self) -> Vec3 {
         *self.networked(|networked| networked.base_player.view_offset)
+    }
+
+    /// only for fog
+    #[inline]
+    pub fn is_enabled(&self) -> &mut bool {
+        self.networked(|networked| networked.fog.is_enabled)
+    }
+
+    /// only for fog
+    #[inline]
+    pub fn start_distance(&self) -> &mut f32 {
+        self.networked(|networked| networked.fog.start)
+    }
+
+    /// only for fog
+    #[inline]
+    pub fn end_distance(&self) -> &mut f32 {
+        self.networked(|networked| networked.fog.end)
+    }
+
+    /// only for fog
+    #[inline]
+    pub fn far_z(&self) -> &mut f32 {
+        self.networked(|networked| networked.fog.far_z)
+    }
+
+    /// only for fog
+    #[inline]
+    pub fn density(&self) -> &mut f32 {
+        self.networked(|networked| networked.fog.density)
+    }
+
+    /// only for fog
+    #[inline]
+    pub fn color_primary(&self) -> &mut u32 {
+        self.networked(|networked| networked.fog.color_primary)
     }
 
     /// only for base players

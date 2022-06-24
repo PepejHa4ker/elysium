@@ -2,7 +2,9 @@ use crate::{state, Entity};
 use core::mem;
 use core::ptr::NonNull;
 use elysium_math::Vec3;
+use elysium_sdk::client::Class;
 use elysium_sdk::convar::Vars;
+use elysium_sdk::entity::EntityId;
 use elysium_sdk::{Engine, EntityList, Frame, Globals, Input};
 
 /// `FrameStageNotify` hook.
@@ -78,9 +80,9 @@ pub unsafe extern "C" fn frame_stage_notify(this: *const u8, frame: i32) {
     } else {
         state::local::set_player(NonNull::new_unchecked(entity.as_mut()));
 
-        let entity = &*entity.cast::<Entity>();
+        let local = &*entity.cast::<Entity>();
 
-        if entity.observer_mode().breaks_thirdperson() {
+        if local.observer_mode().breaks_thirdperson() {
             input.thirdperson = false;
         } else {
             input.thirdperson = state::local::thirdperson();
@@ -90,46 +92,96 @@ pub unsafe extern "C" fn frame_stage_notify(this: *const u8, frame: i32) {
             Frame::RenderStart => {
                 if input.thirdperson {
                     // fix the local player's view_angle when in thirdperson
-                    *entity.view_angle() = state::local::view_angle();
+                    *local.view_angle() = state::local::view_angle();
                     // other players can't see roll, so why should we?
-                    entity.view_angle().z = 0.0;
+                    local.view_angle().z = 0.0;
                 } else {
                     // in cooperation with override_view, this will change the view model's position.
                     if state::local::use_shot_view_angle() != 0.0 {
                         if state::local::use_shot_view_angle() > globals.current_time {
-                            *entity.view_angle() = state::local::shot_view_angle();
+                            *local.view_angle() = state::local::shot_view_angle();
                         } else {
-                            *entity.view_angle() = *state::view_angle();
+                            *local.view_angle() = *state::view_angle();
                             state::local::set_use_shot_view_angle(0.0);
                         }
                     }
 
                     // rotate view model
-                    entity.view_angle().z = -35.0;
+                    local.view_angle().z = -35.0;
                 }
 
                 let players = &mut *state::players();
+                println!("local player = {local:?}");
+
+                let networkable = &*(local as *const Entity)
+                    .byte_add(16)
+                    .cast::<elysium_sdk::entity::Networkable>();
+
+                let local_index = networkable.index() as usize;
+                println!("local player index = {local_index:?}");
+                let local_index = local.index() as usize;
 
                 for index in 1..=64 {
-                    let bones = &mut players[index as usize].bones;
+                    if index == local_index {
+                        println!("entity {index} is the local player");
+                        continue;
+                    }
+
+                    let bones = &mut players[index - 1].bones;
                     let entity = entity_list.get(index);
 
-                    println!("fsn ent = {entity:?}");
-
-                    if !entity.is_null() {
-                        let entity = &*entity.cast::<Entity>();
-
-                        entity.setup_bones(&mut bones[..128], 0x00000100, globals.current_time);
-                        entity.setup_bones(&mut bones[..128], 0x000FFF00, globals.current_time);
-                    } else {
+                    if entity.is_null() {
+                        println!("entity {index} is null");
                         *bones = providence_model::Bones::zero();
+                        continue;
+                    }
+
+                    let entity = &*entity.cast::<Entity>();
+
+                    if entity.is_dormant() {
+                        println!("entity {index} is dormant");
+                        *bones = providence_model::Bones::zero();
+                        continue;
+                    }
+
+                    entity.setup_bones(&mut bones[0..128], 0x00000100, globals.current_time);
+
+                    entity.setup_bones(&mut bones[0..128], 0x000FFF00, globals.current_time);
+                }
+
+                let highest_entity_index = entity_list.len();
+
+                for index in 64..=highest_entity_index {
+                    let entity = entity_list.get(index);
+
+                    if entity.is_null() {
+                        continue;
+                    }
+
+                    let entity = &*entity.cast::<Entity>();
+
+                    let class = entity.client_class();
+
+                    if class.is_null() {
+                        continue;
+                    }
+
+                    let class = &*class.cast::<Class>();
+
+                    if class.entity_id == EntityId::CFogController {
+                        *entity.is_enabled() = true;
+                        *entity.start_distance() = 1.0;
+                        *entity.end_distance() = 10000.0;
+                        *entity.far_z() = 10000.0;
+                        *entity.density() = 1.0;
+                        *entity.color_primary() = 0xFF0000FF;
                     }
                 }
             }
             _ => {
                 if input.thirdperson {
                     // restore to the expected value
-                    *entity.view_angle() = *state::view_angle();
+                    *local.view_angle() = *state::view_angle();
                 }
             }
         }

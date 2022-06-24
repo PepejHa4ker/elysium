@@ -44,6 +44,7 @@ impl Renderable {
 
     #[inline]
     pub fn setup_bones(&self, bones: &mut [Matrix3x4], mask: i32, time: f32) -> bool {
+        println!("{mask:?} {time:?}");
         unsafe {
             (self.vtable.setup_bones)(self, bones.as_mut_ptr(), bones.len() as i32, mask, time)
         }
