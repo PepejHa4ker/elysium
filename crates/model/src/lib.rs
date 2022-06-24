@@ -1,16 +1,15 @@
-use core::mem::MaybeUninit;
+use core::ops;
 use elysium_math::{Matrix3x4, Vec3};
-use std::usize;
 
 pub const MAX_BONES: usize = 256;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Bones {
-    bones: [MaybeUninit<Matrix3x4>; MAX_BONES],
+    bones: [Matrix3x4; MAX_BONES],
 }
 
 impl Bones {
-    const ZERO: MaybeUninit<Matrix3x4> = MaybeUninit::new(Matrix3x4::zero());
+    const ZERO: Matrix3x4 = Matrix3x4::zero();
 
     pub const fn zero() -> Bones {
         let bones = [Self::ZERO; MAX_BONES];
@@ -19,7 +18,7 @@ impl Bones {
     }
 
     pub unsafe fn from_raw_parts(data_address: *mut Matrix3x4) -> Bones {
-        let bones = *(data_address as *mut [MaybeUninit<Matrix3x4>; MAX_BONES]);
+        let bones = *(data_address as *mut [Matrix3x4; MAX_BONES]);
 
         Self { bones }
     }
@@ -50,5 +49,18 @@ impl Bones {
 
     pub unsafe fn get_mut_unchecked(&mut self, index: usize) -> &mut Matrix3x4 {
         &mut *self.as_mut_ptr().add(index)
+    }
+}
+
+impl ops::Deref for Bones {
+    type Target = [Matrix3x4; MAX_BONES];
+
+    fn deref(&self) -> &Self::Target {
+        &self.bones
+    }
+}
+impl ops::DerefMut for Bones {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.bones
     }
 }

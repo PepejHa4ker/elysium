@@ -4,7 +4,7 @@
 #![feature(const_ptr_write)]
 
 use regex::bytes::Regex;
-use std::lazy::SyncOnceCell;
+use std::cell::OnceCell;
 use std::marker::PhantomPinned;
 use std::{fmt, str};
 
@@ -21,7 +21,7 @@ mod validate;
 pub struct Pattern<const N: usize> {
     source: &'static str,
     pattern: [u8; N],
-    regex: SyncOnceCell<Regex>,
+    regex: OnceCell<Regex>,
     _pin: PhantomPinned,
 }
 
@@ -29,7 +29,7 @@ impl<const N: usize> Pattern<N> {
     pub const fn new(pattern: &'static str) -> Pattern<N> {
         let source = pattern;
         let pattern = parse::parse_pattern(source);
-        let regex = SyncOnceCell::new();
+        let regex = OnceCell::new();
         let _pin = PhantomPinned;
 
         Self {

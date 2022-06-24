@@ -77,15 +77,30 @@ impl Entity {
         unsafe { (self.vtable.is_player)(self) }
     }
 
-    /// only for base_entitys
     #[inline]
-    fn render_mode_address(&self) -> *const u8 {
+    pub fn observer_mode(&self) -> ObserverMode {
+        unsafe { (self.vtable.observer_mode)(self) }
+    }
+
+    /// networked variable
+    #[inline]
+    fn networked<T, F>(&self, f: F) -> &mut T
+    where
+        F: Fn(&Networked) -> usize,
+    {
         unsafe {
             let this = (self as *const Self).cast::<u8>();
             let networked = &*state::networked().cast::<Networked>();
+            let offset = f(networked);
 
-            this.byte_add(networked.base_entity.render_mode)
+            &mut *this.byte_add(offset).as_mut().cast()
         }
+    }
+
+    /// only for base_entitys
+    #[inline]
+    fn render_mode_address(&self) -> *const u8 {
+        self.networked(|networked| networked.base_entity.render_mode)
     }
 
     #[inline]
@@ -96,10 +111,7 @@ impl Entity {
     /// only for base_players
     #[inline]
     unsafe fn is_dead_address(&self) -> *const u8 {
-        let this = (self as *const Self).cast::<u8>();
-        let networked = &*state::networked().cast::<Networked>();
-
-        this.byte_add(networked.base_player.is_dead)
+        self.networked(|networked| networked.base_player.is_dead)
     }
 
     /// only for base_players
@@ -115,49 +127,51 @@ impl Entity {
     /// only for base_players
     #[inline]
     pub fn velocity(&self) -> Vec3 {
-        unsafe {
-            let this = (self as *const Self).cast::<u8>();
-            let networked = &*state::networked().cast::<Networked>();
-
-            *this.byte_add(networked.base_player.velocity).cast()
-        }
+        *self.networked(|networked| networked.base_player.velocity)
     }
 
     /// only for players
     #[inline]
     pub fn flags(&self) -> i32 {
-        unsafe {
-            let this = (self as *const Self).cast::<u8>();
-            let networked = &*state::networked().cast::<Networked>();
-
-            *this.byte_add(networked.player.flags).cast()
-        }
-    }
-
-    #[inline]
-    pub fn observer_mode(&self) -> ObserverMode {
-        unsafe { (self.vtable.observer_mode)(self) }
+        *self.networked(|networked| networked.player.flags)
     }
 
     /// only for players
     #[inline]
     pub fn armor(&self) -> i32 {
-        unsafe {
-            let this = (self as *const Self).cast::<u8>();
-            let networked = &*state::networked().cast::<Networked>();
-
-            *this.byte_add(networked.player.armor).cast()
-        }
+        *self.networked(|networked| networked.player.armor)
     }
 
     /// only for players
     #[inline]
     pub fn has_helmet(&self) -> bool {
-        unsafe {
-            let this = (self as *const Self).cast::<u8>();
-            let networked = &*state::networked().cast::<Networked>();
+        *self.networked(|networked| networked.player.has_helmet)
+    }
 
-            *this.byte_add(networked.player.has_helmet).cast()
-        }
+    /// only for base players
+    #[inline]
+    pub fn view_offset(&self) -> Vec3 {
+        *self.networked(|networked| networked.base_player.view_offset)
+    }
+
+    /// only for base players
+    #[inline]
+    pub fn eye_origin(&self) -> Vec3 {
+        let origin = self.origin();
+        let view_offset = self.view_offset();
+
+        let z = if self.flags() & (1 << 1) != 0 {
+            46.0
+        } else {
+            64.0
+        };
+
+        let view_offset = if view_offset == Vec3::zero() {
+            Vec3::from_xyz(0.0, 0.0, z)
+        } else {
+            view_offset
+        };
+
+        origin + view_offset
     }
 }

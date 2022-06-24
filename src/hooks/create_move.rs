@@ -208,12 +208,10 @@ unsafe fn do_create_move(command: &mut Command, local: &Entity, send_packet: &mu
     }
 
     command.view_angle = command.view_angle.sanitize_angle();
-
-    fix_movement(command, *state::view_angle());
-
     command.state |= IN_BULLRUSH;
 
     let entity_list = &*state::entity_list().cast::<EntityList>();
+    let players = &mut *state::players();
 
     for i in 1..=64 {
         let entity = entity_list.get(i);
@@ -223,9 +221,14 @@ unsafe fn do_create_move(command: &mut Command, local: &Entity, send_packet: &mu
             continue;
         }
 
-        //println!("{entity:?}");
+        let bones = &mut players[i as usize].bones;
+        let eye_origin = local.eye_origin();
+        let bone_origin = bones.get_origin(8).unwrap_unchecked();
+
+        command.view_angle = calculate_angle(eye_origin, bone_origin);
     }
 
+    fix_movement(command, *state::view_angle());
     leg_animation_walk(command);
 }
 

@@ -107,6 +107,24 @@ pub unsafe extern "C" fn frame_stage_notify(this: *const u8, frame: i32) {
                     // rotate view model
                     entity.view_angle().z = -35.0;
                 }
+
+                let players = &mut *state::players();
+
+                for index in 1..=64 {
+                    let bones = &mut players[index as usize].bones;
+                    let entity = entity_list.get(index);
+
+                    println!("fsn ent = {entity:?}");
+
+                    if !entity.is_null() {
+                        let entity = &*entity.cast::<Entity>();
+
+                        entity.setup_bones(&mut bones[..128], 0x00000100, globals.current_time);
+                        entity.setup_bones(&mut bones[..128], 0x000FFF00, globals.current_time);
+                    } else {
+                        *bones = providence_model::Bones::zero();
+                    }
+                }
             }
             _ => {
                 if input.thirdperson {
